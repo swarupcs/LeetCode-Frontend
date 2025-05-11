@@ -13,16 +13,21 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 export function Login({ className, ...props }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
 
-  const handleEmailChange = (e) => setEmail(e.target.value);
-  const handlePasswordChange = (e) => setPassword(e.target.value);
+  const [loginData, setLoginData] = useState({
+    email: '',
+    password: '',
+  });
+
+  const handleEmailChange = (e) => setLoginData({...loginData, email: e.target.value});
+  const handlePasswordChange = (e) => setLoginData({...loginData, password: e.target.value});
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // Handle login logic here
   };
+
+  console.log("loginData", loginData);
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
@@ -47,7 +52,7 @@ export function Login({ className, ...props }) {
                   type='email'
                   placeholder='m@example.com'
                   required
-                  value={email}
+                  value={loginData.email}
                   onChange={handleEmailChange}
                   className='bg-premium-dark border-premium-blue/40 text-white placeholder:text-gray-500 focus:border-premium-cyan focus:ring-premium-cyan/20'
                 />
@@ -58,7 +63,7 @@ export function Login({ className, ...props }) {
                     Password
                   </Label>
                   <a
-                    href='#'
+                    href='/forgot-password'
                     className='ml-auto inline-block text-sm text-premium-cyan hover:text-premium-highlight underline-offset-4 hover:underline'
                   >
                     Forgot your password?
@@ -68,7 +73,7 @@ export function Login({ className, ...props }) {
                   id='password'
                   type='password'
                   required
-                  value={password}
+                  value={loginData.password}
                   onChange={handlePasswordChange}
                   className='bg-premium-dark border-premium-blue/40 text-white focus:border-premium-cyan focus:ring-premium-cyan/20'
                 />
