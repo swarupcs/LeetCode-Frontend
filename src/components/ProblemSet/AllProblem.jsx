@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 // Mock data for demonstration
 const problemCategories = [
@@ -118,6 +119,9 @@ export default function AllProblem() {
   const [filteredProblems, setFilteredProblems] = useState(problems);
   const [selectedTopic, setSelectedTopic] = useState('All Topics');
 
+  // Add this somewhere to verify data is persisted
+  const auth = useSelector((state) => state.auth);
+  console.log('Current auth state:', auth);
   // Simulate checking if user is admin
   useEffect(() => {
     // In a real app, you would check user roles from authentication
@@ -182,10 +186,7 @@ export default function AllProblem() {
               <Link to='/discuss' className='text-gray-400 hover:text-white'>
                 Discuss
               </Link>
-              <Link
-                to='/interview'
-                className='text-gray-400 hover:text-white'
-              >
+              <Link to='/interview' className='text-gray-400 hover:text-white'>
                 Interview
               </Link>
               <Link to='/store' className='text-gray-400 hover:text-white'>
@@ -318,11 +319,11 @@ export default function AllProblem() {
           {/* Admin create button */}
           {isAdmin && (
             <div className='mb-6'>
-                <Link to='/create-problem'>
-              <Button className='bg-green-600 hover:bg-green-700'>
-                <Plus className='mr-2 h-4 w-4' />
-                Create New Problem
-              </Button>
+              <Link to='/create-problem'>
+                <Button className='bg-green-600 hover:bg-green-700'>
+                  <Plus className='mr-2 h-4 w-4' />
+                  Create New Problem
+                </Button>
               </Link>
             </div>
           )}
