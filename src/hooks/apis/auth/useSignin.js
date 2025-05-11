@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { signInRequest } from '@/apis/auth';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '@/features/auth/authSlice';
+import { store } from '@/app/store';
 // import { useAuth } from '@/hooks/context/useAuth';
 export const useSignin = () => {
   const dispatch = useDispatch();
@@ -24,6 +25,8 @@ export const useSignin = () => {
           role: data.user.role,
         })
       );
+
+      console.log('Login dispatched, current state:', store.getState());
 
       toast.success('Successfully signed in.');
     },
