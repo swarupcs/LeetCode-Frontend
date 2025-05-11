@@ -2,8 +2,11 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { signUpRequest } from '@/apis/auth';
-
+import { useDispatch } from 'react-redux';
+ import { loginSuccess } from '@/features/auth/authSlice';
 export const useSignup = () => {
+  const dispatch = useDispatch();
+
   const {
     isPending,
     isSuccess,
@@ -13,6 +16,12 @@ export const useSignup = () => {
     mutationFn: signUpRequest,
     onSuccess: (data) => {
       console.log('Scuccessfully signed up', data);
+      dispatch(
+        loginSuccess({
+          user: data.user.name, // You can modify this according to your response structure
+          role: data.user.role,
+        })
+      );
       toast.success('Successfully signed up.');
     },
     onError: (error) => {
