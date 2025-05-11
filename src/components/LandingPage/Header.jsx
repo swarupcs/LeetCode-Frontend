@@ -1,8 +1,36 @@
 import { Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 
 export function Header() {
+  // Function to handle scroll to section
+  const scrollToSection = (sectionId) => (e) => {
+    e.preventDefault();
+    const section = document.getElementById(sectionId);
+    if (section) {
+      window.scrollTo({
+        top: section.offsetTop - 80, // Offset to account for header height
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  // Handle hash links when page loads
+  useEffect(() => {
+    if (window.location.hash) {
+      const id = window.location.hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          window.scrollTo({
+            top: element.offsetTop - 80,
+            behavior: 'smooth',
+          });
+        }, 100);
+      }
+    }
+  }, []);
+
   return (
     <header className='sticky top-0 z-40 w-full border-b border-premium-blue/20 bg-premium-darker/95 backdrop-blur supports-[backdrop-filter]:bg-premium-darker/60'>
       <div className='container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0'>
@@ -12,24 +40,27 @@ export function Header() {
         </div>
         <div className='flex flex-1 items-center justify-end space-x-4'>
           <nav className='flex items-center space-x-4'>
-            <Link
-              to='/features'
-              className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block'
+            <a
+              href='#features'
+              onClick={scrollToSection('features')}
+              className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block cursor-pointer'
             >
               Features
-            </Link>
-            <Link
-              to='/how-it-works'
-              className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block'
+            </a>
+            <a
+              href='#how-it-works'
+              onClick={scrollToSection('how-it-works')}
+              className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block cursor-pointer'
             >
               How It Works
-            </Link>
-            <Link
-              to='/pricing'
-              className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block'
+            </a>
+            <a
+              href='#pricing'
+              onClick={scrollToSection('pricing')}
+              className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block cursor-pointer'
             >
               Pricing
-            </Link>
+            </a>
             <Button
               variant='outline'
               size='sm'
@@ -49,3 +80,8 @@ export function Header() {
     </header>
   );
 }
+
+// Important: Make sure your sections have matching IDs:
+// <section id="features">...</section>
+// <section id="how-it-works">...</section>
+// <section id="pricing">...</section>
