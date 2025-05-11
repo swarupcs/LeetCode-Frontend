@@ -17,9 +17,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { useSignup } from '@/hooks/apis/auth/useSignup';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useFormState } from 'react-dom';
-
+import { useEffect } from 'react';
+import { LucideLoader2, TriangleAlert } from 'lucide-react';
+import { FaCheck } from 'react-icons/fa';
 export function Signup({ className, ...props }) {
   const {
     register,
@@ -29,15 +31,26 @@ export function Signup({ className, ...props }) {
     resolver: zodResolver(signupSchema),
   });
 
+  const navigate = useNavigate();
+
   const { isPending, isSuccess, error, signupMutation } = useSignup();
 
   const onSubmit = async (data) => {
+    
     await signupMutation({
       name: data.fullName,
       email: data.email,
       password: data.password,
     });
   };
+
+  useEffect(() => {
+    if (isSuccess) {
+      setTimeout(() => {
+        navigate('/problem-set');
+      }, 2000);
+    }
+  }, [isSuccess, navigate]);
 
   return (
     <div className={cn('flex flex-col gap-2', className)} {...props}>
@@ -47,6 +60,16 @@ export function Signup({ className, ...props }) {
             Create your account
           </CardTitle>
         </CardHeader>
+        {isSuccess && (
+          <div className='bg-primary/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-primary mb-5'>
+            <FaCheck className='size-8 fill-green-500' />
+            <p className='text-sm text-white'>
+              Successfully signed in. You will be redirected to the problem page
+              in a few seconds.
+              <LucideLoader2 className='animate-spin ml-2' />
+            </p>
+          </div>
+        )}
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent>
             <div className='flex flex-col gap-3'>

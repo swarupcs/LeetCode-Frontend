@@ -9,8 +9,11 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSignin } from '@/hooks/apis/auth/useSignin';
+import { FaCheck } from 'react-icons/fa';
+import { LucideLoader2 } from 'lucide-react';
 
 export function Login({ className, ...props }) {
 
@@ -19,13 +22,30 @@ export function Login({ className, ...props }) {
     password: '',
   });
 
+  const navigate = useNavigate();
+
+  const { isPending, isSuccess, error, signinMutation } = useSignin();
+
+
   const handleEmailChange = (e) => setLoginData({...loginData, email: e.target.value});
   const handlePasswordChange = (e) => setLoginData({...loginData, password: e.target.value});
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Handle login logic here
+    await signinMutation({
+      email: loginData.email,
+      password: loginData.password,
+    });
   };
+
+    useEffect(() => {
+      if (isSuccess) {
+        setTimeout(() => {
+          navigate('/problem-set');
+        }, 2000);
+      }
+    }, [isSuccess, navigate]);
 
   console.log("loginData", loginData);
 
@@ -40,6 +60,16 @@ export function Login({ className, ...props }) {
             Enter your email below to login to your account
           </CardDescription>
         </CardHeader>
+        {isSuccess && (
+          <div className='bg-primary/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-primary mb-5'>
+            <FaCheck className='size-8 fill-green-500' />
+            <p className='text-sm text-white'>
+              Successfully signed in. You will be redirected to the problem page
+              in a few seconds.
+              <LucideLoader2 className='animate-spin ml-2' />
+            </p>
+          </div>
+        )}
         <CardContent className=''>
           <form onSubmit={handleSubmit}>
             <div className='flex flex-col gap-6'>
