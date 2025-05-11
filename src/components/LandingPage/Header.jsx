@@ -1,6 +1,7 @@
 import { Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 export function Header() {
   // Function to handle scroll to section
@@ -61,19 +62,23 @@ export function Header() {
             >
               Pricing
             </a>
-            <Button
-              variant='outline'
-              size='sm'
-              className='mr-2 border-premium-blue/50 bg-premium-darker premium-blue text-white hover:bg-premium-blue/20 hover:text-premium-cyan'
-            >
-              Log In
-            </Button>
-            <Button
-              size='sm'
-              className='bg-premium-purple hover:bg-premium-highlight text-white'
-            >
-              Sign Up
-            </Button>
+            <Link to={'/login'}>
+              <Button
+                variant='outline'
+                size='sm'
+                className='mr-2 border-premium-blue/50 bg-premium-darker premium-blue text-white hover:bg-premium-blue/20 hover:text-premium-cyan'
+              >
+                Log In
+              </Button>
+            </Link>
+            <Link to={'/signup'}>
+              <Button
+                size='sm'
+                className='bg-premium-purple hover:bg-premium-highlight text-white'
+              >
+                Sign Up
+              </Button>
+            </Link>
           </nav>
         </div>
       </div>
