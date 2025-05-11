@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { isPending } from './../../../node_modules/@reduxjs/toolkit/src/matchers';
+import { useGetAllProblems } from '@/hooks/apis/getAllProblems/useGetAllProblems';
 
 // Mock data for demonstration
 const problemCategories = [
@@ -30,56 +32,56 @@ const topics = [
   { name: 'pandas', icon: null },
 ];
 
-const problems = [
-  {
-    id: 1550,
-    title: 'Three Consecutive Odds',
-    difficulty: 'Easy',
-    completion: 68.9,
-  },
-  { id: 1, title: 'Two Sum', difficulty: 'Easy', completion: 55.5 },
-  { id: 2, title: 'Add Two Numbers', difficulty: 'Medium', completion: 45.9 },
-  {
-    id: 3,
-    title: 'Longest Substring Without Repeating Characters',
-    difficulty: 'Medium',
-    completion: 36.7,
-  },
-  {
-    id: 4,
-    title: 'Median of Two Sorted Arrays',
-    difficulty: 'Hard',
-    completion: 43.5,
-  },
-  {
-    id: 5,
-    title: 'Longest Palindromic Substring',
-    difficulty: 'Medium',
-    completion: 35.6,
-  },
-  { id: 6, title: 'Zigzag Conversion', difficulty: 'Medium', completion: 51.3 },
-  { id: 7, title: 'Reverse Integer', difficulty: 'Medium', completion: 30.1 },
-  {
-    id: 8,
-    title: 'String to Integer (atoi)',
-    difficulty: 'Medium',
-    completion: 19.0,
-  },
-  {
-    id: 11,
-    title: 'Container With Most Water',
-    difficulty: 'Medium',
-    completion: 57.6,
-  },
-  { id: 12, title: 'Integer to Roman', difficulty: 'Medium', completion: 68.3 },
-  { id: 13, title: 'Roman to Integer', difficulty: 'Easy', completion: 64.6 },
-  {
-    id: 14,
-    title: 'Longest Common Prefix',
-    difficulty: 'Easy',
-    completion: 45.3,
-  },
-];
+// const problems = [
+//   {
+//     id: 1550,
+//     title: 'Three Consecutive Odds',
+//     difficulty: 'Easy',
+//     completion: 68.9,
+//   },
+//   { id: 1, title: 'Two Sum', difficulty: 'Easy', completion: 55.5 },
+//   { id: 2, title: 'Add Two Numbers', difficulty: 'Medium', completion: 45.9 },
+//   {
+//     id: 3,
+//     title: 'Longest Substring Without Repeating Characters',
+//     difficulty: 'Medium',
+//     completion: 36.7,
+//   },
+//   {
+//     id: 4,
+//     title: 'Median of Two Sorted Arrays',
+//     difficulty: 'Hard',
+//     completion: 43.5,
+//   },
+//   {
+//     id: 5,
+//     title: 'Longest Palindromic Substring',
+//     difficulty: 'Medium',
+//     completion: 35.6,
+//   },
+//   { id: 6, title: 'Zigzag Conversion', difficulty: 'Medium', completion: 51.3 },
+//   { id: 7, title: 'Reverse Integer', difficulty: 'Medium', completion: 30.1 },
+//   {
+//     id: 8,
+//     title: 'String to Integer (atoi)',
+//     difficulty: 'Medium',
+//     completion: 19.0,
+//   },
+//   {
+//     id: 11,
+//     title: 'Container With Most Water',
+//     difficulty: 'Medium',
+//     completion: 57.6,
+//   },
+//   { id: 12, title: 'Integer to Roman', difficulty: 'Medium', completion: 68.3 },
+//   { id: 13, title: 'Roman to Integer', difficulty: 'Easy', completion: 64.6 },
+//   {
+//     id: 14,
+//     title: 'Longest Common Prefix',
+//     difficulty: 'Easy',
+//     completion: 45.3,
+//   },
+// ];
 
 const featuredCourses = [
   {
@@ -114,6 +116,7 @@ const featuredCourses = [
 ];
 
 export default function AllProblem() {
+  const [problems, setProblems] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProblems, setFilteredProblems] = useState(problems);
@@ -132,6 +135,29 @@ export default function AllProblem() {
 
     checkIfAdmin();
   }, []);
+
+  const { isPending, isSuccess, error, getAllProblemsMutation } =
+    useGetAllProblems();
+
+  const getAllProblems = async () => {
+    try {
+      const data = await getAllProblemsMutation();
+      console.log('Fetched all problems:', data);
+      setProblems(data.problems);
+      setFilteredProblems(data.problems);
+    } catch (error) {
+      console.error('Error fetching problems:', error);
+    }
+  };
+
+  useEffect(() => {
+    getAllProblems();
+    if (isSuccess) {
+      console.log('Successfully fetched all problems');
+    }
+  }, []);
+
+  console.log('problems', problems);
 
   // Filter problems based on search query
   useEffect(() => {
@@ -375,7 +401,7 @@ export default function AllProblem() {
                     >
                       {problem.difficulty}
                     </span>
-                    <span className='text-gray-400 w-16 text-right'>
+                    {/* <span className='text-gray-400 w-16 text-right'>
                       {problem.completion}%
                     </span>
                     <div className='w-20 h-1 bg-gray-700 rounded-full'>
@@ -389,7 +415,7 @@ export default function AllProblem() {
                         }`}
                         style={{ width: `${problem.completion}%` }}
                       ></div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               ))}
