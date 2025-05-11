@@ -9,8 +9,7 @@ import { Footer } from '@/components/LandingPage/Footer';
 
 export default function Homepage() {
   return (
-    <div className='flex min-h-screen flex-col bg-premium-darker text-white'>
-      <Header />
+    <>
       <main className='flex-1'>
         <HeroSection />
         <FeaturesSection />
@@ -19,6 +18,6 @@ export default function Homepage() {
         <CtaSection />
       </main>
       <Footer />
-    </div>
+    </>
   );
 }
