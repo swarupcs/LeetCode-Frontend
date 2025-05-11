@@ -1,12 +1,13 @@
-import { Code } from 'lucide-react';
+import { Code, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 export function Header() {
   const location = useLocation();
-  const isAuthPage = location.pathname != "/"
-    // location.pathname === '/login' || location.pathname === '/signup';
+  const isHomePage = location.pathname === '/';
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   // Function to handle scroll to section
   const scrollToSection = (sectionId) => (e) => {
@@ -36,19 +37,52 @@ export function Header() {
     }
   }, []);
 
+  // Profile icon component for authenticated users
+  const ProfileIcon = () => (
+    <Link to='/profile' className='flex items-center'>
+      <div className='w-8 h-8 rounded-full bg-premium-purple flex items-center justify-center hover:bg-premium-highlight cursor-pointer transition-colors'>
+        <User className='h-5 w-5 text-white' />
+      </div>
+    </Link>
+  );
+
+  // Auth buttons for non-authenticated users
+  const AuthButtons = () => (
+    <>
+      <Link to={'/login'}>
+        <Button
+          variant='outline'
+          size='sm'
+          className='mr-2 border-premium-blue/50 bg-premium-darker premium-blue text-white hover:bg-premium-blue/20 hover:text-premium-cyan'
+        >
+          Log In
+        </Button>
+      </Link>
+      <Link to={'/signup'}>
+        <Button
+          size='sm'
+          className='bg-premium-purple hover:bg-premium-highlight text-white'
+        >
+          Sign Up
+        </Button>
+      </Link>
+    </>
+  );
+
   return (
     <header className='sticky top-0 z-40 w-full border-b border-premium-blue/20 bg-premium-darker/95 backdrop-blur supports-[backdrop-filter]:bg-premium-darker/60'>
       <div className='container flex h-16 items-center sm:justify-between'>
-        {isAuthPage ? (
-          // Centered logo for login/signup pages
-          <div className='flex justify-center items-center w-full'>
+        {!isHomePage ? (
+          // For non-homepage with authenticated user, show logo and profile icon
+          <div className='flex justify-between items-center w-full'>
             <Link to='/' className='flex gap-2 items-center text-xl font-bold'>
               <Code className='h-6 w-6 text-premium-cyan' />
               <span className='premium-text-gradient'>algodrill</span>
             </Link>
+            {isAuthenticated && <ProfileIcon />}
           </div>
         ) : (
-          // Original header layout for other pages
+          // Original header layout for homepage
           <>
             <div className='flex gap-2 items-center text-xl font-bold'>
               <Code className='h-6 w-6 text-premium-cyan' />
@@ -77,23 +111,7 @@ export function Header() {
                 >
                   Pricing
                 </a>
-                <Link to={'/login'}>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    className='mr-2 border-premium-blue/50 bg-premium-darker premium-blue text-white hover:bg-premium-blue/20 hover:text-premium-cyan'
-                  >
-                    Log In
-                  </Button>
-                </Link>
-                <Link to={'/signup'}>
-                  <Button
-                    size='sm'
-                    className='bg-premium-purple hover:bg-premium-highlight text-white'
-                  >
-                    Sign Up
-                  </Button>
-                </Link>
+                {isAuthenticated ? <ProfileIcon /> : <AuthButtons />}
               </nav>
             </div>
           </>
