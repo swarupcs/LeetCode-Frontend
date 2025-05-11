@@ -1,5 +1,4 @@
 import axios from '@/config/axiosConfig';
-import { loginSuccess } from '@/features/auth/authSlice';
 
 
 export const signUpRequest = async ({ email, password, name }) => {

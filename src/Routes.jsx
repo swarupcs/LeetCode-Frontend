@@ -7,8 +7,10 @@ import { Header } from './components/LandingPage/Header';
 import { SignupPage } from './Pages/Auth/SignupPage';
 import { LoginPage } from './Pages/Auth/LoginPage';
 import { ProblemPage } from './Pages/ProblemSet/ProblemPage';
-import CreateProblemPage from './components/CreateProblem/CreateProblem';
 
+import { PrivateRoute, PublicRoute } from './lib/ProtectedRote/ProtectedRoute';
+import { ProfilePage } from './Pages/Profile/ProfilePage';
+import { CreateProblemPage } from './Pages/ProblemSet/CreateProblemPage';
 // Layout component that includes the Header for all pages
 const Layout = ({ children }) => {
   return (
@@ -34,7 +36,9 @@ export const AppRoutes = () => {
         path='/login'
         element={
           <Layout>
-            <LoginPage />
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
           </Layout>
         }
       />
@@ -42,7 +46,9 @@ export const AppRoutes = () => {
         path='/signup'
         element={
           <Layout>
-            <SignupPage />
+            <PublicRoute>
+              <SignupPage />
+            </PublicRoute>
           </Layout>
         }
       />
@@ -50,7 +56,9 @@ export const AppRoutes = () => {
         path='/problem-set'
         element={
           <Layout>
-            <ProblemPage />
+            <PrivateRoute>
+              <ProblemPage />
+            </PrivateRoute>
           </Layout>
         }
       />
@@ -58,7 +66,19 @@ export const AppRoutes = () => {
         path='/create-problem'
         element={
           <Layout>
-            <CreateProblemPage/>
+            <PrivateRoute>
+              <CreateProblemPage />
+            </PrivateRoute>
+          </Layout>
+        }
+      />
+      <Route
+        path='/profile'
+        element={
+          <Layout>
+            <PrivateRoute>
+              <ProfilePage />
+            </PrivateRoute>
           </Layout>
         }
       />
