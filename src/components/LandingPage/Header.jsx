@@ -5,8 +5,8 @@ import { Link, useLocation } from 'react-router-dom';
 
 export function Header() {
   const location = useLocation();
-  const isAuthPage =
-    location.pathname === '/login' || location.pathname === '/signup';
+  const isAuthPage = location.pathname != "/"
+    // location.pathname === '/login' || location.pathname === '/signup';
 
   // Function to handle scroll to section
   const scrollToSection = (sectionId) => (e) => {

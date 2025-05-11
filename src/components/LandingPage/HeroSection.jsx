@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CodeExample } from './CodeExample';
+import { Link } from 'react-router-dom';
 
 
 export function HeroSection() {
@@ -31,13 +32,15 @@ export function HeroSection() {
               >
                 Start Coding Now <ArrowRight className='h-4 w-4' />
               </Button>
-              <Button
-                size='lg'
-                variant='outline'
-                className='border-premium-blue/50 bg-premium-darker text-white hover:bg-premium-blue/20 hover:text-premium-cyan'
-              >
-                Explore Challenges
-              </Button>
+              <Link to={'/problem-set'}>
+                <Button
+                  size='lg'
+                  variant='outline'
+                  className='border-premium-blue/50 bg-premium-darker text-white hover:bg-premium-blue/20 hover:text-premium-cyan'
+                >
+                  Explore Challenges
+                </Button>
+              </Link>
             </div>
             <div className='flex items-center space-x-4 text-sm'>
               <div className='flex items-center gap-1'>
