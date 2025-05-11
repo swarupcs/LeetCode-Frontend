@@ -1,6 +1,6 @@
 import axios from '@/config/axiosConfig';
 import { loginSuccess } from '@/features/auth/authSlice';
-import { useDispatch } from 'react-redux';
+
 
 export const signUpRequest = async ({ email, password, name }) => {
   try {
@@ -32,12 +32,3 @@ export const signInRequest = async ({ email, password }) => {
   }
 };
 
-
-
-// Action to store user data in Redux after successful login or signup
-export const handleLoginSuccess = (data, dispatch) => {
-  dispatch(loginSuccess({
-    user: data.user,  // User data (name, email, etc.)
-    role: data.role,  // User role (admin or user)
-  }));
-};

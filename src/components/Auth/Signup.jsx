@@ -22,7 +22,7 @@ import { useFormState } from 'react-dom';
 import { useEffect } from 'react';
 import { LucideLoader2, TriangleAlert } from 'lucide-react';
 import { FaCheck } from 'react-icons/fa';
-import { useDispatch } from 'react-redux';
+
 export function Signup({ className, ...props }) {
   const {
     register,
@@ -33,7 +33,7 @@ export function Signup({ className, ...props }) {
   });
 
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+
 
   const { isPending, isSuccess, error, signupMutation } = useSignup();
 

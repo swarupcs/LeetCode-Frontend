@@ -2,9 +2,12 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { signInRequest } from '@/apis/auth';
+import { useDispatch } from 'react-redux';
+import { loginSuccess } from '@/features/auth/authSlice';
 // import { useAuth } from '@/hooks/context/useAuth';
 export const useSignin = () => {
-//   const { setAuth } = useAuth();
+  const dispatch = useDispatch();
+
   const {
     isPending,
     isSuccess,
@@ -12,22 +15,21 @@ export const useSignin = () => {
     mutateAsync: signinMutation,
   } = useMutation({
     mutationFn: signInRequest,
-    onSuccess: (response) => {
-      console.log('Scuccessfully signed in', response);
-    //   toast.success('Successfully signed in');
-    //   const userObject = JSON.stringify(response.data);
+    onSuccess: (data) => {
+      console.log('Scuccessfully signed in', data);
 
-    //   localStorage.setItem('user', userObject);
-    //   localStorage.setItem('token', response.data.token);
-    //   setAuth({
-    //     token: response.data.token,
-    //     user: response.data,
-    //     loading: false,
-    //   });
+      dispatch(
+        loginSuccess({
+          user: data.user.name, 
+          role: data.user.role,
+        })
+      );
+
+      toast.success('Successfully signed in.');
     },
     onError: (error) => {
       console.error('Failed to sign in', error);
-      toast.error('Failed to sign in');
+      toast.error('Failed to sign in. Please try again.');
     },
   });
 

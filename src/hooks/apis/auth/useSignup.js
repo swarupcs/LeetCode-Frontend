@@ -18,7 +18,7 @@ export const useSignup = () => {
       console.log('Scuccessfully signed up', data);
       dispatch(
         loginSuccess({
-          user: data.user.name, // You can modify this according to your response structure
+          user: data.user.name, 
           role: data.user.role,
         })
       );
