@@ -6,6 +6,8 @@ import { Notfound } from './Pages/Notfound/NotFound';
 import { Header } from './components/LandingPage/Header';
 import { SignupPage } from './Pages/Auth/SignupPage';
 import { LoginPage } from './Pages/Auth/LoginPage';
+import { ProblemPage } from './Pages/ProblemSet/ProblemPage';
+import CreateProblemPage from './components/CreateProblem/CreateProblem';
 
 // Layout component that includes the Header for all pages
 const Layout = ({ children }) => {
@@ -41,6 +43,22 @@ export const AppRoutes = () => {
         element={
           <Layout>
             <SignupPage />
+          </Layout>
+        }
+      />
+      <Route
+        path='/problem-set'
+        element={
+          <Layout>
+            <ProblemPage />
+          </Layout>
+        }
+      />
+      <Route
+        path='/create-problem'
+        element={
+          <Layout>
+            <CreateProblemPage/>
           </Layout>
         }
       />
