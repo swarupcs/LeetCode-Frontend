@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useState } from 'react';
-import { Code } from 'lucide-react';
+
 import { Link } from 'react-router-dom';
 
 export function Signup({ className, ...props }) {
@@ -20,7 +20,6 @@ export function Signup({ className, ...props }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [agreed, setAgreed] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
