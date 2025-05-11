@@ -214,15 +214,15 @@ export default function CreateProblemForm() {
         <Card className='bg-green-900 border border-blue-800/20 text-white shadow-lg premium-border-gradient'>
           <CardContent className='pt-6'>
             {isSuccess && (
-            <div className='bg-primary/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-primary mb-5'>
-              <FaCheck className='size-8 fill-green-500' />
-              <p className='text-sm text-white'>
-                Successfully signed in. You will be redirected to the problem
-                page in a few seconds.
-                <LucideLoader2 className='animate-spin ml-2' />
-              </p>
-            </div>
-             )}
+              <div className='bg-primary/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-primary mb-5'>
+                <FaCheck className='size-8 fill-green-500' />
+                <p className='text-sm text-white'>
+                  Successfully signed in. You will be redirected to the problem
+                  page in a few seconds.
+                  <LucideLoader2 className='animate-spin ml-2' />
+                </p>
+              </div>
+            )}
             <h2 className='text-xl font-semibold mb-4'>Basic Information</h2>
             <div className='space-y-4'>
               <InputField
@@ -330,8 +330,9 @@ export default function CreateProblemForm() {
                 }
                 size='sm'
                 variant='outline'
+                className='bg-zinc-800'
               >
-                <PlusCircle size={16} className='mr-2' />
+                <PlusCircle size={16} className='mr-2 ' />
                 Add Example
               </Button>
             </div>
@@ -363,13 +364,18 @@ export default function CreateProblemForm() {
           <CardContent className='pt-6'>
             <div className='flex justify-between items-center mb-4'>
               <h2 className='text-xl font-semibold'>Test Cases</h2>
-              <Button onClick={addTestCase} size='sm' variant='outline'>
+              <Button
+                onClick={addTestCase}
+                size='sm'
+                variant='outline'
+                className='bg-zinc-800'
+              >
                 <PlusCircle size={16} className='mr-2' />
                 Add Test Case
               </Button>
             </div>
 
-            <div className='space-y-4'>
+            <div className='space-y-4 '>
               {problem.testcases.map((testcase, index) => (
                 <TestCase
                   key={index}
