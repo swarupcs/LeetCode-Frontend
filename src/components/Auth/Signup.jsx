@@ -14,17 +14,32 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useState } from 'react';
 
 import { Link } from 'react-router-dom';
+import { useSignup } from '@/hooks/apis/auth/useSignup';
 
 export function Signup({ className, ...props }) {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleSubmit = (e) => {
+  const [signupData, setSignupData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+
+  const { isPending, isSuccess, error, signupMutation } = useSignup();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    await signupMutation({
+      name: signupData.fullName,
+      email: signupData.email,
+      password: signupData.password,
+    });
+
     // Handle signup logic here
   };
+
+  console.log("signupData", signupData);
 
   return (
     <div className={cn('flex flex-col gap-2', className)} {...props}>
@@ -45,8 +60,10 @@ export function Signup({ className, ...props }) {
                 type='text'
                 placeholder='John Doe'
                 required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                value={signupData.fullName}
+                onChange={(e) =>
+                  setSignupData({ ...signupData, fullName: e.target.value })
+                }
                 className='bg-premium-dark border-premium-blue/40 text-white placeholder:text-gray-500 focus:border-premium-cyan focus:ring-premium-cyan/20'
               />
             </div>
@@ -60,8 +77,10 @@ export function Signup({ className, ...props }) {
                 type='email'
                 placeholder='john@example.com'
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={signupData.email}
+                onChange={(e) =>
+                  setSignupData({ ...signupData, email: e.target.value })
+                }
                 className='bg-premium-dark border-premium-blue/40 text-white placeholder:text-gray-500 focus:border-premium-cyan focus:ring-premium-cyan/20'
               />
             </div>
@@ -74,8 +93,10 @@ export function Signup({ className, ...props }) {
                 id='password'
                 type='password'
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={signupData.password}
+                onChange={(e) =>
+                  setSignupData({ ...signupData, password: e.target.value })
+                }
                 className='bg-premium-dark border-premium-blue/40 text-white focus:border-premium-cyan focus:ring-premium-cyan/20'
               />
               {/* <p className='text-xs text-gray-400'>
@@ -92,8 +113,8 @@ export function Signup({ className, ...props }) {
                 id='confirmPassword'
                 type='password'
                 required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                value={signupData.confirmPassword}
+                onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
                 className='bg-premium-dark border-premium-blue/40 text-white focus:border-premium-cyan focus:ring-premium-cyan/20'
               />
             </div>
