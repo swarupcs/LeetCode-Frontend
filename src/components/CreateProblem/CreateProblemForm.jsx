@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,7 +6,7 @@ import InputField from './InputField';
 import CodeSnippet from './CodeSnippet';
 import TestCase from './TestCase';
 import Examples from './Examples';
-import { PlusCircle, Save, Trash2 } from 'lucide-react';
+import { LucideLoader2, PlusCircle, Save, Trash2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -17,6 +17,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useCreateProblem } from '@/hooks/apis/createProblem/useCreateProblem';
+import { useNavigate } from 'react-router-dom';
+import { FaCheck } from 'react-icons/fa';
 // import { toast } from "@/hooks/use-toast"
 // import { useTheme } from "next-themes"
 
@@ -49,6 +52,7 @@ import { toast } from 'sonner';
 const SUPPORTED_LANGUAGES = ['PYTHON', 'JAVASCRIPT', 'JAVA'];
 
 export default function CreateProblemForm() {
+  
   const [problem, setProblem] = useState({
     title: '',
     description: '',
@@ -60,11 +64,9 @@ export default function CreateProblemForm() {
     constraints: '',
     testcases: [{ input: '', output: '' }],
     codeSnippets: {
-      PYTHON:
-        'def is_palindrome(n):\n    # Write your code here\n    return False\n\nimport sys\nn = int(sys.stdin.read())\nprint(str(is_palindrome(n)).lower())',
-      JAVASCRIPT:
-        "const fs = require('fs');\n\nfunction isPalindrome(n) {\n    // Write your code here\n    return false;\n}\n\nconst input = fs.readFileSync(0, 'utf-8').trim();\nconst n = Number(input);\nconsole.log(isPalindrome(n));",
-      JAVA: 'import java.util.Scanner;\n\npublic class Main {\n    public static boolean isPalindrome(int n) {\n        // Write your code here\n        return false;\n    }\n\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        System.out.println(isPalindrome(n));\n    }\n}',
+      PYTHON: '',
+      JAVASCRIPT: '',
+      JAVA: '',
     },
     referenceSolutions: {
       PYTHON: '',
@@ -159,30 +161,68 @@ export default function CreateProblemForm() {
     }));
   };
 
+  const { isPending, isSuccess, error, createProblemMutation } = useCreateProblem();
+  console.log('problem', problem);
+
+  const navigate = useNavigate();
   // Handle form submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validate form
     if (!problem.title || !problem.description) {
       toast.warning('Missing required fields');
       return;
     }
 
+    
+
+    
+
     // Convert to JSON
     const problemJson = JSON.stringify(problem, null, 2);
-    console.log("problemJson ", problemJson);
+    console.log('problemJson ', problemJson);
+
+    await createProblemMutation({
+      title: problem.title,
+      description: problem.description,
+      difficulty: problem.difficulty,
+      tags: problem.tags,
+      examples: problem.examples,
+      constraints: problem.constraints,
+      testcases: problem.testcases,
+      codeSnippets: problem.codeSnippets,
+      referenceSolutions: problem.referenceSolutions,
+    });
 
     // Here you would typically send this to your API
-    toast.success( 'Your problem has been created and saved.');
+    toast.success('Your problem has been created and saved.');
   };
 
+      useEffect(() => {
+        if (isSuccess) {
+          setTimeout(() => {
+            navigate('/problem-set');
+          }, 1500);
+        }
+      }, [isSuccess, navigate]);
+
   return (
-    <div className='container mx-auto py-8 bg-slate-900 text-slate-50'>
+    <div className='container mx-auto py-8 bg-premium-darker text-slate-50'>
       <h1 className='text-3xl font-bold mb-6'>Create New Problem</h1>
 
       <div className='space-y-8'>
         {/* Basic Information */}
-        <Card>
+        <Card className='bg-green-900 border border-blue-800/20 text-white shadow-lg premium-border-gradient'>
           <CardContent className='pt-6'>
+            {isSuccess && (
+            <div className='bg-primary/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-primary mb-5'>
+              <FaCheck className='size-8 fill-green-500' />
+              <p className='text-sm text-white'>
+                Successfully signed in. You will be redirected to the problem
+                page in a few seconds.
+                <LucideLoader2 className='animate-spin ml-2' />
+              </p>
+            </div>
+             )}
             <h2 className='text-xl font-semibold mb-4'>Basic Information</h2>
             <div className='space-y-4'>
               <InputField
@@ -276,7 +316,7 @@ export default function CreateProblemForm() {
         </Card>
 
         {/* Examples */}
-        <Card>
+        <Card className='bg-green-900 border border-blue-800/20 text-white shadow-lg premium-border-gradient'>
           <CardContent className='pt-6'>
             <h2 className='text-xl font-semibold mb-4'>Examples</h2>
             <div className='flex justify-between items-center mb-4'>
@@ -319,7 +359,7 @@ export default function CreateProblemForm() {
         </Card>
 
         {/* Test Cases */}
-        <Card>
+        <Card className='bg-green-900 border border-blue-800/20 text-white shadow-lg premium-border-gradient'>
           <CardContent className='pt-6'>
             <div className='flex justify-between items-center mb-4'>
               <h2 className='text-xl font-semibold'>Test Cases</h2>
@@ -344,7 +384,7 @@ export default function CreateProblemForm() {
         </Card>
 
         {/* Code Snippets */}
-        <Card>
+        <Card className='bg-green-900 border border-blue-800/20 text-white shadow-lg premium-border-gradient'>
           <CardContent className='pt-6'>
             <h2 className='text-xl font-semibold mb-4'>Code Snippets</h2>
             <Tabs defaultValue='PYTHON'>
@@ -371,7 +411,7 @@ export default function CreateProblemForm() {
         </Card>
 
         {/* Reference Solutions */}
-        <Card>
+        <Card className='bg-green-900 border border-blue-800/20 text-white shadow-lg premium-border-gradient'>
           <CardContent className='pt-6'>
             <h2 className='text-xl font-semibold mb-4'>Reference Solutions</h2>
             <Tabs defaultValue='PYTHON'>
@@ -401,7 +441,7 @@ export default function CreateProblemForm() {
         <div className='flex justify-end'>
           <Button onClick={handleSubmit} size='lg'>
             <Save size={18} className='mr-2' />
-            Save Problem
+            Create Problem
           </Button>
         </div>
       </div>
