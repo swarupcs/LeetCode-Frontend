@@ -1,3 +1,8 @@
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { signupSchema } from '@/lib/validations/signupSchema';
+import { z } from 'zod';
+
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,36 +15,29 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useState } from 'react';
 
-import { Link } from 'react-router-dom';
 import { useSignup } from '@/hooks/apis/auth/useSignup';
+import { Link } from 'react-router-dom';
+import { useFormState } from 'react-dom';
 
 export function Signup({ className, ...props }) {
-
-  const [signupData, setSignupData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(signupSchema),
   });
 
   const { isPending, isSuccess, error, signupMutation } = useSignup();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const onSubmit = async (data) => {
     await signupMutation({
-      name: signupData.fullName,
-      email: signupData.email,
-      password: signupData.password,
+      name: data.fullName,
+      email: data.email,
+      password: data.password,
     });
-
-    // Handle signup logic here
   };
-
-  console.log("signupData", signupData);
 
   return (
     <div className={cn('flex flex-col gap-2', className)} {...props}>
@@ -49,126 +47,103 @@ export function Signup({ className, ...props }) {
             Create your account
           </CardTitle>
         </CardHeader>
-        <CardContent className=''>
-          <div className='flex flex-col gap-3'>
-            <div className='grid gap-3'>
-              <Label htmlFor='fullName' className='text-gray-200'>
-                Full Name
-              </Label>
-              <Input
-                id='fullName'
-                type='text'
-                placeholder='John Doe'
-                required
-                value={signupData.fullName}
-                onChange={(e) =>
-                  setSignupData({ ...signupData, fullName: e.target.value })
-                }
-                className='bg-premium-dark border-premium-blue/40 text-white placeholder:text-gray-500 focus:border-premium-cyan focus:ring-premium-cyan/20'
-              />
-            </div>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <CardContent>
+            <div className='flex flex-col gap-3'>
+              <div className='grid gap-1.5'>
+                <Label htmlFor='fullName' className='text-gray-200'>
+                  Full Name
+                </Label>
+                <Input
+                  id='fullName'
+                  {...register('fullName')}
+                  placeholder='John Doe'
+                  className='bg-premium-dark border-premium-blue/40 text-white placeholder:text-gray-500'
+                />
+                {errors.fullName && (
+                  <p className='text-sm text-red-500'>
+                    {errors.fullName.message}
+                  </p>
+                )}
+              </div>
 
-            <div className='grid gap-3'>
-              <Label htmlFor='email' className='text-gray-200'>
-                Email
-              </Label>
-              <Input
-                id='email'
-                type='email'
-                placeholder='john@example.com'
-                required
-                value={signupData.email}
-                onChange={(e) =>
-                  setSignupData({ ...signupData, email: e.target.value })
-                }
-                className='bg-premium-dark border-premium-blue/40 text-white placeholder:text-gray-500 focus:border-premium-cyan focus:ring-premium-cyan/20'
-              />
-            </div>
+              <div className='grid gap-1.5'>
+                <Label htmlFor='email' className='text-gray-200'>
+                  Email
+                </Label>
+                <Input
+                  id='email'
+                  type='email'
+                  {...register('email')}
+                  placeholder='john@example.com'
+                  className='bg-premium-dark border-premium-blue/40 text-white placeholder:text-gray-500'
+                />
+                {errors.email && (
+                  <p className='text-sm text-red-500'>{errors.email.message}</p>
+                )}
+              </div>
 
-            <div className='grid gap-3'>
-              <Label htmlFor='password' className='text-gray-200'>
-                Password
-              </Label>
-              <Input
-                id='password'
-                type='password'
-                required
-                value={signupData.password}
-                onChange={(e) =>
-                  setSignupData({ ...signupData, password: e.target.value })
-                }
-                className='bg-premium-dark border-premium-blue/40 text-white focus:border-premium-cyan focus:ring-premium-cyan/20'
-              />
-              {/* <p className='text-xs text-gray-400'>
-                Password must be at least 8 characters long with a mix of
-                letters, numbers, and symbols
-              </p> */}
-            </div>
+              <div className='grid gap-1.5'>
+                <Label htmlFor='password' className='text-gray-200'>
+                  Password
+                </Label>
+                <Input
+                  id='password'
+                  type='password'
+                  {...register('password')}
+                  className='bg-premium-dark border-premium-blue/40 text-white'
+                />
+                {errors.password && (
+                  <p className='text-sm text-red-500'>
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
 
-            <div className='grid gap-3'>
-              <Label htmlFor='confirmPassword' className='text-gray-200'>
-                Confirm Password
-              </Label>
-              <Input
-                id='confirmPassword'
-                type='password'
-                required
-                value={signupData.confirmPassword}
-                onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
-                className='bg-premium-dark border-premium-blue/40 text-white focus:border-premium-cyan focus:ring-premium-cyan/20'
-              />
+              <div className='grid gap-1.5'>
+                <Label htmlFor='confirmPassword' className='text-gray-200'>
+                  Confirm Password
+                </Label>
+                <Input
+                  id='confirmPassword'
+                  type='password'
+                  {...register('confirmPassword')}
+                  className='bg-premium-dark border-premium-blue/40 text-white'
+                />
+                {errors.confirmPassword && (
+                  <p className='text-sm text-red-500'>
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
             </div>
+          </CardContent>
 
-            {/* <div className='flex items-center space-x-2'>
-              <Checkbox
-                id='terms'
-                checked={agreed}
-                onCheckedChange={setAgreed}
-                className='border-premium-blue/40 data-[state=checked]:bg-premium-cyan data-[state=checked]:border-premium-cyan'
-              />
-              <Label htmlFor='terms' className='text-sm text-gray-300'>
-                I agree to the{' '}
-                <a
-                  href='#'
-                  className='text-premium-cyan hover:text-premium-highlight underline underline-offset-4'
-                >
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a
-                  href='#'
-                  className='text-premium-cyan hover:text-premium-highlight underline underline-offset-4'
-                >
-                  Privacy Policy
-                </a>
-              </Label>
-            </div> */}
-          </div>
-        </CardContent>
-        <CardFooter className='flex flex-col gap-4 pt-2'>
-          <Button
-            onClick={handleSubmit}
-            // disabled={!agreed}
-            className='w-full bg-premium-purple hover:bg-premium-highlight text-white transition-colors disabled:bg-gray-600 disabled:text-gray-400'
-          >
-            Create Account
-          </Button>
-          <Button
-            variant='outline'
-            className='w-full border-premium-blue/50 bg-premium-darker text-white hover:bg-premium-blue/20 hover:text-premium-cyan transition-colors'
-          >
-            Sign up with Google
-          </Button>
-          <div className='mt-2 text-center text-sm text-gray-400'>
-            Already have an account?{' '}
-            <Link
-              to='/login'
-              className='text-premium-cyan hover:text-premium-highlight underline underline-offset-4'
+          <CardFooter className='flex flex-col gap-4 pt-2'>
+            <Button
+              type='submit'
+              className='w-full bg-premium-purple hover:bg-premium-highlight text-white transition-colors'
             >
-              Log in
-            </Link>
-          </div>
-        </CardFooter>
+              Create Account
+            </Button>
+            <Button
+              type='button'
+              variant='outline'
+              className='w-full border-premium-blue/50 bg-premium-darker text-white hover:bg-premium-blue/20 hover:text-premium-cyan'
+            >
+              Sign up with Google
+            </Button>
+            <div className='mt-2 text-center text-sm text-gray-400'>
+              Already have an account?{' '}
+              <Link
+                to='/login'
+                className='text-premium-cyan hover:text-premium-highlight underline underline-offset-4'
+              >
+                Log in
+              </Link>
+            </div>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );
