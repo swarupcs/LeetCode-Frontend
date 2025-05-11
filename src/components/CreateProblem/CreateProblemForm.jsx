@@ -52,6 +52,61 @@ import { FaCheck } from 'react-icons/fa';
 const SUPPORTED_LANGUAGES = ['PYTHON', 'JAVASCRIPT', 'JAVA'];
 
 export default function CreateProblemForm() {
+  // const [problem, setProblem] = useState({
+  //   title: 'Reverse Number For Test-2',
+  //   description:
+  //     'Given an integer n, return the number obtained by reversing its digits. Handle negative numbers appropriately.',
+  //   difficulty: 'EASY',
+  //   tags: ['math', 'string', 'number-theory'],
+  //   examples: {
+  //     PYTHON: {
+  //       input: '-123',
+  //       output: '-321',
+  //       explanation: 'Reversing -123 gives -321.',
+  //     },
+  //     JAVASCRIPT: {
+  //       input: '456',
+  //       output: '654',
+  //       explanation: 'Reversing 456 gives 654.',
+  //     },
+  //   },
+  //   constraints: '-10^9 ≤ n ≤ 10^9',
+  //   testcases: [
+  //     {
+  //       input: '123',
+  //       output: '321',
+  //     },
+  //     {
+  //       input: '-456',
+  //       output: '-654',
+  //     },
+  //     {
+  //       input: '1000',
+  //       output: '1',
+  //     },
+  //     {
+  //       input: '0',
+  //       output: '0',
+  //     },
+  //   ],
+  //   codeSnippets: {
+  //     PYTHON:
+  //       'def reverse_number(n):\n    # Write your code here\n    return 0\n\nimport sys\nn = int(sys.stdin.read())\nprint(reverse_number(n))',
+  //     JAVASCRIPT:
+  //       "const fs = require('fs');\n\nfunction reverseNumber(n) {\n    // Write your code here\n    return 0;\n}\n\nconst input = fs.readFileSync(0, 'utf-8').trim();\nconst n = Number(input);\nconsole.log(reverseNumber(n));",
+  //     JAVA: 'import java.util.Scanner;\n\npublic class Main {\n    public static int reverseNumber(int n) {\n        // Write your code here\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        System.out.println(reverseNumber(n));\n    }\n}',
+  //   },
+  //   referenceSolutions: {
+  //     PYTHON:
+  //       'import sys\nn = int(sys.stdin.read())\n\ndef reverse_number(n):\n    sign = -1 if n < 0 else 1\n    reversed_str = str(abs(n))[::-1]\n    print(sign * int(reversed_str))\n\nreverse_number(n)',
+  //     JAVASCRIPT:
+  //       "const fs = require('fs');\nconst input = fs.readFileSync(0, 'utf-8').trim();\nconst n = Number(input);\n\nfunction reverseNumber(n) {\n    const sign = n < 0 ? -1 : 1;\n    const reversed = Math.abs(n).toString().split('').reverse().join('');\n    return sign * parseInt(reversed);\n}\n\nconsole.log(reverseNumber(n));",
+  //     JAVA: 'import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int sign = n < 0 ? -1 : 1;\n        String reversed = new StringBuilder(Integer.toString(Math.abs(n))).reverse().toString();\n        System.out.println(sign * Integer.parseInt(reversed));\n    }\n}',
+  //   },
+  // });
+
+  // Transform examples object to array format for rendering
+  // Extract examples from the language-keyed object and convert to array
   
   const [problem, setProblem] = useState({
     title: '',
@@ -74,6 +129,13 @@ export default function CreateProblemForm() {
       JAVA: '',
     },
   });
+
+  
+  const examplesArray = Object.values(problem.examples || {}).map((ex) => ({
+    input: ex.input || '',
+    output: ex.output || '',
+    explanation: ex.explanation || '',
+  }));
 
   const [newTag, setNewTag] = useState('');
   // const { theme } = useTheme()
@@ -161,7 +223,8 @@ export default function CreateProblemForm() {
     }));
   };
 
-  const { isPending, isSuccess, error, createProblemMutation } = useCreateProblem();
+  const { isPending, isSuccess, error, createProblemMutation } =
+    useCreateProblem();
   console.log('problem', problem);
 
   const navigate = useNavigate();
@@ -172,10 +235,6 @@ export default function CreateProblemForm() {
       toast.warning('Missing required fields');
       return;
     }
-
-    
-
-    
 
     // Convert to JSON
     const problemJson = JSON.stringify(problem, null, 2);
@@ -197,13 +256,13 @@ export default function CreateProblemForm() {
     toast.success('Your problem has been created and saved.');
   };
 
-      useEffect(() => {
-        if (isSuccess) {
-          setTimeout(() => {
-            navigate('/problem-set');
-          }, 1500);
-        }
-      }, [isSuccess, navigate]);
+  useEffect(() => {
+    if (isSuccess) {
+      setTimeout(() => {
+        navigate('/problem-set');
+      }, 1500);
+    }
+  }, [isSuccess, navigate]);
 
   return (
     <div className='container mx-auto py-8 bg-premium-darker text-slate-50'>
@@ -322,12 +381,13 @@ export default function CreateProblemForm() {
             <div className='flex justify-between items-center mb-4'>
               <h2 className='text-xl font-semibold'>Examples</h2>
               <Button
-                onClick={() =>
-                  updateProblem('examples', [
-                    ...problem.examples,
-                    { input: '', output: '', explanation: '' }, // Add a new example
-                  ])
-                }
+                onClick={() => {
+                  const updatedExamples = [
+                    ...examplesArray,
+                    { input: '', output: '', explanation: '' },
+                  ];
+                  updateProblem('examples', updatedExamples);
+                }}
                 size='sm'
                 variant='outline'
                 className='bg-zinc-800'
@@ -336,12 +396,12 @@ export default function CreateProblemForm() {
                 Add Example
               </Button>
             </div>
-            {problem.examples.map((example, index) => (
+            {examplesArray.map((example, index) => (
               <Examples
                 key={index}
                 example={example}
                 onChange={(field, value) => {
-                  const updatedExamples = [...problem.examples];
+                  const updatedExamples = [...examplesArray];
                   updatedExamples[index] = {
                     ...updatedExamples[index],
                     [field]: value,
@@ -349,7 +409,7 @@ export default function CreateProblemForm() {
                   updateProblem('examples', updatedExamples);
                 }}
                 onRemove={() => {
-                  const updatedExamples = problem.examples.filter(
+                  const updatedExamples = examplesArray.filter(
                     (_, i) => i !== index
                   );
                   updateProblem('examples', updatedExamples);
