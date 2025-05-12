@@ -11,6 +11,7 @@ import { ProblemPage } from './Pages/ProblemSet/ProblemPage';
 import { PrivateRoute, PublicRoute } from './lib/ProtectedRote/ProtectedRoute';
 import { ProfilePage } from './Pages/Profile/ProfilePage';
 import { CreateProblemPage } from './Pages/ProblemSet/CreateProblemPage';
+import { IndividualProblemPage } from './Pages/IndividualProblem/IndividualProblemPage';
 // Layout component that includes the Header for all pages
 const Layout = ({ children }) => {
   return (
@@ -78,6 +79,16 @@ export const AppRoutes = () => {
           <Layout>
             <PrivateRoute>
               <ProfilePage />
+            </PrivateRoute>
+          </Layout>
+        }
+      />
+      <Route
+        path='/problems/:problemId'
+        element={
+          <Layout>
+            <PrivateRoute>
+              <IndividualProblemPage />
             </PrivateRoute>
           </Layout>
         }
