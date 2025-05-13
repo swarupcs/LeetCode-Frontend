@@ -1,7 +1,7 @@
 import { Heart, MessageSquare, Share2, Award } from 'lucide-react';
 
 export default function ProblemDescription({ problemDetails }) {
-  console.log("problemDetails", problemDetails);
+  console.log('problemDetails', problemDetails);
   return (
     <div className='p-6'>
       <h1 className='text-2xl font-bold text-zinc-100'>
@@ -45,34 +45,38 @@ export default function ProblemDescription({ problemDetails }) {
       </div>
 
       <div className='mt-8'>
-        <h2 className='text-lg font-semibold text-zinc-100'>Example 1:</h2>
-        <div className='mt-2 rounded-md bg-zinc-900 p-4 font-mono'>
-          <div>
-            <span className='text-emerald-400'>Input:</span> nums =
-            [1,1,2,3,3,4,4,8,8]
-          </div>
-          <div>
-            <span className='text-emerald-400'>Output:</span> 2
-          </div>
-        </div>
-      </div>
-
-      <div className='mt-6'>
-        <h2 className='text-lg font-semibold text-zinc-100'>Example 2:</h2>
-        <div className='mt-2 rounded-md bg-zinc-900 p-4 font-mono'>
-          <div>
-            <span className='text-emerald-400'>Input:</span> nums =
-            [3,3,7,7,10,11,11]
-          </div>
-          <div>
-            <span className='text-emerald-400'>Output:</span> 10
-          </div>
-        </div>
+        {problemDetails.examples && problemDetails.examples.length > 0 ? (
+          problemDetails.examples.map((example, idx) => (
+            <div key={idx} className='mt-4'>
+              <h3 className='text-md font-semibold text-zinc-100'>
+                Example {idx + 1}:
+              </h3>
+              <div className='mt-1 rounded-md bg-zinc-900 p-4 font-mono'>
+                <div>
+                  <span className='text-emerald-400'>Input:</span>{' '}
+                  {example.input}
+                </div>
+                <div>
+                  <span className='text-emerald-400'>Output:</span>{' '}
+                  {example.output}
+                </div>
+                <div>
+                  <span className='text-emerald-400'>Explanation:</span>{' '}
+                  {example.explanation}
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className='mt-2 text-zinc-400'>No examples available.</p>
+        )}
       </div>
 
       <div className='mt-4'>
         <h2 className='text-lg font-semibold text-zinc-100'>Constraints:</h2>
-        <p className='mt-1'>{problemDetails.constraints}</p>
+        <div className='mt-1 rounded-md bg-zinc-800 p-4'>
+          <p>{problemDetails.constraints}</p>
+        </div>
       </div>
 
       <div className='mt-8 flex items-center gap-4'>
