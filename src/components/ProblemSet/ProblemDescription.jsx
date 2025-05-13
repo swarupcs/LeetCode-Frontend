@@ -1,11 +1,10 @@
 import { Heart, MessageSquare, Share2, Award } from 'lucide-react';
 
-export default function ProblemDescription({problemDetails}) {
-    console.log("problemDetails", problemDetails);
+export default function ProblemDescription({ problemDetails }) {
+  console.log("problemDetails", problemDetails);
   return (
     <div className='p-6'>
       <h1 className='text-2xl font-bold text-zinc-100'>
-        {/* 540. Single Element in a Sorted Array */}
         {problemDetails.title}
       </h1>
 
@@ -22,9 +21,7 @@ export default function ProblemDescription({problemDetails}) {
       </div>
 
       <div className='mt-6 space-y-4 text-zinc-300'>
-        <p>
-          {problemDetails.description}
-        </p>
+        <p>{problemDetails.description}</p>
 
         <p>
           Return{' '}
@@ -71,6 +68,11 @@ export default function ProblemDescription({problemDetails}) {
             <span className='text-emerald-400'>Output:</span> 10
           </div>
         </div>
+      </div>
+
+      <div className='mt-4'>
+        <h2 className='text-lg font-semibold text-zinc-100'>Constraints:</h2>
+        <p className='mt-1'>{problemDetails.constraints}</p>
       </div>
 
       <div className='mt-8 flex items-center gap-4'>
