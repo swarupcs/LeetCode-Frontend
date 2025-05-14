@@ -1,141 +1,129 @@
+import { useEffect, useRef, useState } from 'react';
+import Editor from '@monaco-editor/react';
+import { Skeleton } from '@/components/ui/skeleton';
 
+export default function CodeEditor({ language, onChange, codeSnippets }) {
+  const [code, setCode] = useState('');
+  const [isEditorReady, setIsEditorReady] = useState(false);
+  const monacoRef = useRef(null);
+  const editorRef = useRef(null);
+  const containerRef = useRef(null);
 
-import { useEffect, useRef } from 'react';
-
-
-
-export default function CodeEditor({ language }) {
-  const editorRef = useRef<HTMLDivElement>(null);
-
+  // Update code when language or codeSnippets change.
   useEffect(() => {
-    // This is a placeholder for a real code editor integration
-    // In a real implementation, you would integrate Monaco Editor, CodeMirror, or similar
-    if (editorRef.current) {
-      const sampleCode = getSampleCode(language);
-      editorRef.current.textContent = sampleCode;
+    if (codeSnippets && Object.keys(codeSnippets).length > 0) {
+      // Convert language to uppercase to match keys in codeSnippets object.
+      const snippet = codeSnippets[language.toUpperCase()] || '';
+      setCode(snippet);
+    } else {
+      setCode('');
     }
-  }, [language]);
+  }, [language, codeSnippets]);
+
+  // Handle editor mount.
+  const handleEditorDidMount = (editor, monaco) => {
+    console.log('Editor mounted', editor, monaco);
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+    setIsEditorReady(true);
+
+    // Configure editor settings.
+    editor.updateOptions({
+      fontSize: 14,
+      fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      automaticLayout: true,
+      tabSize: 2,
+      wordWrap: 'on',
+      lineNumbers: 'on',
+      glyphMargin: false,
+      folding: true,
+      lineDecorationsWidth: 10,
+      lineNumbersMinChars: 3,
+    });
+
+    // Focus the editor shortly after mount.
+    setTimeout(() => {
+      editor.focus();
+    }, 100);
+  };
+
+  // Handle code change.
+  const handleEditorChange = (value) => {
+    setCode(value || '');
+    if (onChange) {
+      onChange(value);
+    }
+  };
+
+  // Map language to Monaco language.
+  const getMonacoLanguage = (lang) => {
+    switch (lang) {
+      case 'javascript':
+        return 'javascript';
+      case 'python':
+        return 'python';
+      case 'java':
+        return 'java';
+      case 'cpp':
+        return 'cpp';
+      default:
+        return 'javascript';
+    }
+  };
+
+  // Global error handler for ResizeObserver issues.
+  useEffect(() => {
+    const handleError = (event) => {
+      if (
+        event.message ===
+          'ResizeObserver loop completed with undelivered notifications.' ||
+        event.message === 'ResizeObserver loop limit exceeded'
+      ) {
+        event.stopImmediatePropagation();
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   return (
-    <div className='h-full w-full overflow-auto bg-zinc-900 p-4'>
-      <pre
-        ref={editorRef}
-        className='font-mono text-sm text-zinc-100'
-        style={{
+    <div ref={containerRef} className='h-full w-full overflow-hidden relative'>
+      {!isEditorReady && (
+        <div className='h-full w-full p-4 bg-zinc-900 absolute top-0 left-0 z-10'>
+          <Skeleton className='h-6 w-full mb-2 bg-zinc-800' />
+          <Skeleton className='h-6 w-3/4 mb-2 bg-zinc-800' />
+          <Skeleton className='h-6 w-5/6 mb-2 bg-zinc-800' />
+          <Skeleton className='h-6 w-2/3 mb-2 bg-zinc-800' />
+        </div>
+      )}
+      <Editor
+        height='100%'
+        width='100%'
+        language={getMonacoLanguage(language)}
+        value={code}
+        theme='vs-dark'
+        onChange={handleEditorChange}
+        onMount={handleEditorDidMount}
+        options={{
+          readOnly: false,
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          fontSize: 14,
           fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
-          lineHeight: 1.5,
+          suggestOnTriggerCharacters: true,
+          quickSuggestions: true,
+          tabSize: 2,
         }}
-      >
-        {getSampleCode(language)}
-      </pre>
+        loading={
+          <div className='flex items-center justify-center h-full'>
+            Loading editor...
+          </div>
+        }
+        className='monaco-editor-container'
+      />
     </div>
   );
-}
-
-function getSampleCode(language) {
-  switch (language) {
-    case 'javascript':
-      return `/**
- * @param {number[]} nums
- * @return {number}
- */
-var singleNonDuplicate = function(nums) {
-    let left = 0;
-    let right = nums.length - 1;
-    
-    while (left < right) {
-        let mid = Math.floor((left + right) / 2);
-        
-        // Make sure mid is even
-        if (mid % 2 === 1) {
-            mid--;
-        }
-        
-        // If the pair doesn't match, the single element is on the left
-        if (nums[mid] !== nums[mid + 1]) {
-            right = mid;
-        } else {
-            // The pair matches, so the single element is on the right
-            left = mid + 2;
-        }
-    }
-    
-    return nums[left];
-};`;
-    case 'python':
-      return `class Solution:
-    def singleNonDuplicate(self, nums: List[int]) -> int:
-        left, right = 0, len(nums) - 1
-        
-        while left < right:
-            mid = (left + right) // 2
-            
-            # Make sure mid is even
-            if mid % 2 == 1:
-                mid -= 1
-                
-            # If the pair doesn't match, the single element is on the left
-            if nums[mid] != nums[mid + 1]:
-                right = mid
-            else:
-                # The pair matches, so the single element is on the right
-                left = mid + 2
-                
-        return nums[left]`;
-    case 'java':
-      return `class Solution {
-    public int singleNonDuplicate(int[] nums) {
-        int left = 0;
-        int right = nums.length - 1;
-        
-        while (left < right) {
-            int mid = (left + right) / 2;
-            
-            // Make sure mid is even
-            if (mid % 2 == 1) {
-                mid--;
-            }
-            
-            // If the pair doesn't match, the single element is on the left
-            if (nums[mid] != nums[mid + 1]) {
-                right = mid;
-            } else {
-                // The pair matches, so the single element is on the right
-                left = mid + 2;
-            }
-        }
-        
-        return nums[left];
-    }
-}`;
-    case 'cpp':
-      return `class Solution {
-public:
-    int singleNonDuplicate(vector<int>& nums) {
-        int left = 0;
-        int right = nums.size() - 1;
-        
-        while (left < right) {
-            int mid = (left + right) / 2;
-            
-            // Make sure mid is even
-            if (mid % 2 == 1) {
-                mid--;
-            }
-            
-            // If the pair doesn't match, the single element is on the left
-            if (nums[mid] != nums[mid + 1]) {
-                right = mid;
-            } else {
-                // The pair matches, so the single element is on the right
-                left = mid + 2;
-            }
-        }
-        
-        return nums[left];
-    }
-};`;
-    default:
-      return '// Select a language to see sample code';
-  }
 }

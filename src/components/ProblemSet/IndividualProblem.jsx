@@ -38,6 +38,7 @@ export const IndividualProblem = () => {
     description: '',
     constraints: '',
     examples: [],
+    codeSnippets: {},
   });
   const problemId = useParams().problemId ;
   console.log('Problem ID:', problemId);
@@ -52,6 +53,7 @@ export const IndividualProblem = () => {
         description: response.problem.description || '',
         constraints: response.problem.constraints || '',
         examples: response.problem.examples || [],
+        codeSnippets: response.problem.codeSnippets || {},
       });
 
       // console.log('response.problem.id', response.problem.id);
@@ -186,25 +188,25 @@ export const IndividualProblem = () => {
             <TabsList className='h-10 justify-start rounded-none border-b border-zinc-800 bg-zinc-950 px-2'>
               <TabsTrigger
                 value='description'
-                className='data-[state=active]:bg-zinc-800'
+                className='data-[state=active]:bg-zinc-800 text-white'
               >
                 Description
               </TabsTrigger>
               <TabsTrigger
                 value='editorial'
-                className='data-[state=active]:bg-zinc-800'
+                className='data-[state=active]:bg-zinc-800 text-white'
               >
                 Editorial
               </TabsTrigger>
               <TabsTrigger
                 value='solutions'
-                className='data-[state=active]:bg-zinc-800'
+                className='data-[state=active]:bg-zinc-800 text-white'
               >
                 Solutions
               </TabsTrigger>
               <TabsTrigger
                 value='submissions'
-                className='data-[state=active]:bg-zinc-800'
+                className='data-[state=active]:bg-zinc-800 text-white'
               >
                 Submissions
               </TabsTrigger>
@@ -213,7 +215,7 @@ export const IndividualProblem = () => {
               value='description'
               className='flex-1 overflow-auto p-0'
             >
-              <ProblemDescription problemDetails={problemDetails}/>
+              <ProblemDescription problemDetails={problemDetails} />
               {/* {console.log("problemDetails1", problemDetails)} */}
             </TabsContent>
             <TabsContent value='editorial' className='flex-1 overflow-auto p-4'>
@@ -270,7 +272,7 @@ export const IndividualProblem = () => {
                     </Button>
                   </div>
                 </div>
-                {/* <CodeEditor language={language} /> */}
+                <CodeEditor language={language} codeSnippets={problemDetails.codeSnippets} />
               </TabsContent>
             </Tabs>
           </div>
