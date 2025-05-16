@@ -5,20 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Trash2, RefreshCw, Check, X, Clock, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/**
- * TestCase component that displays multiple test cases with LeetCode-style interface
- *
- * @param {Object} props
- * @param {Array} props.testcases - Array of test case objects with input and output fields
- * @param {Function} props.onChange - Function to call when a test case changes
- * @param {Function} props.onRemove - Function to call when a test case is removed
- * @param {Function} props.onRun - Function to call when the run button is clicked
- * @param {Boolean} props.isRunning - Whether code is currently running
- * @param {Array} props.results - Array of test results
- */
 export default function TestCase({
   testcases = [],
   runSuccess,
+  resultRunCode,
   onChange,
   onRemove,
   onRun,
@@ -26,7 +16,8 @@ export default function TestCase({
   results = [],
 }) {
   const [activeCase, setActiveCase] = useState(0);
-  const [showResults, setShowResults] = useState(true);
+  const [showResults, setShowResults] = useState(false);
+  // console.log('isRunning', isRunning);
 
   // Reset active case when testcases change
   useEffect(() => {
@@ -41,12 +32,9 @@ export default function TestCase({
 
   // Show results when they become available
   useEffect(() => {
-    if (results && results.length > 0) {
-      setShowResults(true);
-    } else {
-      setShowResults(false);
-    }
-  }, [results]);
+    // Set showResults based on whether we have runSuccess and resultRunCode
+    setShowResults(runSuccess && resultRunCode !== null);
+  }, [runSuccess, resultRunCode]);
 
   const handleRunCode = () => {
     if (onRun) {
@@ -71,15 +59,57 @@ export default function TestCase({
       ? testcases[activeCase]
       : { input: '', output: '' };
 
-  // Safely get the active result with fallback to null
-  const activeResult =
-    results && results.length > 0 && activeCase < results.length
-      ? results[activeCase]
-      : null;
+  // Get the active result from resultRunCode
+  const getActiveResult = () => {
+    if (
+      !showResults ||
+      !resultRunCode ||
+      !resultRunCode.submission ||
+      !resultRunCode.submission.testCases
+    ) {
+      return null;
+    }
+
+    // Find the test case that matches the current active index
+    const testCase = resultRunCode.submission.testCases.find(
+      (tc) => tc.testCase === activeCase + 1
+    );
+
+    if (!testCase) return null;
+
+    return {
+      status: testCase.passed ? 'accepted' : 'wrong',
+      output: testCase.stdout || '',
+      runtime: testCase.time || '',
+      memory: testCase.memory || '',
+      expected: testCase.expected || '',
+    };
+  };
+
+  const activeResult = getActiveResult();
 
   const getStatusColor = (status) => {
     if (!status) return '';
     return status === 'accepted' ? 'text-emerald-500' : 'text-red-500';
+  };
+
+  // Get status badge for test case tabs
+  const getTestCaseStatus = (index) => {
+    if (
+      !showResults ||
+      !resultRunCode ||
+      !resultRunCode.submission ||
+      !resultRunCode.submission.testCases
+    ) {
+      return null;
+    }
+
+    const testCase = resultRunCode.submission.testCases.find(
+      (tc) => tc.testCase === index + 1
+    );
+    if (!testCase) return null;
+
+    return testCase.passed ? 'accepted' : 'wrong';
   };
 
   // If testcases is undefined or empty, show a placeholder
@@ -158,12 +188,12 @@ export default function TestCase({
               onClick={() => setActiveCase(index)}
             >
               <span>Case {index + 1}</span>
-              {showResults && results && results[index] && (
+              {showResults && (
                 <div className='absolute right-1 top-1 h-3 w-3 rounded-full'>
-                  {results[index].status === 'wrong' && (
+                  {getTestCaseStatus(index) === 'wrong' && (
                     <X size={12} className='text-red-500' />
                   )}
-                  {results[index].status === 'accepted' && (
+                  {getTestCaseStatus(index) === 'accepted' && (
                     <Check size={12} className='text-emerald-500' />
                   )}
                 </div>
@@ -240,7 +270,7 @@ export default function TestCase({
             {showResults && activeResult && activeResult.status === 'wrong' && (
               <div className='grid grid-cols-2 gap-4 mt-4'>
                 <div className='space-y-2'>
-                  <label className='block text-sm font-medium'>
+                  <label className='block text-sm font-medium text-amber-100'>
                     Your Output
                   </label>
                   <div className='rounded bg-zinc-900 p-3 font-mono text-sm text-zinc-300 border border-zinc-800'>
@@ -252,7 +282,9 @@ export default function TestCase({
                     Expected Output
                   </label>
                   <div className='rounded bg-zinc-900 p-3 font-mono text-sm text-zinc-300 border border-zinc-800'>
-                    {activeTestCase.output || 'No expected output'}
+                    {activeResult.expected ||
+                      activeTestCase.output ||
+                      'No expected output'}
                   </div>
                 </div>
               </div>
@@ -262,7 +294,7 @@ export default function TestCase({
               activeResult &&
               activeResult.status === 'accepted' && (
                 <div className='space-y-2 mt-4'>
-                  <label className='block text-sm font-medium'>Output</label>
+                  <label className='block text-sm font-medium text-amber-100'>Output</label>
                   <div className='rounded bg-zinc-900 p-3 font-mono text-sm text-zinc-300 border border-zinc-800'>
                     {activeResult.output || 'No output'}
                   </div>

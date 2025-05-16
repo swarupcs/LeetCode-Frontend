@@ -32,7 +32,6 @@ import { useExecuteProblem } from '@/hooks/apis/runCode/useExecuteCode';
 import TestCase from './TestCase';
 
 export const IndividualProblem = () => {
-
   const { isLoading, isSuccess, error, getIndividualProblemMutation } =
     useGetIndividualProblem();
 
@@ -51,7 +50,7 @@ export const IndividualProblem = () => {
     codeSnippets: {},
     testcases: [],
   });
-  const problemId = useParams().problemId ;
+  const problemId = useParams().problemId;
   // console.log('Problem ID:', problemId);
   // console.log('runSuccess', runSuccess);
 
@@ -60,9 +59,22 @@ export const IndividualProblem = () => {
   const [testPanelHeight, setTestPanelHeight] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
 
+  const [isRunning, setIsRunning] = useState(false);
+  const [resultRunCode, setResultRunCode] = useState([]);
+
   const [resultTestCases, setResultTestCases] = useState([]);
   const startY = useRef(0);
 
+  const [code, setCode] = useState(
+    problemDetails.codeSnippets[language.toUpperCase()] || ''
+  );
+
+  // Test cases state
+  const [testcases, setTestcases] = useState([
+    { input: '100 200', output: '300' },
+    { input: '-500 -600', output: '-1100' },
+    { input: '0 0', output: '0' },
+  ]);
 
   // console.log(
   //   'codeSnippets',
@@ -84,9 +96,7 @@ export const IndividualProblem = () => {
         testcases: response.problem.testcases || [],
       });
 
-      setCode(
-        response.problem.codeSnippets[language.toUpperCase()] || ''
-      );
+      setCode(response.problem.codeSnippets[language.toUpperCase()] || '');
 
       // console.log('response.problem.id', response.problem.id);
       // console.log('response.problem.title', response.problem.title);
@@ -94,16 +104,12 @@ export const IndividualProblem = () => {
     } catch (error) {
       console.error('Error fetching individual problem:', error);
     }
-  }
+  };
 
   useEffect(() => {
     getIndividualProblem(problemId);
   }, []);
 
-
-
-
-  const [code, setCode] = useState(problemDetails.codeSnippets[language.toUpperCase()] || '');
 
 
   const handleCodeChange = (value) => {
@@ -113,13 +119,33 @@ export const IndividualProblem = () => {
   };
 
   // console.log('code', JSON.stringify(code));
-  
+  console.log("code", code);
 
   // Handle mouse down on the resize handle
   const handleResizeStart = (e) => {
     e.preventDefault();
     setIsResizing(true);
     startY.current = e.clientY;
+  };
+
+  // Handle test case changes
+  const handleTestCaseChange = (index, field, value) => {
+    const updatedTestcases = [...testcases];
+
+    // Create a new test case if it doesn't exist
+    if (!updatedTestcases[index]) {
+      updatedTestcases[index] = { input: '', output: '' };
+    }
+
+    // Update the field
+    updatedTestcases[index][field] = value;
+    setTestcases(updatedTestcases);
+  };
+
+  // Handle test case removal
+  const handleTestCaseRemove = (index) => {
+    const updatedTestcases = testcases.filter((_, i) => i !== index);
+    setTestcases(updatedTestcases);
   };
 
   // Handle mouse move for resizing
@@ -148,11 +174,20 @@ export const IndividualProblem = () => {
     };
   }, [isResizing, testPanelHeight]);
 
+  const handleLanguageChange = (value) => {
+    setLanguage(value);
+    // console.log("value", value);
+    // setCode(problemDetails.codeSnippets[value.toUpperCase()] || '');
+    console.log("code", code)
+  }
+
   const executeCode = async () => {
     const source_code = code;
     const language_id = getJudge0LanguageId(language);
-    const stdin = problemDetails.testcases.map((testcase) => testcase.input)
-    const expected_outputs = problemDetails.testcases.map((testcase) => testcase.output);
+    const stdin = problemDetails.testcases.map((testcase) => testcase.input);
+    const expected_outputs = problemDetails.testcases.map(
+      (testcase) => testcase.output
+    );
     const problemId = problemDetails.problemId;
 
     console.log('testcase', problemDetails.testcases);
@@ -163,6 +198,7 @@ export const IndividualProblem = () => {
     console.log('Problem ID:', problemId);
 
     try {
+      setIsRunning(true);
       const response = await runProblemMutation({
         source_code,
         language_id,
@@ -172,12 +208,16 @@ export const IndividualProblem = () => {
       });
       console.log('Execution Result:', response);
       setResultTestCases(response.submission.testCases);
+      setResultRunCode(response);
+      setIsRunning(false);
     } catch (error) {
       console.error('Error executing code:', error);
+      setIsRunning(false);
     }
-  }
+  };
 
-  console.log("resultTestCases", resultTestCases);
+  console.log('resultTestCases', resultTestCases);
+  console.log('resultRunCode', resultRunCode);
 
   return (
     <div className='flex h-screen flex-col bg-zinc-950 text-zinc-100'>
@@ -209,22 +249,60 @@ export const IndividualProblem = () => {
         </div>
 
         <div className='flex items-center gap-2'>
-          <Button
-            variant='outline'
-            size='sm'
-            className='gap-2 border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-            onClick={executeCode}
-          >
-            <Play size={14} />
-            Run
-          </Button>
-          <Button
-            size='sm'
-            className='gap-2 bg-emerald-600 text-white hover:bg-emerald-700'
-          >
-            <Send size={14} />
-            Submit
-          </Button>
+          {!isRunning ? (
+            <>
+              <h1>
+                {' '}
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='gap-2 border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 mr-2'
+                  onClick={executeCode}
+                >
+                  <Play size={14} />
+                  Run
+                </Button>
+                <Button
+                  size='sm'
+                  className='gap-2 bg-emerald-600 text-white hover:bg-emerald-700'
+                >
+                  <Send size={14} />
+                  Submit
+                </Button>
+              </h1>
+            </>
+          ) : (
+            <>
+              <button
+                type='button'
+                disabled
+                className='flex items-center gap-2 bg-emerald-600 text-white text-sm px-4 py-2 rounded-md hover:bg-emerald-700 cursor-not-allowed opacity-80'
+              >
+                <svg
+                  className='animate-spin h-4 w-4 text-white'
+                  xmlns='http://www.w3.org/2000/svg'
+                  fill='none'
+                  viewBox='0 0 24 24'
+                >
+                  <circle
+                    className='opacity-25'
+                    cx='12'
+                    cy='12'
+                    r='10'
+                    stroke='currentColor'
+                    stroke-width='4'
+                  />
+                  <path
+                    className='opacity-75'
+                    fill='currentColor'
+                    d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                  />
+                </svg>
+                Pending...
+              </button>
+            </>
+          )}
+
           <div className='flex gap-1 text-zinc-500'>
             <Button variant='ghost' size='icon' className='h-8 w-8'>
               <Clock size={16} />
@@ -232,18 +310,18 @@ export const IndividualProblem = () => {
             <Button variant='ghost' size='icon' className='h-8 w-8'>
               <Settings size={16} />
             </Button>
-            <div className='flex items-center gap-1 px-2'>
+            {/* <div className='flex items-center gap-1 px-2'>
               <Zap size={16} className='text-amber-500' />
               <span className='text-sm text-amber-500'>0</span>
-            </div>
+            </div> */}
           </div>
-          <Button
+          {/* <Button
             variant='ghost'
             size='sm'
             className='bg-amber-600/20 text-amber-500'
           >
             Premium
-          </Button>
+          </Button> */}
         </div>
       </header>
 
@@ -325,7 +403,11 @@ export const IndividualProblem = () => {
               </TabsList>
               <TabsContent value='code' className='flex-1 overflow-hidden p-0'>
                 <div className='flex h-10 items-center justify-between border-b border-zinc-800 px-4'>
-                  <Select value={language} onValueChange={setLanguage}>
+                  <Select
+                    value={language}
+                    onValueChange={handleLanguageChange}
+                    // onChange={handleLanguageChange}
+                  >
                     <SelectTrigger className='h-7 w-40 border-zinc-700 bg-zinc-800 text-sm'>
                       <SelectValue />
                     </SelectTrigger>
@@ -400,6 +482,11 @@ export const IndividualProblem = () => {
                 <TestCase
                   testcases={problemDetails.testcases}
                   runSuccess={runSuccess}
+                  resultRunCode={resultRunCode}
+                  onChange={handleTestCaseChange}
+                  onRemove={handleTestCaseRemove}
+                  onRun={executeCode}
+                  isRunning={isRunning}
                 />
               </TabsContent>
               {/* <TabsContent value='result' className='flex-1 overflow-auto p-0'>
