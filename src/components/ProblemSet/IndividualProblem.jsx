@@ -23,12 +23,13 @@ import {
 } from '@/components/ui/select';
 
 import ProblemList from './ProblemList';
-import TestCase from '../CreateProblem/TestCase';
+
 import CodeEditor from './CodeEditor';
 import ProblemDescription from './ProblemDescription';
 import TestResult from './TestResult';
 import { getJudge0LanguageId } from '@/lib/judge0LanguageId/languageUtils';
 import { useExecuteProblem } from '@/hooks/apis/runCode/useExecuteCode';
+import TestCase from './TestCase';
 
 export const IndividualProblem = () => {
 
@@ -52,10 +53,11 @@ export const IndividualProblem = () => {
   });
   const problemId = useParams().problemId ;
   // console.log('Problem ID:', problemId);
+  // console.log('runSuccess', runSuccess);
 
   const [language, setLanguage] = useState('javascript');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [testPanelHeight, setTestPanelHeight] = useState(200);
+  const [testPanelHeight, setTestPanelHeight] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
 
   const [resultTestCases, setResultTestCases] = useState([]);
@@ -248,11 +250,11 @@ export const IndividualProblem = () => {
       {/* Main Content */}
       <div className='flex flex-1 overflow-hidden'>
         {/* Problem List Sidebar */}
-        {sidebarOpen && (
+        {/* {sidebarOpen && (
           <div className='w-80 flex-shrink-0 border-r border-zinc-800 bg-zinc-950 overflow-hidden flex flex-col'>
             <ProblemList />
           </div>
-        )}
+        )} */}
 
         {/* Left Panel */}
         <div className='flex w-1/2 flex-col border-r border-zinc-800'>
@@ -344,7 +346,11 @@ export const IndividualProblem = () => {
                     </Button>
                   </div>
                 </div>
-                <CodeEditor language={language} codeSnippets={problemDetails.codeSnippets} onChange={handleCodeChange} />
+                <CodeEditor
+                  language={language}
+                  codeSnippets={problemDetails.codeSnippets}
+                  onChange={handleCodeChange}
+                />
               </TabsContent>
             </Tabs>
           </div>
@@ -373,10 +379,10 @@ export const IndividualProblem = () => {
                   >
                     <div className='flex items-center gap-1.5'>
                       <div className='h-3.5 w-3.5 rounded-sm bg-emerald-600'></div>
-                      <span>Testcase</span>
+                      <span>Testcase </span>
                     </div>
                   </TabsTrigger>
-                  <TabsTrigger
+                  {/* <TabsTrigger
                     value='result'
                     className='data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100'
                   >
@@ -384,18 +390,21 @@ export const IndividualProblem = () => {
                       <div className='h-3.5 w-3.5 rounded-sm bg-emerald-600'></div>
                       <span>Test Result</span>
                     </div>
-                  </TabsTrigger>
+                  </TabsTrigger> */}
                 </TabsList>
               </div>
               <TabsContent
                 value='testcase'
                 className='flex-1 overflow-auto p-0'
               >
-                <TestCase testcases={problemDetails.testcases} />
+                <TestCase
+                  testcases={problemDetails.testcases}
+                  runSuccess={runSuccess}
+                />
               </TabsContent>
-              <TabsContent value='result' className='flex-1 overflow-auto p-0'>
-                {/* <TestResult /> */}
-              </TabsContent>
+              {/* <TabsContent value='result' className='flex-1 overflow-auto p-0'>
+
+              </TabsContent> */}
             </Tabs>
           </div>
         </div>
