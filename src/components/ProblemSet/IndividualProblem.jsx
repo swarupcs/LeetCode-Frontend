@@ -1,7 +1,7 @@
 import { useGetIndividualProblem } from '@/hooks/apis/getIndividualProblem/useGetIndividualProblem';
-import React, { useEffect } from 'react'
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useState, useRef} from 'react';
+import { useState, useRef } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/select';
 
 import ProblemList from './ProblemList';
-
 import CodeEditor from './CodeEditor';
 import ProblemDescription from './ProblemDescription';
 import TestResult from './TestResult';
@@ -51,8 +50,6 @@ export const IndividualProblem = () => {
     testcases: [],
   });
   const problemId = useParams().problemId;
-  // console.log('Problem ID:', problemId);
-  // console.log('runSuccess', runSuccess);
 
   const [language, setLanguage] = useState('javascript');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -61,13 +58,9 @@ export const IndividualProblem = () => {
 
   const [isRunning, setIsRunning] = useState(false);
   const [resultRunCode, setResultRunCode] = useState([]);
-
   const [resultTestCases, setResultTestCases] = useState([]);
   const startY = useRef(0);
-
-  const [code, setCode] = useState(
-    problemDetails.codeSnippets[language.toUpperCase()] || ''
-  );
+  const [code, setCode] = useState('');
 
   // Test cases state
   const [testcases, setTestcases] = useState([
@@ -76,16 +69,9 @@ export const IndividualProblem = () => {
     { input: '0 0', output: '0' },
   ]);
 
-  // console.log(
-  //   'codeSnippets',
-  //   problemDetails.codeSnippets[language.toUpperCase()]
-  // );
-  // console.log('language', language.toUpperCase());
-
   const getIndividualProblem = async (problemId) => {
     try {
       const response = await getIndividualProblemMutation(problemId);
-      // console.log('Individual Problem:', response.problem);
       setProblemDetails({
         problemId: response.problem.id || '',
         title: response.problem.title || '',
@@ -96,11 +82,10 @@ export const IndividualProblem = () => {
         testcases: response.problem.testcases || [],
       });
 
-      setCode(response.problem.codeSnippets[language.toUpperCase()] || '');
-
-      // console.log('response.problem.id', response.problem.id);
-      // console.log('response.problem.title', response.problem.title);
-      // console.log('response.problem.description', response.problem.description);
+      // Set initial code for current language
+      const initialCode =
+        response.problem.codeSnippets[language.toUpperCase()] || '';
+      setCode(initialCode);
     } catch (error) {
       console.error('Error fetching individual problem:', error);
     }
@@ -108,18 +93,14 @@ export const IndividualProblem = () => {
 
   useEffect(() => {
     getIndividualProblem(problemId);
-  }, []);
-
-
+  }, [problemId]);
 
   const handleCodeChange = (value) => {
     if (value !== undefined) {
+      console.log("value", value);
       setCode(value);
     }
   };
-
-  // console.log('code', JSON.stringify(code));
-  console.log("code", code);
 
   // Handle mouse down on the resize handle
   const handleResizeStart = (e) => {
@@ -176,10 +157,9 @@ export const IndividualProblem = () => {
 
   const handleLanguageChange = (value) => {
     setLanguage(value);
-    // console.log("value", value);
-    // setCode(problemDetails.codeSnippets[value.toUpperCase()] || '');
-    console.log("code", code)
-  }
+    // The code will be updated by the CodeEditor component, which will call handleCodeChange
+    // with the appropriate snippet for the new language
+  };
 
   const executeCode = async () => {
     const source_code = code;
@@ -190,13 +170,6 @@ export const IndividualProblem = () => {
     );
     const problemId = problemDetails.problemId;
 
-    console.log('testcase', problemDetails.testcases);
-    console.log('Source Code:', JSON.stringify(source_code));
-    console.log('Language ID:', language_id);
-    console.log('Standard Input:', stdin);
-    console.log('Expected Outputs:', expected_outputs);
-    console.log('Problem ID:', problemId);
-
     try {
       setIsRunning(true);
       const response = await runProblemMutation({
@@ -206,7 +179,6 @@ export const IndividualProblem = () => {
         expected_outputs,
         problemId,
       });
-      console.log('Execution Result:', response);
       setResultTestCases(response.submission.testCases);
       setResultRunCode(response);
       setIsRunning(false);
@@ -215,9 +187,6 @@ export const IndividualProblem = () => {
       setIsRunning(false);
     }
   };
-
-  console.log('resultTestCases', resultTestCases);
-  console.log('resultRunCode', resultRunCode);
 
   return (
     <div className='flex h-screen flex-col bg-zinc-950 text-zinc-100'>
@@ -251,56 +220,51 @@ export const IndividualProblem = () => {
         <div className='flex items-center gap-2'>
           {!isRunning ? (
             <>
-              <h1>
-                {' '}
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className='gap-2 border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 mr-2'
-                  onClick={executeCode}
-                >
-                  <Play size={14} />
-                  Run
-                </Button>
-                <Button
-                  size='sm'
-                  className='gap-2 bg-emerald-600 text-white hover:bg-emerald-700'
-                >
-                  <Send size={14} />
-                  Submit
-                </Button>
-              </h1>
+              <Button
+                variant='outline'
+                size='sm'
+                className='gap-2 border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 mr-2'
+                onClick={executeCode}
+              >
+                <Play size={14} />
+                Run
+              </Button>
+              <Button
+                size='sm'
+                className='gap-2 bg-emerald-600 text-white hover:bg-emerald-700'
+              >
+                <Send size={14} />
+                Submit
+              </Button>
             </>
           ) : (
-            <>
-              <button
-                type='button'
-                disabled
-                className='flex items-center gap-2 bg-emerald-600 text-white text-sm px-4 py-2 rounded-md hover:bg-emerald-700 cursor-not-allowed opacity-80'
+            <button
+              type='button'
+              disabled
+              className='flex items-center gap-2 bg-emerald-600 text-white text-sm px-4 py-2 rounded-md hover:bg-emerald-700 cursor-not-allowed opacity-80'
+            >
+              <svg
+                className='animate-spin h-4 w-4 text-white'
+                xmlns='http://www.w3.org/2000/svg'
+                fill='none'
+                viewBox='0 0 24 24'
               >
-                <svg
-                  className='animate-spin h-4 w-4 text-white'
-                  xmlns='http://www.w3.org/2000/svg'
-                  fill='none'
-                  viewBox='0 0 24 24'
-                >
-                  <circle
-                    className='opacity-25'
-                    cx='12'
-                    cy='12'
-                    r='10'
-                    stroke='currentColor'
-                    stroke-width='4'
-                  />
-                  <path
-                    className='opacity-75'
-                    fill='currentColor'
-                    d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                  />
-                </svg>
-                Pending...
-              </button>
-            </>
+                <circle
+                  className='opacity-25'
+                  cx='12'
+                  cy='12'
+                  r='10'
+                  stroke='currentColor'
+                  strokeWidth='4'
+                />
+                <path
+                  className='opacity-75'
+                  fill='currentColor'
+                  d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                />
+              </svg>
+              Pending...
+            </button>
           )}
 
           <div className='flex gap-1 text-zinc-500'>
@@ -368,7 +332,6 @@ export const IndividualProblem = () => {
               className='flex-1 overflow-auto p-0'
             >
               <ProblemDescription problemDetails={problemDetails} />
-              {/* {console.log("problemDetails1", problemDetails)} */}
             </TabsContent>
             <TabsContent value='editorial' className='flex-1 overflow-auto p-4'>
               Editorial content goes here
@@ -403,11 +366,7 @@ export const IndividualProblem = () => {
               </TabsList>
               <TabsContent value='code' className='flex-1 overflow-hidden p-0'>
                 <div className='flex h-10 items-center justify-between border-b border-zinc-800 px-4'>
-                  <Select
-                    value={language}
-                    onValueChange={handleLanguageChange}
-                    // onChange={handleLanguageChange}
-                  >
+                  <Select value={language} onValueChange={handleLanguageChange}>
                     <SelectTrigger className='h-7 w-40 border-zinc-700 bg-zinc-800 text-sm'>
                       <SelectValue />
                     </SelectTrigger>
@@ -429,6 +388,7 @@ export const IndividualProblem = () => {
                   </div>
                 </div>
                 <CodeEditor
+                  key={language} // Add a key to force re-render on language change
                   language={language}
                   codeSnippets={problemDetails.codeSnippets}
                   onChange={handleCodeChange}
@@ -498,4 +458,4 @@ export const IndividualProblem = () => {
       </div>
     </div>
   );
-}
+};

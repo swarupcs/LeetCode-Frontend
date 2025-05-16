@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -8,26 +8,44 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
   const monacoRef = useRef(null);
   const editorRef = useRef(null);
   const containerRef = useRef(null);
+  const isInitialLoad = useRef(true);
+  const lastLanguage = useRef(language);
 
-  // Update code when language or codeSnippets change.
+  // Update code ONLY on initial load or when language changes
   useEffect(() => {
-    if (codeSnippets && Object.keys(codeSnippets).length > 0) {
-      // Convert language to uppercase to match keys in codeSnippets object.
-      const snippet = codeSnippets[language.toUpperCase()] || '';
-      setCode(snippet);
-    } else {
-      setCode('');
-    }
-  }, [language, codeSnippets]);
+    // If this is the initial load OR the language has changed
+    if (isInitialLoad.current || lastLanguage.current !== language) {
+      if (codeSnippets && Object.keys(codeSnippets).length > 0) {
+        // Convert language to uppercase to match keys in codeSnippets object
+        const snippet = codeSnippets[language.toUpperCase()] || '';
+        setCode(snippet);
 
-  // Handle editor mount.
+        // Always call onChange to update parent component when language changes
+        if (onChange) {
+          onChange(snippet);
+        }
+      } else {
+        setCode('');
+        if (onChange) {
+          onChange('');
+        }
+      }
+
+      // Update the last language reference
+      lastLanguage.current = language;
+
+      // No longer the initial load
+      isInitialLoad.current = false;
+    }
+  }, [language, codeSnippets, onChange]);
+
+  // Handle editor mount
   const handleEditorDidMount = (editor, monaco) => {
-    console.log('Editor mounted', editor, monaco);
     editorRef.current = editor;
     monacoRef.current = monaco;
     setIsEditorReady(true);
 
-    // Configure editor settings.
+    // Configure editor settings
     editor.updateOptions({
       fontSize: 14,
       fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
@@ -43,13 +61,13 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
       lineNumbersMinChars: 3,
     });
 
-    // Focus the editor shortly after mount.
+    // Focus the editor shortly after mount
     setTimeout(() => {
       editor.focus();
     }, 100);
   };
 
-  // Handle code change.
+  // Handle code change from user editing
   const handleEditorChange = (value) => {
     setCode(value || '');
     if (onChange) {
@@ -57,11 +75,9 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
     }
   };
 
-  // console.log("code", code);
-
-  // Map language to Monaco language.
+  // Map language to Monaco language
   const getMonacoLanguage = (lang) => {
-    switch (lang) {
+    switch (lang?.toLowerCase()) {
       case 'javascript':
         return 'javascript';
       case 'python':
@@ -75,7 +91,7 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
     }
   };
 
-  // Global error handler for ResizeObserver issues.
+  // Global error handler for ResizeObserver issues
   useEffect(() => {
     const handleError = (event) => {
       if (
@@ -112,21 +128,21 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
         options={{
           readOnly: false,
           minimap: { enabled: false },
-          scrollBeyondLastLine: false, // Enable scrolling beyond last line
+          scrollBeyondLastLine: false,
           fontSize: 14,
           fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
           suggestOnTriggerCharacters: true,
           quickSuggestions: true,
           tabSize: 2,
-          wordWrap: 'off', // Disable word wrap to ensure horizontal scrolling
-          overviewRulerBorder: false, // Optional: removes the border in the overview ruler
+          wordWrap: 'off',
+          overviewRulerBorder: false,
           scrollbar: {
-            vertical: 'auto', // Ensure vertical scrollbar appears when needed
-            horizontalSliderSize: 10, // Make horizontal scrollbar more visible
-            verticalSliderSize: 10, // Make vertical scrollbar more visible
+            vertical: 'auto',
+            horizontalSliderSize: 10,
+            verticalSliderSize: 10,
             horizontalScrollbarSize: 10,
             verticalScrollbarSize: 10,
-            alwaysConsumeMouseWheel: false, // Better scrolling behavior
+            alwaysConsumeMouseWheel: false,
           },
         }}
         loading={

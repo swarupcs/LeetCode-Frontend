@@ -147,7 +147,7 @@ export default function TestCase({
         <div className='flex items-center justify-between mb-4'>
           <div className='flex items-center gap-2'>
             <div className='flex items-center gap-1 text-zinc-400'>
-              <div className='h-5 w-5 flex items-center justify-center'>
+              <div className='h-5 w-5 min-w-5 flex items-center justify-center'>
                 {showResults &&
                   activeResult &&
                   activeResult.status === 'wrong' && (
@@ -174,32 +174,45 @@ export default function TestCase({
         </div>
 
         <div className='flex gap-2 mb-4 overflow-x-auto pb-1'>
-          {testcases.map((testcase, index) => (
-            <Button
-              key={index}
-              variant={activeCase === index ? 'default' : 'outline'}
-              size='sm'
-              className={cn(
-                'h-8 relative premium-button',
-                activeCase === index
-                  ? 'bg-premium-blue text-white border-premium-blue'
-                  : 'bg-transparent text-zinc-400 border-zinc-800 hover:border-premium-blue'
-              )}
-              onClick={() => setActiveCase(index)}
-            >
-              <span>Case {index + 1}</span>
-              {showResults && (
-                <div className='absolute right-1 top-1 h-3 w-3 rounded-full'>
-                  {getTestCaseStatus(index) === 'wrong' && (
-                    <X size={12} className='text-red-500' />
-                  )}
-                  {getTestCaseStatus(index) === 'accepted' && (
-                    <Check size={12} className='text-emerald-500' />
-                  )}
-                </div>
-              )}
-            </Button>
-          ))}
+          {testcases.map((testcase, index) => {
+            const status = getTestCaseStatus(index);
+            const hasIcon = showResults && status;
+
+            return (
+              <Button
+                key={index}
+                variant={activeCase === index ? 'default' : 'outline'}
+                size='sm'
+                className={cn(
+                  'h-8 relative premium-button',
+                  activeCase === index
+                    ? 'bg-premium-blue text-white border-premium-blue'
+                    : 'bg-transparent text-zinc-400 border-zinc-800 hover:border-premium-blue',
+                  // Add padding-right when icon is present
+                  hasIcon ? 'pr-6' : ''
+                )}
+                onClick={() => setActiveCase(index)}
+              >
+                <span>Case {index + 1}</span>
+                {hasIcon && (
+                  <div
+                    className={cn(
+                      'absolute right-1 top-1 flex items-center justify-center',
+                      // Dynamically adjust icon container size
+                      status === 'wrong' ? 'h-4 w-4' : 'h-4 w-4'
+                    )}
+                  >
+                    {status === 'wrong' && (
+                      <X size={14} className='text-red-500' />
+                    )}
+                    {status === 'accepted' && (
+                      <Check size={14} className='text-emerald-500' />
+                    )}
+                  </div>
+                )}
+              </Button>
+            );
+          })}
           <Button
             variant='ghost'
             size='sm'
@@ -294,7 +307,9 @@ export default function TestCase({
               activeResult &&
               activeResult.status === 'accepted' && (
                 <div className='space-y-2 mt-4'>
-                  <label className='block text-sm font-medium text-amber-100'>Output</label>
+                  <label className='block text-sm font-medium text-amber-100'>
+                    Output
+                  </label>
                   <div className='rounded bg-zinc-900 p-3 font-mono text-sm text-zinc-300 border border-zinc-800'>
                     {activeResult.output || 'No output'}
                   </div>
