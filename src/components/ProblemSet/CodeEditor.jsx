@@ -110,12 +110,22 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
         options={{
           readOnly: false,
           minimap: { enabled: false },
-          scrollBeyondLastLine: false,
+          scrollBeyondLastLine: false, // Enable scrolling beyond last line
           fontSize: 14,
           fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
           suggestOnTriggerCharacters: true,
           quickSuggestions: true,
           tabSize: 2,
+          wordWrap: 'off', // Disable word wrap to ensure horizontal scrolling
+          overviewRulerBorder: false, // Optional: removes the border in the overview ruler
+          scrollbar: {
+            vertical: 'auto', // Ensure vertical scrollbar appears when needed
+            horizontalSliderSize: 10, // Make horizontal scrollbar more visible
+            verticalSliderSize: 10, // Make vertical scrollbar more visible
+            horizontalScrollbarSize: 10,
+            verticalScrollbarSize: 10,
+            alwaysConsumeMouseWheel: false, // Better scrolling behavior
+          },
         }}
         loading={
           <div className='flex items-center justify-center h-full'>

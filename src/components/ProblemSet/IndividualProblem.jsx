@@ -39,6 +39,7 @@ export const IndividualProblem = () => {
     constraints: '',
     examples: [],
     codeSnippets: {},
+    testcases: [],
   });
   const problemId = useParams().problemId ;
   console.log('Problem ID:', problemId);
@@ -54,6 +55,7 @@ export const IndividualProblem = () => {
         constraints: response.problem.constraints || '',
         examples: response.problem.examples || [],
         codeSnippets: response.problem.codeSnippets || {},
+        testcases: response.problem.testcases || [],
       });
 
       // console.log('response.problem.id', response.problem.id);
@@ -319,7 +321,7 @@ export const IndividualProblem = () => {
                 value='testcase'
                 className='flex-1 overflow-auto p-0'
               >
-                {/* <TestCase /> */}
+                <TestCase testcases={problemDetails.testcases} />
               </TabsContent>
               <TabsContent value='result' className='flex-1 overflow-auto p-0'>
                 {/* <TestResult /> */}
