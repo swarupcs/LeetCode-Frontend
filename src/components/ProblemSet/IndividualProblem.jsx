@@ -27,6 +27,7 @@ import TestCase from '../CreateProblem/TestCase';
 import CodeEditor from './CodeEditor';
 import ProblemDescription from './ProblemDescription';
 import TestResult from './TestResult';
+import { getJudge0LanguageId } from '@/lib/judge0LanguageId/languageUtils';
 
 export const IndividualProblem = () => {
 
@@ -42,7 +43,7 @@ export const IndividualProblem = () => {
     testcases: [],
   });
   const problemId = useParams().problemId ;
-  console.log('Problem ID:', problemId);
+  // console.log('Problem ID:', problemId);
 
   const [language, setLanguage] = useState('javascript');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -60,7 +61,7 @@ export const IndividualProblem = () => {
   const getIndividualProblem = async (problemId) => {
     try {
       const response = await getIndividualProblemMutation(problemId);
-      console.log('Individual Problem:', response.problem);
+      // console.log('Individual Problem:', response.problem);
       setProblemDetails({
         problemId: response.problem.id || '',
         title: response.problem.title || '',
@@ -99,7 +100,8 @@ export const IndividualProblem = () => {
     }
   };
 
-  console.log("code", code);
+  // console.log('code', JSON.stringify(code));
+  
 
   // Handle mouse down on the resize handle
   const handleResizeStart = (e) => {
@@ -135,13 +137,16 @@ export const IndividualProblem = () => {
   }, [isResizing, testPanelHeight]);
 
   const executeCode = async () => {
-    const source_code = problemDetails.codeSnippets[language];
-    const language_id = language;
-    const stdin = problemDetails.testcases.map((testcase) => testcase.input).join('\n');
-    const expected_outputs = problemDetails.testcases.map((testcase) => testcase.output).join('\n');
+    const source_code = code;
+    const language_id = getJudge0LanguageId(language);
+    const stdin = JSON.stringify(
+      problemDetails.testcases.map((testcase) => testcase.input)
+    );
+    const expected_outputs = problemDetails.testcases.map((testcase) => testcase.output);
     const problemId = problemDetails.problemId;
 
-    console.log('Source Code:', source_code);
+    console.log('testcase', problemDetails.testcases);
+    console.log('Source Code:', JSON.stringify(source_code));
     console.log('Language ID:', language_id);
     console.log('Standard Input:', stdin);
     console.log('Expected Outputs:', expected_outputs);
