@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 
 
-export const useCreateProblem = () => {
+export const useExecuteProblem = () => {
   const {
     isPending,
     isSuccess,

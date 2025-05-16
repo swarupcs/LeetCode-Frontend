@@ -28,11 +28,19 @@ import CodeEditor from './CodeEditor';
 import ProblemDescription from './ProblemDescription';
 import TestResult from './TestResult';
 import { getJudge0LanguageId } from '@/lib/judge0LanguageId/languageUtils';
+import { useExecuteProblem } from '@/hooks/apis/runCode/useExecuteCode';
 
 export const IndividualProblem = () => {
 
-  const { isLoading, isSuccess, error, getIndividualProblemMutation } = useGetIndividualProblem();
+  const { isLoading, isSuccess, error, getIndividualProblemMutation } =
+    useGetIndividualProblem();
 
+  const {
+    isPending,
+    isSuccess: runSuccess,
+    error: runError,
+    runProblemMutation,
+  } = useExecuteProblem();
   const [problemDetails, setProblemDetails] = useState({
     problemId: '',
     title: '',
@@ -49,6 +57,8 @@ export const IndividualProblem = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [testPanelHeight, setTestPanelHeight] = useState(200);
   const [isResizing, setIsResizing] = useState(false);
+
+  const [resultTestCases, setResultTestCases] = useState([]);
   const startY = useRef(0);
 
 
@@ -139,9 +149,7 @@ export const IndividualProblem = () => {
   const executeCode = async () => {
     const source_code = code;
     const language_id = getJudge0LanguageId(language);
-    const stdin = JSON.stringify(
-      problemDetails.testcases.map((testcase) => testcase.input)
-    );
+    const stdin = problemDetails.testcases.map((testcase) => testcase.input)
     const expected_outputs = problemDetails.testcases.map((testcase) => testcase.output);
     const problemId = problemDetails.problemId;
 
@@ -153,7 +161,7 @@ export const IndividualProblem = () => {
     console.log('Problem ID:', problemId);
 
     try {
-      const response = await getIndividualProblemMutation({
+      const response = await runProblemMutation({
         source_code,
         language_id,
         stdin,
@@ -161,10 +169,13 @@ export const IndividualProblem = () => {
         problemId,
       });
       console.log('Execution Result:', response);
+      setResultTestCases(response.submission.testCases);
     } catch (error) {
       console.error('Error executing code:', error);
     }
   }
+
+  console.log("resultTestCases", resultTestCases);
 
   return (
     <div className='flex h-screen flex-col bg-zinc-950 text-zinc-100'>
