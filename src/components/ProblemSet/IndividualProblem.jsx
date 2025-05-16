@@ -44,6 +44,19 @@ export const IndividualProblem = () => {
   const problemId = useParams().problemId ;
   console.log('Problem ID:', problemId);
 
+  const [language, setLanguage] = useState('javascript');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [testPanelHeight, setTestPanelHeight] = useState(200);
+  const [isResizing, setIsResizing] = useState(false);
+  const startY = useRef(0);
+
+
+  // console.log(
+  //   'codeSnippets',
+  //   problemDetails.codeSnippets[language.toUpperCase()]
+  // );
+  // console.log('language', language.toUpperCase());
+
   const getIndividualProblem = async (problemId) => {
     try {
       const response = await getIndividualProblemMutation(problemId);
@@ -58,6 +71,10 @@ export const IndividualProblem = () => {
         testcases: response.problem.testcases || [],
       });
 
+      setCode(
+        response.problem.codeSnippets[language.toUpperCase()] || ''
+      );
+
       // console.log('response.problem.id', response.problem.id);
       // console.log('response.problem.title', response.problem.title);
       // console.log('response.problem.description', response.problem.description);
@@ -70,11 +87,19 @@ export const IndividualProblem = () => {
     getIndividualProblem(problemId);
   }, []);
 
-  const [language, setLanguage] = useState('javascript');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [testPanelHeight, setTestPanelHeight] = useState(200);
-  const [isResizing, setIsResizing] = useState(false);
-  const startY = useRef(0);
+
+
+
+  const [code, setCode] = useState(problemDetails.codeSnippets[language.toUpperCase()] || '');
+
+
+  const handleCodeChange = (value) => {
+    if (value !== undefined) {
+      setCode(value);
+    }
+  };
+
+  console.log("code", code);
 
   // Handle mouse down on the resize handle
   const handleResizeStart = (e) => {
@@ -108,6 +133,34 @@ export const IndividualProblem = () => {
       document.removeEventListener('mouseup', handleResizeEnd);
     };
   }, [isResizing, testPanelHeight]);
+
+  const executeCode = async () => {
+    const source_code = problemDetails.codeSnippets[language];
+    const language_id = language;
+    const stdin = problemDetails.testcases.map((testcase) => testcase.input).join('\n');
+    const expected_outputs = problemDetails.testcases.map((testcase) => testcase.output).join('\n');
+    const problemId = problemDetails.problemId;
+
+    console.log('Source Code:', source_code);
+    console.log('Language ID:', language_id);
+    console.log('Standard Input:', stdin);
+    console.log('Expected Outputs:', expected_outputs);
+    console.log('Problem ID:', problemId);
+
+    try {
+      const response = await getIndividualProblemMutation({
+        source_code,
+        language_id,
+        stdin,
+        expected_outputs,
+        problemId,
+      });
+      console.log('Execution Result:', response);
+    } catch (error) {
+      console.error('Error executing code:', error);
+    }
+  }
+
   return (
     <div className='flex h-screen flex-col bg-zinc-950 text-zinc-100'>
       {/* Header */}
@@ -142,6 +195,7 @@ export const IndividualProblem = () => {
             variant='outline'
             size='sm'
             className='gap-2 border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+            onClick={executeCode}
           >
             <Play size={14} />
             Run
@@ -274,7 +328,7 @@ export const IndividualProblem = () => {
                     </Button>
                   </div>
                 </div>
-                <CodeEditor language={language} codeSnippets={problemDetails.codeSnippets} />
+                <CodeEditor language={language} codeSnippets={problemDetails.codeSnippets} onChange={handleCodeChange} />
               </TabsContent>
             </Tabs>
           </div>

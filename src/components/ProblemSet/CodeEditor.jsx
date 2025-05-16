@@ -57,6 +57,8 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
     }
   };
 
+  // console.log("code", code);
+
   // Map language to Monaco language.
   const getMonacoLanguage = (lang) => {
     switch (lang) {
