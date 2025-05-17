@@ -11,34 +11,24 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
   const isInitialLoad = useRef(true);
   const lastLanguage = useRef(language);
 
+  console.log("codeSnippets", codeSnippets);
   // Update code ONLY on initial load or when language changes
   useEffect(() => {
-    // If this is the initial load OR the language has changed
-    if (isInitialLoad.current || lastLanguage.current !== language) {
-      if (codeSnippets && Object.keys(codeSnippets).length > 0) {
-        // Convert language to uppercase to match keys in codeSnippets object
-        const snippet = codeSnippets[language.toUpperCase()] || '';
-        setCode(snippet);
-
-        // Always call onChange to update parent component when language changes
-        if (onChange) {
-          onChange(snippet);
-        }
-      } else {
-        setCode('');
-        if (onChange) {
-          onChange('');
-        }
+    if (codeSnippets && Object.keys(codeSnippets).length > 0) {
+      const snippet = codeSnippets[language.toLowerCase()] || '';
+      setCode(snippet);
+      if (onChange) {
+        onChange(snippet);
       }
-
-      // Update the last language reference
-      lastLanguage.current = language;
-
-      // No longer the initial load
-      isInitialLoad.current = false;
+    } else {
+      setCode('');
+      if (onChange) {
+        onChange('');
+      }
     }
+    lastLanguage.current = language;
+    isInitialLoad.current = false;
   }, [language, codeSnippets, onChange]);
-
   // Handle editor mount
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;

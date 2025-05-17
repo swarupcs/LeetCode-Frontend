@@ -139,68 +139,39 @@ export default function CreateProblemForm() {
   // });
 
   const [problemDetails, setProblemDetails] = useState({
-    problemNumber: '5',
+    problemNumber: '',
     problem: {
-      title: 'Add Two Numbers',
-      description: 'Given two integers a and b, return their sum.',
-      difficulty: 'EASY',
-      tags: ['math'],
+      title: '',
+      description: '',
+      difficulty: '',
+      tags: [],
       examples: [
         {
-          input: '3 5',
-          output: '8',
-          explanation: '3 + 5 = 8',
+          input: '',
+          output: '',
+          explanation: '',
         },
-        {
-          input: '-10 4',
-          output: '-6',
-          explanation: '-10 + 4 = -6',
-        },
+        
       ],
-      constraints: '-10^9 ≤ a, b ≤ 10^9',
+      constraints: '',
       codeSnippets: {
-        python:
-          'def add_two_numbers(a, b):\r\n    # Write your code here\r\n    # Return the sum of a and b\r\n    return a + b\r\n\r\nimport sys\r\ninput_line = sys.stdin.read()\r\na, b = map(int, input_line.split())\r\nprint(add_two_numbers(a, b))',
-        javascript:
-          "const fs = require('fs');\r\n\r\nfunction addTwoNumbers(a, b) {\r\n    // Write your code here\r\n    // Return the sum of a and b\r\n    return a + b;\r\n}\r\n\r\n// Reading input from stdin (using fs to read all input)\r\nconst input = fs.readFileSync(0, 'utf-8').trim();\r\nconst [a, b] = input.split(' ').map(Number);\r\n\r\nconsole.log(addTwoNumbers(a, b));",
-        java: 'import java.util.Scanner;\r\n\r\npublic class Main {\r\n    public static int addTwoNumbers(int a, int b) {\r\n        // Write your code here\r\n        // Return the sum of a and b\r\n        return a + b;\r\n    }\r\n\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n        int a = sc.nextInt();\r\n        int b = sc.nextInt();\r\n        System.out.println(addTwoNumbers(a, b));\r\n    }\r\n}',
+        python:'',
+        javascript: '',
+        java: '',
       },
       referenceSolutions: {
-        java: 'import java.util.Scanner;\r\n\r\npublic class Main {\r\n    public static int addTwoNumbers(int a, int b) {\r\n        // Write your code here\r\n        // Return the sum of a and b\r\n        return a + b;\r\n    }\r\n\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n        int a = sc.nextInt();\r\n        int b = sc.nextInt();\r\n        System.out.println(addTwoNumbers(a, b));\r\n    }\r\n}',
-        javascript:
-          "const fs = require('fs');\r\n\r\nfunction addTwoNumbers(a, b) {\r\n    // Write your code here\r\n    // Return the sum of a and b\r\n    return a + b;\r\n}\r\n\r\n// Reading input from stdin (using fs to read all input)\r\nconst input = fs.readFileSync(0, 'utf-8').trim();\r\nconst [a, b] = input.split(' ').map(Number);\r\n\r\nconsole.log(addTwoNumbers(a, b));",
-        python:
-          'def add_two_numbers(a, b):\r\n    # Write your code here\r\n    # Return the sum of a and b\r\n    return a + b\r\n\r\nimport sys\r\ninput_line = sys.stdin.read()\r\na, b = map(int, input_line.split())\r\nprint(add_two_numbers(a, b))',
+        java: '',
+        javascript: '',
+        python: '',
       },
-      testcases: [
-        {
-          input: '',
-          expected: '',
-          isPublic: false,
-        },
-      ],
     },
     testCases: [
       {
-        input: '10 15',
-        isPublic: false,
-        expected: '25',
+        input: '',
+        isPublic: '',
+        expected: '',
       },
-      {
-        input: '-8 3',
-        isPublic: true,
-        expected: '-5',
-      },
-      {
-        input: '0 0',
-        isPublic: true,
-        expected: '0',
-      },
-      {
-        input: '100000 100000',
-        isPublic: false,
-        expected: '200000',
-      },
+     
     ],
   });
   const examplesArray = problemDetails.problem.examples || [];

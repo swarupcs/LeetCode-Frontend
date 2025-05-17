@@ -43,6 +43,7 @@ export const IndividualProblem = () => {
   const [problemDetails, setProblemDetails] = useState({
     problemId: '',
     title: '',
+    problemNumber: '',
     description: '',
     constraints: '',
     examples: [],
@@ -75,16 +76,17 @@ export const IndividualProblem = () => {
       setProblemDetails({
         problemId: response.problem.id || '',
         title: response.problem.title || '',
+        problemNumber: response.problem.problemNumber || '',
         description: response.problem.description || '',
         constraints: response.problem.constraints || '',
         examples: response.problem.examples || [],
         codeSnippets: response.problem.codeSnippets || {},
-        testcases: response.problem.testcases || [],
+        testcases: response.problem.testCases || [],
       });
 
       // Set initial code for current language
       const initialCode =
-        response.problem.codeSnippets[language.toUpperCase()] || '';
+        response.problem.codeSnippets[language.toLowerCase()] || '';
       setCode(initialCode);
     } catch (error) {
       console.error('Error fetching individual problem:', error);

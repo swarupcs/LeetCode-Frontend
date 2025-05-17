@@ -3,17 +3,13 @@ import axios from '@/config/axiosConfig';
 export const runCode = async ({
   source_code,
   language_id,
-  stdin,
-  expected_outputs,
   problemId,
 }) => {
   try {
-    const response = await axios.post('/execute-code', {
-        source_code,
-        language_id,
-        stdin,
-        expected_outputs,
-        problemId,
+    const response = await axios.post('codeExecutor/runCode', {
+      source_code,
+      language_id,
+      problemId,
     });
     return response.data;
   } catch (error) {
