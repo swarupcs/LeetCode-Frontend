@@ -58,7 +58,7 @@ export const IndividualProblem = () => {
   const [isResizing, setIsResizing] = useState(false);
 
   const [isRunning, setIsRunning] = useState(false);
-  const [resultRunCode, setResultRunCode] = useState([]);
+  // const [resultRunCode, setResultRunCode] = useState([]);
   const [resultTestCases, setResultTestCases] = useState([]);
   const startY = useRef(0);
   const [code, setCode] = useState('');
@@ -181,8 +181,9 @@ export const IndividualProblem = () => {
         expected_outputs,
         problemId,
       });
-      setResultTestCases(response.submission.testCases);
-      setResultRunCode(response);
+      console.log("run", response)
+      setResultTestCases(response.results);
+      // setResultRunCode(response);
       setIsRunning(false);
     } catch (error) {
       console.error('Error executing code:', error);
@@ -444,7 +445,8 @@ export const IndividualProblem = () => {
                 <TestCase
                   testcases={problemDetails.testcases}
                   runSuccess={runSuccess}
-                  resultRunCode={resultRunCode}
+                  // resultRunCode={resultRunCode}
+                  resultTestCases={resultTestCases}
                   onChange={handleTestCaseChange}
                   onRemove={handleTestCaseRemove}
                   onRun={executeCode}

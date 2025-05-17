@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils';
 
 export default function TestCase({
   testcases = [],
+  resultTestCases = [], // use this prop for result data
   runSuccess,
-  resultRunCode,
   onChange,
   onRemove,
   onRun,
@@ -17,7 +17,8 @@ export default function TestCase({
 }) {
   const [activeCase, setActiveCase] = useState(0);
   const [showResults, setShowResults] = useState(false);
-  // console.log('isRunning', isRunning);
+
+  console.log('resultTestCases', resultTestCases);
 
   // Reset active case when testcases change
   useEffect(() => {
@@ -32,9 +33,8 @@ export default function TestCase({
 
   // Show results when they become available
   useEffect(() => {
-    // Set showResults based on whether we have runSuccess and resultRunCode
-    setShowResults(runSuccess && resultRunCode !== null);
-  }, [runSuccess, resultRunCode]);
+    setShowResults(runSuccess && resultTestCases && resultTestCases.length > 0);
+  }, [runSuccess, resultTestCases]);
 
   const handleRunCode = () => {
     if (onRun) {
@@ -59,19 +59,14 @@ export default function TestCase({
       ? testcases[activeCase]
       : { input: '', output: '' };
 
-  // Get the active result from resultRunCode
+  // Get the active result from resultTestCases rather than resultRunCode
   const getActiveResult = () => {
-    if (
-      !showResults ||
-      !resultRunCode ||
-      !resultRunCode.submission ||
-      !resultRunCode.submission.testCases
-    ) {
+    if (!showResults || !resultTestCases || resultTestCases.length === 0) {
       return null;
     }
 
-    // Find the test case that matches the current active index
-    const testCase = resultRunCode.submission.testCases.find(
+    // Locate the result that matches the current active case
+    const testCase = resultTestCases.find(
       (tc) => tc.testCase === activeCase + 1
     );
 
@@ -93,26 +88,16 @@ export default function TestCase({
     return status === 'accepted' ? 'text-emerald-500' : 'text-red-500';
   };
 
-  // Get status badge for test case tabs
+  // Get status badge using resultTestCases
   const getTestCaseStatus = (index) => {
-    if (
-      !showResults ||
-      !resultRunCode ||
-      !resultRunCode.submission ||
-      !resultRunCode.submission.testCases
-    ) {
+    if (!showResults || !resultTestCases || resultTestCases.length === 0) {
       return null;
     }
-
-    const testCase = resultRunCode.submission.testCases.find(
-      (tc) => tc.testCase === index + 1
-    );
+    const testCase = resultTestCases.find((tc) => tc.testCase === index + 1);
     if (!testCase) return null;
-
     return testCase.passed ? 'accepted' : 'wrong';
   };
 
-  // If testcases is undefined or empty, show a placeholder
   if (!testcases || testcases.length === 0) {
     return (
       <div className='flex flex-col h-full bg-premium-darker text-white'>
@@ -188,7 +173,6 @@ export default function TestCase({
                   activeCase === index
                     ? 'bg-premium-blue text-white border-premium-blue'
                     : 'bg-transparent text-zinc-400 border-zinc-800 hover:border-premium-blue',
-                  // Add padding-right when icon is present
                   hasIcon ? 'pr-6' : ''
                 )}
                 onClick={() => setActiveCase(index)}
@@ -198,8 +182,7 @@ export default function TestCase({
                   <div
                     className={cn(
                       'absolute right-1 top-1 flex items-center justify-center',
-                      // Dynamically adjust icon container size
-                      status === 'wrong' ? 'h-4 w-4' : 'h-4 w-4'
+                      'h-4 w-4'
                     )}
                   >
                     {status === 'wrong' && (
@@ -271,7 +254,7 @@ export default function TestCase({
                 Expected Output
               </label>
               <Input
-                value={activeTestCase.output || ''}
+                value={activeTestCase.expected || ''}
                 onChange={(e) =>
                   onChange && onChange(activeCase, 'output', e.target.value)
                 }
