@@ -52,105 +52,185 @@ import { FaCheck } from 'react-icons/fa';
 const SUPPORTED_LANGUAGES = ['PYTHON', 'JAVASCRIPT', 'JAVA'];
 
 export default function CreateProblemForm() {
-  // const [problem, setProblem] = useState({
-  //   title: 'Reverse Number For Test-2',
-  //   description:
-  //     'Given an integer n, return the number obtained by reversing its digits. Handle negative numbers appropriately.',
-  //   difficulty: 'EASY',
-  //   tags: ['math', 'string', 'number-theory'],
-  //   examples: {
-  //     PYTHON: {
-  //       input: '-123',
-  //       output: '-321',
-  //       explanation: 'Reversing -123 gives -321.',
+  // const [problemDetails, setProblemDetails] = useState({
+  //   problemNumber: 42,
+  //   problem: {
+  //     title: 'Reverse Number For Test-2-update',
+  //     description:
+  //       'Given an integer n, return the number obtained by reversing its digits. Handle negative numbers appropriately.',
+  //     difficulty: 'EASY',
+  //     tags: ['math', 'string', 'number-theory'],
+  //     examples: [
+  //       {
+  //         input: '-123',
+  //         output: '-321',
+  //         explanation: 'Reversing -123 gives -321.',
+  //       },
+  //       {
+  //         input: '456',
+  //         output: '654',
+  //         explanation: 'Reversing 456 gives 654.',
+  //       },
+  //     ],
+  //     constraints: '-10^9 ≤ n ≤ 10^9',
+  //     codeSnippets: {
+  //       python:
+  //         'def reverse_number(n):\n    # Write your code here\n    return 0\n\nimport sys\nn = int(sys.stdin.read())\nprint(reverse_number(n))',
+  //       javascript:
+  //         "const fs = require('fs');\n\nfunction reverseNumber(n) {\n    // Write your code here\n    return 0;\n}\n\nconst input = fs.readFileSync(0, 'utf-8').trim();\nconst n = Number(input);\nconsole.log(reverseNumber(n));",
+  //       java: 'import java.util.Scanner;\n\npublic class Main {\n    public static int reverseNumber(int n) {\n        // Write your code here\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        System.out.println(reverseNumber(n));\n    }\n}',
   //     },
-  //     JAVASCRIPT: {
-  //       input: '456',
-  //       output: '654',
-  //       explanation: 'Reversing 456 gives 654.',
+  //     referenceSolutions: {
+  //       python:
+  //         'import sys\nn = int(sys.stdin.read())\n\ndef reverse_number(n):\n    sign = -1 if n < 0 else 1\n    reversed_str = str(abs(n))[::-1]\n    print(sign * int(reversed_str))\n\nreverse_number(n)',
+  //       javascript:
+  //         "const fs = require('fs');\nconst input = fs.readFileSync(0, 'utf-8').trim();\nconst n = Number(input);\n\nfunction reverseNumber(n) {\n    const sign = n < 0 ? -1 : 1;\n    const reversed = Math.abs(n).toString().split('').reverse().join('');\n    return sign * parseInt(reversed);\n}\n\nconsole.log(reverseNumber(n));",
+  //       java: 'import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int sign = n < 0 ? -1 : 1;\n        String reversed = new StringBuilder(Integer.toString(Math.abs(n))).reverse().toString();\n        System.out.println(sign * Integer.parseInt(reversed));\n    }\n}',
   //     },
   //   },
-  //   constraints: '-10^9 ≤ n ≤ 10^9',
-  //   testcases: [
+  //   testCases: [
   //     {
   //       input: '123',
-  //       output: '321',
+  //       expected: '321',
+  //       isPublic: false,
   //     },
   //     {
   //       input: '-456',
-  //       output: '-654',
+  //       expected: '-654',
+  //       isPublic: false,
   //     },
   //     {
   //       input: '1000',
-  //       output: '1',
+  //       expected: '1',
+  //       isPublic: true,
   //     },
   //     {
   //       input: '0',
-  //       output: '0',
+  //       expected: '0',
+  //       isPublic: true,
   //     },
   //   ],
-  //   codeSnippets: {
-  //     PYTHON:
-  //       'def reverse_number(n):\n    # Write your code here\n    return 0\n\nimport sys\nn = int(sys.stdin.read())\nprint(reverse_number(n))',
-  //     JAVASCRIPT:
-  //       "const fs = require('fs');\n\nfunction reverseNumber(n) {\n    // Write your code here\n    return 0;\n}\n\nconst input = fs.readFileSync(0, 'utf-8').trim();\nconst n = Number(input);\nconsole.log(reverseNumber(n));",
-  //     JAVA: 'import java.util.Scanner;\n\npublic class Main {\n    public static int reverseNumber(int n) {\n        // Write your code here\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        System.out.println(reverseNumber(n));\n    }\n}',
-  //   },
-  //   referenceSolutions: {
-  //     PYTHON:
-  //       'import sys\nn = int(sys.stdin.read())\n\ndef reverse_number(n):\n    sign = -1 if n < 0 else 1\n    reversed_str = str(abs(n))[::-1]\n    print(sign * int(reversed_str))\n\nreverse_number(n)',
-  //     JAVASCRIPT:
-  //       "const fs = require('fs');\nconst input = fs.readFileSync(0, 'utf-8').trim();\nconst n = Number(input);\n\nfunction reverseNumber(n) {\n    const sign = n < 0 ? -1 : 1;\n    const reversed = Math.abs(n).toString().split('').reverse().join('');\n    return sign * parseInt(reversed);\n}\n\nconsole.log(reverseNumber(n));",
-  //     JAVA: 'import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int sign = n < 0 ? -1 : 1;\n        String reversed = new StringBuilder(Integer.toString(Math.abs(n))).reverse().toString();\n        System.out.println(sign * Integer.parseInt(reversed));\n    }\n}',
-  //   },
   // });
 
   // Transform examples object to array format for rendering
   // Extract examples from the language-keyed object and convert to array
-  
-  const [problem, setProblem] = useState({
-    title: '',
-    description: '',
-    difficulty: 'EASY',
-    tags: [],
-    examples: [
-      { input: '', output: '', explanation: '' }, // Start with one example
-    ],
-    constraints: '',
-    testcases: [{ input: '', output: '' }],
-    codeSnippets: {
-      PYTHON: '',
-      JAVASCRIPT: '',
-      JAVA: '',
-    },
-    referenceSolutions: {
-      PYTHON: '',
-      JAVASCRIPT: '',
-      JAVA: '',
-    },
-  });
 
-  
-  const examplesArray = Object.values(problem.examples || {}).map((ex) => ({
-    input: ex.input || '',
-    output: ex.output || '',
-    explanation: ex.explanation || '',
-  }));
+  // const [problem, setProblem] = useState({
+  //   title: '',
+  //   problemNumber: '',
+  //   description: '',
+  //   difficulty: 'EASY',
+  //   tags: [],
+  //   examples: [
+  //     { input: '', output: '', explanation: '' }, // Start with one example
+  //   ],
+  //   constraints: '',
+  //   testcases: [{ input: '', output: '' }],
+  //   codeSnippets: {
+  //     PYTHON: '',
+  //     JAVASCRIPT: '',
+  //     JAVA: '',
+  //   },
+  //   referenceSolutions: {
+  //     PYTHON: '',
+  //     JAVASCRIPT: '',
+  //     JAVA: '',
+  //   },
+  // });
+
+  const [problemDetails, setProblemDetails] = useState({
+    problemNumber: '5',
+    problem: {
+      title: 'Add Two Numbers',
+      description: 'Given two integers a and b, return their sum.',
+      difficulty: 'EASY',
+      tags: ['math'],
+      examples: [
+        {
+          input: '3 5',
+          output: '8',
+          explanation: '3 + 5 = 8',
+        },
+        {
+          input: '-10 4',
+          output: '-6',
+          explanation: '-10 + 4 = -6',
+        },
+      ],
+      constraints: '-10^9 ≤ a, b ≤ 10^9',
+      codeSnippets: {
+        python:
+          'def add_two_numbers(a, b):\r\n    # Write your code here\r\n    # Return the sum of a and b\r\n    return a + b\r\n\r\nimport sys\r\ninput_line = sys.stdin.read()\r\na, b = map(int, input_line.split())\r\nprint(add_two_numbers(a, b))',
+        javascript:
+          "const fs = require('fs');\r\n\r\nfunction addTwoNumbers(a, b) {\r\n    // Write your code here\r\n    // Return the sum of a and b\r\n    return a + b;\r\n}\r\n\r\n// Reading input from stdin (using fs to read all input)\r\nconst input = fs.readFileSync(0, 'utf-8').trim();\r\nconst [a, b] = input.split(' ').map(Number);\r\n\r\nconsole.log(addTwoNumbers(a, b));",
+        java: 'import java.util.Scanner;\r\n\r\npublic class Main {\r\n    public static int addTwoNumbers(int a, int b) {\r\n        // Write your code here\r\n        // Return the sum of a and b\r\n        return a + b;\r\n    }\r\n\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n        int a = sc.nextInt();\r\n        int b = sc.nextInt();\r\n        System.out.println(addTwoNumbers(a, b));\r\n    }\r\n}',
+      },
+      referenceSolutions: {
+        java: 'import java.util.Scanner;\r\n\r\npublic class Main {\r\n    public static int addTwoNumbers(int a, int b) {\r\n        // Write your code here\r\n        // Return the sum of a and b\r\n        return a + b;\r\n    }\r\n\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n        int a = sc.nextInt();\r\n        int b = sc.nextInt();\r\n        System.out.println(addTwoNumbers(a, b));\r\n    }\r\n}',
+        javascript:
+          "const fs = require('fs');\r\n\r\nfunction addTwoNumbers(a, b) {\r\n    // Write your code here\r\n    // Return the sum of a and b\r\n    return a + b;\r\n}\r\n\r\n// Reading input from stdin (using fs to read all input)\r\nconst input = fs.readFileSync(0, 'utf-8').trim();\r\nconst [a, b] = input.split(' ').map(Number);\r\n\r\nconsole.log(addTwoNumbers(a, b));",
+        python:
+          'def add_two_numbers(a, b):\r\n    # Write your code here\r\n    # Return the sum of a and b\r\n    return a + b\r\n\r\nimport sys\r\ninput_line = sys.stdin.read()\r\na, b = map(int, input_line.split())\r\nprint(add_two_numbers(a, b))',
+      },
+      testcases: [
+        {
+          input: '',
+          expected: '',
+          isPublic: false,
+        },
+      ],
+    },
+    testCases: [
+      {
+        input: '10 15',
+        isPublic: false,
+        expected: '25',
+      },
+      {
+        input: '-8 3',
+        isPublic: true,
+        expected: '-5',
+      },
+      {
+        input: '0 0',
+        isPublic: true,
+        expected: '0',
+      },
+      {
+        input: '100000 100000',
+        isPublic: false,
+        expected: '200000',
+      },
+    ],
+  });
+  const examplesArray = problemDetails.problem.examples || [];
 
   const [newTag, setNewTag] = useState('');
   // const { theme } = useTheme()
 
   const [exampleCount, setExampleCount] = useState(1);
 
-  // Update problem field
-  const updateProblem = (field, value) => {
-    setProblem((prev) => ({ ...prev, [field]: value }));
+  // Update problemDetails field
+  const updateProblem = (field, value, scope = 'problem') => {
+    setProblemDetails((prev) => {
+      if (scope === 'root') {
+        return { ...prev, [field]: value };
+      }
+
+      return {
+        ...prev,
+        [scope]: {
+          ...prev[scope],
+          [field]: value,
+        },
+      };
+    });
   };
 
   // Add a new tag
   const addTag = () => {
-    if (newTag && !problem.tags.includes(newTag)) {
-      updateProblem('tags', [...problem.tags, newTag]);
+    if (newTag && !problemDetails.problem.tags.includes(newTag)) {
+      updateProblem('tags', [...problemDetails.problem.tags, newTag]);
       setNewTag('');
     }
   };
@@ -159,59 +239,73 @@ export default function CreateProblemForm() {
   const removeTag = (tag) => {
     updateProblem(
       'tags',
-      problem.tags.filter((t) => t !== tag)
+      problemDetails.problem.tags.filter((t) => t !== tag)
     );
   };
 
   // Add a new test case
   const addTestCase = () => {
-    updateProblem('testcases', [
-      ...problem.testcases,
-      { input: '', output: '' },
-    ]);
+    updateProblem(
+      'testCases',
+      [
+        ...problemDetails.testCases,
+        { input: '', expected: '', isPublic: false },
+      ],
+      'root'
+    );
   };
 
-  // Update a test case
+  // Update a test case using the correct key and root scope
   const updateTestCase = (index, field, value) => {
-    const updatedTestCases = [...problem.testcases];
+    const updatedTestCases = [...problemDetails.testCases];
     updatedTestCases[index] = {
       ...updatedTestCases[index],
       [field]: value,
     };
-    updateProblem('testcases', updatedTestCases);
+
+    // Use "testCases" (capital C) and specify the "root" scope
+    updateProblem('testCases', updatedTestCases, 'root');
   };
 
   // Remove a test case
   const removeTestCase = (index) => {
-    const updatedTestCases = problem.testcases.filter((_, i) => i !== index);
-    updateProblem('testcases', updatedTestCases);
+    const updatedTestCases = problemDetails.testCases.filter(
+      (_, i) => i !== index
+    );
+    updateProblem('testCases', updatedTestCases, 'root');
   };
 
   // Update code snippet for a language
   const updateCodeSnippet = (language, code) => {
-    setProblem((prev) => ({
+    setProblemDetails((prev) => ({
       ...prev,
-      codeSnippets: {
-        ...prev.codeSnippets,
-        [language]: code,
+      problem: {
+        ...prev.problem,
+        codeSnippets: {
+          ...prev.problem.codeSnippets,
+          [language]: code,
+        },
       },
     }));
   };
 
   // Update reference solution for a language
   const updateReferenceSolution = (language, code) => {
-    setProblem((prev) => ({
+    setProblemDetails((prev) => ({
       ...prev,
-      referenceSolutions: {
-        ...prev.referenceSolutions,
-        [language]: code,
+      problem: {
+        ...prev.problem,
+        referenceSolutions: {
+          ...prev.problem.referenceSolutions,
+          [language]: code,
+        },
       },
     }));
   };
 
   // Update example for a language
   const updateExample = (language, field, value) => {
-    setProblem((prev) => ({
+    setProblemDetails((prev) => ({
       ...prev,
       examples: {
         ...prev.examples,
@@ -225,37 +319,33 @@ export default function CreateProblemForm() {
 
   const { isPending, isSuccess, error, createProblemMutation } =
     useCreateProblem();
-  console.log('problem', problem);
+  console.log('problemDetails', problemDetails);
 
   const navigate = useNavigate();
   // Handle form submission
   const handleSubmit = async () => {
     // Validate form
-    if (!problem.title || !problem.description) {
+    if (!problemDetails.problem.title || !problemDetails.problem.description) {
       toast.warning('Missing required fields');
       return;
     }
 
-    // Convert to JSON
-    const problemJson = JSON.stringify(problem, null, 2);
-    console.log('problemJson ', problemJson);
+    // Optionally convert problemNumber to a number
+    const payload = {
+      problemNumber: Number(problemDetails.problemNumber),
+      problem: problemDetails.problem,
+      testCases: problemDetails.testCases,
+    };
 
-    await createProblemMutation({
-      title: problem.title,
-      description: problem.description,
-      difficulty: problem.difficulty,
-      tags: problem.tags,
-      examples: problem.examples,
-      constraints: problem.constraints,
-      testcases: problem.testcases,
-      codeSnippets: problem.codeSnippets,
-      referenceSolutions: problem.referenceSolutions,
-    });
+    // Log the payload
+    console.log('payload ', JSON.stringify(payload, null, 2));
 
-    // Here you would typically send this to your API
+    // Pass the correct payload to your mutation
+    await createProblemMutation(payload);
+
+    // Notify user on success
     toast.success('Your problem has been created and saved.');
   };
-
   useEffect(() => {
     if (isSuccess) {
       setTimeout(() => {
@@ -286,15 +376,25 @@ export default function CreateProblemForm() {
             <div className='space-y-4'>
               <InputField
                 label='Title'
-                value={problem.title}
+                value={problemDetails.problem.title}
                 onChange={(value) => updateProblem('title', value)}
                 placeholder='Enter problem title'
                 required
               />
 
               <InputField
+                label='Problem Number'
+                value={problemDetails.problemNumber}
+                onChange={(value) =>
+                  updateProblem('problemNumber', value, 'root')
+                }
+                placeholder='Enter problem number'
+                required
+              />
+
+              <InputField
                 label='Description'
-                value={problem.description}
+                value={problemDetails.problem.description}
                 onChange={(value) => updateProblem('description', value)}
                 placeholder='Enter problem description'
                 multiline
@@ -307,7 +407,7 @@ export default function CreateProblemForm() {
                     Difficulty
                   </label>
                   <Select
-                    value={problem.difficulty}
+                    value={problemDetails.problem.difficulty}
                     onValueChange={(value) =>
                       updateProblem('difficulty', value)
                     }
@@ -343,7 +443,7 @@ export default function CreateProblemForm() {
                     </Button>
                   </div>
                   <div className='flex flex-wrap gap-2 mt-2'>
-                    {problem.tags.map((tag) => (
+                    {problemDetails.problem.tags.map((tag) => (
                       <Badge
                         key={tag}
                         variant='secondary'
@@ -365,7 +465,7 @@ export default function CreateProblemForm() {
 
               <InputField
                 label='Constraints'
-                value={problem.constraints}
+                value={problemDetails.problem.constraints}
                 onChange={(value) => updateProblem('constraints', value)}
                 placeholder='Enter problem constraints'
                 multiline
@@ -377,7 +477,6 @@ export default function CreateProblemForm() {
         {/* Examples */}
         <Card className='bg-green-900 border border-blue-800/20 text-white shadow-lg premium-border-gradient'>
           <CardContent className='pt-6'>
-            <h2 className='text-xl font-semibold mb-4'>Examples</h2>
             <div className='flex justify-between items-center mb-4'>
               <h2 className='text-xl font-semibold'>Examples</h2>
               <Button
@@ -392,10 +491,11 @@ export default function CreateProblemForm() {
                 variant='outline'
                 className='bg-zinc-800'
               >
-                <PlusCircle size={16} className='mr-2 ' />
+                <PlusCircle size={16} className='mr-2' />
                 Add Example
               </Button>
             </div>
+
             {examplesArray.map((example, index) => (
               <Examples
                 key={index}
@@ -436,13 +536,13 @@ export default function CreateProblemForm() {
             </div>
 
             <div className='space-y-4 '>
-              {problem.testcases.map((testcase, index) => (
+              {problemDetails.testCases.map((testcase, index) => (
                 <TestCase
                   key={index}
                   testCase={testcase}
                   index={index}
                   onChange={updateTestCase}
-                  onRemove={removeTestCase}
+                  onRemove={() => removeTestCase(index)}
                 />
               ))}
             </div>
@@ -465,8 +565,12 @@ export default function CreateProblemForm() {
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <TabsContent key={lang} value={lang}>
                   <CodeSnippet
-                    code={problem.codeSnippets[lang]}
-                    onChange={(code) => updateCodeSnippet(lang, code)}
+                    code={
+                      problemDetails.problem.codeSnippets[lang.toLowerCase()]
+                    }
+                    onChange={(code) =>
+                      updateCodeSnippet(lang.toLowerCase(), code)
+                    }
                     language={lang.toLowerCase()}
                     label='Starter Code'
                   />
@@ -492,8 +596,14 @@ export default function CreateProblemForm() {
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <TabsContent key={lang} value={lang}>
                   <CodeSnippet
-                    code={problem.referenceSolutions[lang]}
-                    onChange={(code) => updateReferenceSolution(lang, code)}
+                    code={
+                      problemDetails.problem.referenceSolutions[
+                        lang.toLowerCase()
+                      ]
+                    }
+                    onChange={(code) =>
+                      updateReferenceSolution(lang.toLowerCase(), code)
+                    }
                     language={lang.toLowerCase()}
                     label='Reference Solution'
                   />

@@ -13,6 +13,9 @@ const MonacoEditor = lazy(() => import('@monaco-editor/react'));
  * @param {string} props.label - Label for the code editor
  */
 export default function CodeSnippet({ code, onChange, language, label }) {
+  
+  // console.log("code", code);
+  
   return (
     <div className='space-y-2'>
       <label className='block text-sm font-medium'>{label}</label>
@@ -30,7 +33,10 @@ export default function CodeSnippet({ code, onChange, language, label }) {
             height='400px'
             language={language}
             value={code}
-            onChange={(value) => onChange(value || '')}
+            onChange={(newValue) => {
+              // console.log('Updated code:', newValue);
+              onChange(newValue);
+            }}
             theme='vs-dark'
             options={{
               minimap: { enabled: false },

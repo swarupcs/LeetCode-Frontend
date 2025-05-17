@@ -56,28 +56,24 @@ import axios from '@/config/axiosConfig';
 
 */
 
+/*
+  The payload is structured as:
+  {
+    problemNumber: number,
+    problem: { title, description, difficulty, tags, examples, constraints, codeSnippets, referenceSolutions },
+    testCases: [ { input, expected, isPublic } ]
+  }
+*/
 export const createProblemRequest = async ({
-  title,
-  description,
-  difficulty,
-  tags,
-  examples,
-  constraints,
-  testcases,
-  codeSnippets,
-  referenceSolutions,
+  problemNumber,
+  problem,
+  testCases,
 }) => {
   try {
     const response = await axios.post('/problems/create-problem', {
-      title,
-      description,
-      difficulty,
-      tags,
-      examples,
-      constraints,
-      testcases,
-      codeSnippets,
-      referenceSolutions,
+      problemNumber,
+      problem,
+      testCases,
     });
     return response.data;
   } catch (error) {
