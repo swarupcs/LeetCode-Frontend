@@ -29,6 +29,9 @@ import TestResult from './TestResult';
 import { getJudge0LanguageId } from '@/lib/judge0LanguageId/languageUtils';
 import { useExecuteProblem } from '@/hooks/apis/runCode/useExecuteCode';
 import TestCase from './TestCase';
+import { submitCode } from '@/apis/submitCode';
+import { useSubmitCode } from '@/hooks/apis/submitCode/useSubmitCode';
+import { SubmissionResult } from './SubmissionResult';
 
 export const IndividualProblem = () => {
   const { isLoading, isSuccess, error, getIndividualProblemMutation } =
@@ -40,6 +43,13 @@ export const IndividualProblem = () => {
     error: runError,
     runProblemMutation,
   } = useExecuteProblem();
+
+  const {
+    isPending: submitPending,
+    isSuccess: submitSuccess,
+    error: submitError,
+    submitProblemMutation,
+  } = useSubmitCode();
   const [problemDetails, setProblemDetails] = useState({
     problemId: '',
     title: '',
@@ -51,6 +61,8 @@ export const IndividualProblem = () => {
     testcases: [],
   });
   const problemId = useParams().problemId;
+
+  const [activeTab, setActiveTab] = useState('description');
 
   const [language, setLanguage] = useState('javascript');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -99,7 +111,7 @@ export const IndividualProblem = () => {
 
   const handleCodeChange = (value) => {
     if (value !== undefined) {
-      console.log("value", value);
+      console.log('value', value);
       setCode(value);
     }
   };
@@ -163,13 +175,13 @@ export const IndividualProblem = () => {
     // with the appropriate snippet for the new language
   };
 
-  const executeCode = async () => {
+  const handleRunCode = async () => {
     const source_code = code;
     const language_id = getJudge0LanguageId(language);
-    const stdin = problemDetails.testcases.map((testcase) => testcase.input);
-    const expected_outputs = problemDetails.testcases.map(
-      (testcase) => testcase.output
-    );
+    // const stdin = problemDetails.testcases.map((testcase) => testcase.input);
+    // const expected_outputs = problemDetails.testcases.map(
+    //   (testcase) => testcase.output
+    // );
     const problemId = problemDetails.problemId;
 
     try {
@@ -177,14 +189,42 @@ export const IndividualProblem = () => {
       const response = await runProblemMutation({
         source_code,
         language_id,
-        stdin,
-        expected_outputs,
         problemId,
       });
-      console.log("run", response)
+      console.log('run', response);
       setResultTestCases(response.results);
       // setResultRunCode(response);
       setIsRunning(false);
+    } catch (error) {
+      console.error('Error executing code:', error);
+      setIsRunning(false);
+    }
+  };
+
+  const handleSubmitCode = async () => {
+    console.log("clicked")
+    const source_code = code;
+    const language_id = getJudge0LanguageId(language);
+    // const stdin = problemDetails.testcases.map((testcase) => testcase.input);
+    // const expected_outputs = problemDetails.testcases.map(
+    //   (testcase) => testcase.output
+    // );
+    const problemId = problemDetails.problemId;
+
+    try {
+      setIsRunning(true);
+      const response = await submitProblemMutation({
+        source_code,
+        language_id,
+        // stdin,
+        // expected_outputs,
+        problemId,
+      });
+      console.log('run', response);
+      setResultTestCases(response.results);
+      // setResultRunCode(response);
+      setIsRunning(false);
+      setActiveTab('submissions');
     } catch (error) {
       console.error('Error executing code:', error);
       setIsRunning(false);
@@ -227,7 +267,7 @@ export const IndividualProblem = () => {
                 variant='outline'
                 size='sm'
                 className='gap-2 border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 mr-2'
-                onClick={executeCode}
+                onClick={handleRunCode}
               >
                 <Play size={14} />
                 Run
@@ -235,6 +275,7 @@ export const IndividualProblem = () => {
               <Button
                 size='sm'
                 className='gap-2 bg-emerald-600 text-white hover:bg-emerald-700'
+                onClick={handleSubmitCode}
               >
                 <Send size={14} />
                 Submit
@@ -303,7 +344,11 @@ export const IndividualProblem = () => {
 
         {/* Left Panel */}
         <div className='flex w-1/2 flex-col border-r border-zinc-800'>
-          <Tabs defaultValue='description' className='flex h-full flex-col'>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className='flex h-full flex-col'
+          >
             <TabsList className='h-10 justify-start rounded-none border-b border-zinc-800 bg-zinc-950 px-2'>
               <TabsTrigger
                 value='description'
@@ -346,7 +391,7 @@ export const IndividualProblem = () => {
               value='submissions'
               className='flex-1 overflow-auto p-4'
             >
-              Submissions content goes here
+              <SubmissionResult />
             </TabsContent>
           </Tabs>
         </div>
@@ -449,7 +494,7 @@ export const IndividualProblem = () => {
                   resultTestCases={resultTestCases}
                   onChange={handleTestCaseChange}
                   onRemove={handleTestCaseRemove}
-                  onRun={executeCode}
+                  onRun={handleRunCode}
                   isRunning={isRunning}
                 />
               </TabsContent>

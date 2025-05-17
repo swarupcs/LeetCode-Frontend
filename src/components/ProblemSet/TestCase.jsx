@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ export default function TestCase({
 }) {
   const [activeCase, setActiveCase] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  // Cache the initial number of test cases on first mount
+  const initialTestCaseCount = useRef(testcases.length);
 
   console.log('resultTestCases', resultTestCases);
 
@@ -59,13 +61,13 @@ export default function TestCase({
       ? testcases[activeCase]
       : { input: '', output: '' };
 
-  // Get the active result from resultTestCases rather than resultRunCode
+  // Get the active result from resultTestCases
   const getActiveResult = () => {
     if (!showResults || !resultTestCases || resultTestCases.length === 0) {
       return null;
     }
 
-    // Locate the result that matches the current active case
+    // Locate the result that matches the current active case (assuming testCase numbers are 1-indexed)
     const testCase = resultTestCases.find(
       (tc) => tc.testCase === activeCase + 1
     );
@@ -97,6 +99,9 @@ export default function TestCase({
     if (!testCase) return null;
     return testCase.passed ? 'accepted' : 'wrong';
   };
+
+  // Determine if the active test case is a user-added (new) case
+  const isUserAdded = activeCase >= initialTestCaseCount.current;
 
   if (!testcases || testcases.length === 0) {
     return (
@@ -196,14 +201,14 @@ export default function TestCase({
               </Button>
             );
           })}
-          <Button
+          {/* <Button
             variant='ghost'
             size='sm'
             className='h-8 text-zinc-400 hover:text-white'
             onClick={addNewCase}
           >
             +
-          </Button>
+          </Button> */}
         </div>
 
         <Card className='bg-premium-darker border border-premium-blue shadow-lg border-gray-700 flex-1 overflow-auto'>
@@ -299,7 +304,7 @@ export default function TestCase({
                 </div>
               )}
 
-            {activeCase > 0 && onRemove && (
+            {/* {onRemove && (
               <div className='flex justify-end mt-4'>
                 <Button
                   variant='ghost'
@@ -308,13 +313,14 @@ export default function TestCase({
                     onRemove(activeCase);
                     setActiveCase(Math.max(0, activeCase - 1));
                   }}
+                  disabled={!isUserAdded}
                   className='h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10'
                 >
                   <Trash2 size={16} className='mr-1' />
                   Remove Test Case
                 </Button>
               </div>
-            )}
+            )} */}
           </CardContent>
         </Card>
       </div>
