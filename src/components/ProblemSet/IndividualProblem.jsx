@@ -1,7 +1,5 @@
-import { useGetIndividualProblem } from '@/hooks/apis/getIndividualProblem/useGetIndividualProblem';
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useState, useRef } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,15 +21,15 @@ import {
 } from '@/components/ui/select';
 
 import ProblemList from './ProblemList';
-import CodeEditor from './CodeEditor';
+
 import ProblemDescription from './ProblemDescription';
-import TestResult from './TestResult';
+import TestCase from './TestCase';
+import { SubmissionResult } from './SubmissionResult';
+import { useGetIndividualProblem } from '@/hooks/apis/getIndividualProblem/useGetIndividualProblem';
 import { getJudge0LanguageId } from '@/lib/judge0LanguageId/languageUtils';
 import { useExecuteProblem } from '@/hooks/apis/runCode/useExecuteCode';
-import TestCase from './TestCase';
-import { submitCode } from '@/apis/submitCode';
 import { useSubmitCode } from '@/hooks/apis/submitCode/useSubmitCode';
-import { SubmissionResult } from './SubmissionResult';
+import { CodeEditor } from './CodeEditor';
 
 export const IndividualProblem = () => {
   const { isLoading, isSuccess, error, getIndividualProblemMutation } =
@@ -50,6 +48,8 @@ export const IndividualProblem = () => {
     error: submitError,
     submitProblemMutation,
   } = useSubmitCode();
+
+  const problemId = useParams().problemId;
   const [problemDetails, setProblemDetails] = useState({
     problemId: '',
     title: '',
@@ -60,22 +60,17 @@ export const IndividualProblem = () => {
     codeSnippets: {},
     testcases: [],
   });
-  const problemId = useParams().problemId;
 
   const [activeTab, setActiveTab] = useState('description');
-
   const [language, setLanguage] = useState('javascript');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [testPanelHeight, setTestPanelHeight] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
-
   const [isRunning, setIsRunning] = useState(false);
-  // const [resultRunCode, setResultRunCode] = useState([]);
   const [resultTestCases, setResultTestCases] = useState([]);
-  const startY = useRef(0);
+  const [startY, setStartY] = useState(0);
   const [code, setCode] = useState('');
-
-  const [submissionDetails, setSubmissionDetails] = useState(null)
+  const [submissionDetails, setSubmissionDetails] = useState(null);
 
   // Test cases state
   const [testcases, setTestcases] = useState([
@@ -83,6 +78,14 @@ export const IndividualProblem = () => {
     { input: '-500 -600', output: '-1100' },
     { input: '0 0', output: '0' },
   ]);
+
+  // Load saved language preference from localStorage
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem(`problem_${problemId}_language`);
+    if (savedLanguage) {
+      setLanguage(savedLanguage);
+    }
+  }, [problemId]);
 
   const getIndividualProblem = async (problemId) => {
     try {
@@ -98,10 +101,23 @@ export const IndividualProblem = () => {
         testcases: response.problem.testCases || [],
       });
 
-      // Set initial code for current language
-      const initialCode =
-        response.problem.codeSnippets[language.toLowerCase()] || '';
-      setCode(initialCode);
+      // Check if there's saved code for this problem and language
+      const storageKey = `editor_code_${problemId}_${language.toLowerCase()}`;
+      const savedCode = localStorage.getItem(storageKey);
+
+      if (savedCode) {
+        setCode(savedCode);
+      } else {
+        // Set initial code for current language if no saved code exists
+        const initialCode =
+          response.problem.codeSnippets[language.toLowerCase()] || '';
+        setCode(initialCode);
+
+        // Save initial code to localStorage
+        if (initialCode) {
+          localStorage.setItem(storageKey, initialCode);
+        }
+      }
     } catch (error) {
       console.error('Error fetching individual problem:', error);
     }
@@ -113,7 +129,6 @@ export const IndividualProblem = () => {
 
   const handleCodeChange = (value) => {
     if (value !== undefined) {
-      // console.log('value', value);
       setCode(value);
     }
   };
@@ -122,7 +137,7 @@ export const IndividualProblem = () => {
   const handleResizeStart = (e) => {
     e.preventDefault();
     setIsResizing(true);
-    startY.current = e.clientY;
+    setStartY(e.clientY);
   };
 
   // Handle test case changes
@@ -150,10 +165,10 @@ export const IndividualProblem = () => {
     const handleResize = (e) => {
       if (!isResizing) return;
 
-      const delta = startY.current - e.clientY;
+      const delta = startY - e.clientY;
       const newHeight = Math.max(100, Math.min(600, testPanelHeight + delta));
       setTestPanelHeight(newHeight);
-      startY.current = e.clientY;
+      setStartY(e.clientY);
     };
 
     const handleResizeEnd = () => {
@@ -169,21 +184,18 @@ export const IndividualProblem = () => {
       document.removeEventListener('mousemove', handleResize);
       document.removeEventListener('mouseup', handleResizeEnd);
     };
-  }, [isResizing, testPanelHeight]);
+  }, [isResizing, testPanelHeight, startY]);
 
   const handleLanguageChange = (value) => {
     setLanguage(value);
-    // The code will be updated by the CodeEditor component, which will call handleCodeChange
-    // with the appropriate snippet for the new language
+    localStorage.setItem(`problem_${problemId}_language`, value);
+
+    // The code will be loaded by the CodeEditor component
   };
 
   const handleRunCode = async () => {
     const source_code = code;
     const language_id = getJudge0LanguageId(language);
-    // const stdin = problemDetails.testcases.map((testcase) => testcase.input);
-    // const expected_outputs = problemDetails.testcases.map(
-    //   (testcase) => testcase.output
-    // );
     const problemId = problemDetails.problemId;
 
     try {
@@ -193,9 +205,7 @@ export const IndividualProblem = () => {
         language_id,
         problemId,
       });
-      // console.log('run', response);
       setResultTestCases(response.results);
-      // setResultRunCode(response);
       setIsRunning(false);
     } catch (error) {
       console.error('Error executing code:', error);
@@ -206,10 +216,6 @@ export const IndividualProblem = () => {
   const handleSubmitCode = async () => {
     const source_code = code;
     const language_id = getJudge0LanguageId(language);
-    // const stdin = problemDetails.testcases.map((testcase) => testcase.input);
-    // const expected_outputs = problemDetails.testcases.map(
-    //   (testcase) => testcase.output
-    // );
     const problemId = problemDetails.problemId;
 
     try {
@@ -217,13 +223,10 @@ export const IndividualProblem = () => {
       const response = await submitProblemMutation({
         source_code,
         language_id,
-        // stdin,
-        // expected_outputs,
         problemId,
       });
       console.log('run', response);
       setSubmissionDetails(response.submission);
-      // setResultRunCode(response);
       setIsRunning(false);
       setActiveTab('submissions');
     } catch (error) {
@@ -319,30 +322,12 @@ export const IndividualProblem = () => {
             <Button variant='ghost' size='icon' className='h-8 w-8'>
               <Settings size={16} />
             </Button>
-            {/* <div className='flex items-center gap-1 px-2'>
-              <Zap size={16} className='text-amber-500' />
-              <span className='text-sm text-amber-500'>0</span>
-            </div> */}
           </div>
-          {/* <Button
-            variant='ghost'
-            size='sm'
-            className='bg-amber-600/20 text-amber-500'
-          >
-            Premium
-          </Button> */}
         </div>
       </header>
 
       {/* Main Content */}
       <div className='flex flex-1 overflow-hidden'>
-        {/* Problem List Sidebar */}
-        {/* {sidebarOpen && (
-          <div className='w-80 flex-shrink-0 border-r border-zinc-800 bg-zinc-950 overflow-hidden flex flex-col'>
-            <ProblemList />
-          </div>
-        )} */}
-
         {/* Left Panel */}
         <div className='flex w-1/2 flex-col border-r border-zinc-800'>
           <Tabs
@@ -440,7 +425,6 @@ export const IndividualProblem = () => {
                   </div>
                 </div>
                 <CodeEditor
-                  key={language} // Add a key to force re-render on language change
                   language={language}
                   codeSnippets={problemDetails.codeSnippets}
                   onChange={handleCodeChange}
@@ -476,15 +460,6 @@ export const IndividualProblem = () => {
                       <span>Testcase </span>
                     </div>
                   </TabsTrigger>
-                  {/* <TabsTrigger
-                    value='result'
-                    className='data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100'
-                  >
-                    <div className='flex items-center gap-1.5'>
-                      <div className='h-3.5 w-3.5 rounded-sm bg-emerald-600'></div>
-                      <span>Test Result</span>
-                    </div>
-                  </TabsTrigger> */}
                 </TabsList>
               </div>
               <TabsContent
@@ -494,7 +469,6 @@ export const IndividualProblem = () => {
                 <TestCase
                   testcases={problemDetails.testcases}
                   runSuccess={runSuccess}
-                  // resultRunCode={resultRunCode}
                   resultTestCases={resultTestCases}
                   onChange={handleTestCaseChange}
                   onRemove={handleTestCaseRemove}
@@ -502,9 +476,6 @@ export const IndividualProblem = () => {
                   isRunning={isRunning}
                 />
               </TabsContent>
-              {/* <TabsContent value='result' className='flex-1 overflow-auto p-0'>
-
-              </TabsContent> */}
             </Tabs>
           </div>
         </div>

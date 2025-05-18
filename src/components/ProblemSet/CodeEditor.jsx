@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function CodeEditor({ language, onChange, codeSnippets }) {
+export function CodeEditor({ language, onChange, codeSnippets }) {
   const [code, setCode] = useState('');
   const [isEditorReady, setIsEditorReady] = useState(false);
   const monacoRef = useRef(null);
@@ -13,10 +13,16 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
 
   // Initialize with code snippets on first load and language change
   useEffect(() => {
-    // Try to load from localStorage first
-    const savedCode = localStorage.getItem(`editor_code_${language.toLowerCase()}`);
+    // Generate a storage key based on both language and problem id
+    // Extract problem ID from URL path
+    const pathParts = window.location.pathname.split('/');
+    const problemId = pathParts[pathParts.length - 1];
+    const storageKey = `editor_code_${problemId}_${language.toLowerCase()}`;
     
-    // If we have saved code for this language, use it
+    // Try to load from localStorage first
+    const savedCode = localStorage.getItem(storageKey);
+    
+    // If we have saved code for this language and problem, use it
     if (savedCode) {
       setCode(savedCode);
       if (onChange) {
@@ -31,7 +37,9 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
         onChange(snippet);
       }
       // Save to localStorage for future use
-      localStorage.setItem(`editor_code_${language.toLowerCase()}`, snippet);
+      if (snippet) {
+        localStorage.setItem(storageKey, snippet);
+      }
     }
     
     lastLanguage.current = language;
@@ -70,13 +78,19 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
     const newCode = value || '';
     setCode(newCode);
     
+    // Extract problem ID from URL path
+    const pathParts = window.location.pathname.split('/');
+    const problemId = pathParts[pathParts.length - 1];
+    const storageKey = `editor_code_${problemId}_${language.toLowerCase()}`;
+    
     // Save to localStorage whenever code changes
-    localStorage.setItem(`editor_code_${language.toLowerCase()}`, newCode);
+    localStorage.setItem(storageKey, newCode);
     
     if (onChange) {
       onChange(newCode);
     }
   };
+
 
   const getMonacoLanguage = (lang) => {
     switch (lang?.toLowerCase()) {
