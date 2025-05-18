@@ -75,7 +75,7 @@ export const IndividualProblem = () => {
   const startY = useRef(0);
   const [code, setCode] = useState('');
 
-  const [submissionDetails, setSubmissionDetails] = useState({})
+  const [submissionDetails, setSubmissionDetails] = useState(null)
 
   // Test cases state
   const [testcases, setTestcases] = useState([
@@ -113,7 +113,7 @@ export const IndividualProblem = () => {
 
   const handleCodeChange = (value) => {
     if (value !== undefined) {
-      console.log('value', value);
+      // console.log('value', value);
       setCode(value);
     }
   };
@@ -193,7 +193,7 @@ export const IndividualProblem = () => {
         language_id,
         problemId,
       });
-      console.log('run', response);
+      // console.log('run', response);
       setResultTestCases(response.results);
       // setResultRunCode(response);
       setIsRunning(false);
@@ -204,7 +204,6 @@ export const IndividualProblem = () => {
   };
 
   const handleSubmitCode = async () => {
-    console.log("clicked")
     const source_code = code;
     const language_id = getJudge0LanguageId(language);
     // const stdin = problemDetails.testcases.map((testcase) => testcase.input);
@@ -393,7 +392,10 @@ export const IndividualProblem = () => {
               value='submissions'
               className='flex-1 overflow-auto p-4'
             >
-              <SubmissionResult submissionDetails={submissionDetails} />
+              <SubmissionResult
+                submissionDetails={submissionDetails}
+                submissionInProgress={submitPending}
+              />
             </TabsContent>
           </Tabs>
         </div>

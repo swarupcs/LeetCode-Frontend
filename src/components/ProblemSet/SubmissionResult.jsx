@@ -1,7 +1,8 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
@@ -11,220 +12,377 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  CheckCircle,
+  CheckCircle2,
   Clock,
-  Eye,
+  Code2,
   FileText,
-  MessageSquare,
-  ChevronLeft,
   HardDrive,
+  XCircle,
+  ArrowLeft,
+  Eye,
+  BarChart3,
+  Calendar,
 } from 'lucide-react';
 
-export function SubmissionResult() {
-  const [activeTab, setActiveTab] = useState('submissions');
+export function SubmissionResult({
+  submissionDetails = null,
+  submissionInProgress = false,
+}) {
+  const [showResults, setShowResults] = useState(false);
+  console.log("submissionDetails", submissionDetails);
+  // console.log("{}", {} == submissionDetails)
+  // console.log("type of submissionDetails", typeof submissionDetails);
+
+
+  // When submissionDetails changes and is not null, show the results
+  useEffect(() => {
+    if (submissionDetails != null) {
+      setShowResults(true);
+    }
+  }, [submissionDetails]);
+
+  console.log("showResults", showResults);
+
+  // Default submission history data
+  const previousSubmissions = [
+    {
+      status: submissionDetails ? submissionDetails?.status : 'Pending',
+      date: submissionDetails ? 'Just now' : 'In progress...',
+      language: submissionDetails?.language || 'Java',
+      statusColor:
+        submissionDetails?.status === 'Accepted'
+          ? 'text-green-600'
+          : submissionDetails?.status === 'Wrong Answer'
+          ? 'text-red-600'
+          : submissionDetails?.status === 'Time Limit Exceeded'
+          ? 'text-amber-600'
+          : 'text-gray-600',
+      runtime: submissionDetails?.performance?.totalTime || '-',
+      memory: submissionDetails?.performance?.totalMemory || '-',
+    },
+    {
+      status: 'Accepted',
+      date: 'Sep 3, 2024',
+      language: 'Java',
+      statusColor: 'text-green-600',
+      runtime: '285ms',
+      memory: '81.72MB',
+    },
+    {
+      status: 'Wrong Answer',
+      date: 'Sep 2, 2024',
+      language: 'Python',
+      statusColor: 'text-red-600',
+      runtime: '312ms',
+      memory: '95.43MB',
+    },
+    {
+      status: 'Time Limit Exceeded',
+      date: 'Sep 1, 2024',
+      language: 'JavaScript',
+      statusColor: 'text-amber-600',
+      runtime: '754ms',
+      memory: '63.21MB',
+    },
+  ];
+
+  // Only process additional data if we have submission details
+  let statusInfo = {
+    icon: null,
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    badgeColor: 'bg-gray-100 text-gray-800',
+    progressColor: 'bg-gray-500',
+  };
+  let passPercentage = 0;
+  let formattedDate = '';
+
+  if (submissionDetails) {
+    // Function to determine status info based on submission status
+    const getStatusInfo = (status) => {
+      if (status === 'Accepted') {
+        return {
+          icon: <CheckCircle2 className='h-5 w-5' />,
+          color: 'text-green-600',
+          bgColor: 'bg-green-50',
+          badgeColor: 'bg-green-100 text-green-800 hover:bg-green-100',
+          progressColor: 'bg-green-500',
+        };
+      } else {
+        return {
+          icon: <XCircle className='h-5 w-5' />,
+          color: 'text-red-600',
+          bgColor: 'bg-red-50',
+          badgeColor: 'bg-red-100 text-red-800 hover:bg-red-100',
+          progressColor: 'bg-red-500',
+        };
+      }
+    };
+
+    statusInfo = getStatusInfo(submissionDetails?.status);
+
+    // Format date
+    const currentDate = new Date();
+    formattedDate =
+      currentDate.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      }) +
+      ' at ' +
+      currentDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+    // Parse test cases passed
+    const [passed, total] = submissionDetails?.testCasesPassed?.split('/').map(Number) || [0, 0];
+    passPercentage = total > 0 ? (passed / total) * 100 : 0;
+  }
+
+  // Test cases data
+  const testCases = [
+    {
+      name: 'Compilation check',
+      status: 'Passed',
+      message: 'Code compiled successfully!',
+    },
+    {
+      name: 'Test Cases (small)',
+      status: 'Passed',
+      message: 'Code Passed for the given test case',
+    },
+    {
+      name: 'Test Cases (Large)',
+      status: 'Passed',
+      message: 'Large Testcases Passed Successfully',
+    },
+  ];
 
   return (
-    <div className='flex flex-col min-h-screen bg-black text-gray-200'>
-      {/* Navigation and Main Content */}
-      <div className='border-b border-gray-800'>
-        <div className='container mx-auto px-4'>
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className='w-full'
-          >
+    <div className='min-h-screen bg-gray-50'>
 
 
-            {/* Main Content */}
-            <TabsContent value='submissions' className='mt-0 pb-6'>
-              <div className='space-y-6'>
-                {/* Current Submission */}
-                <div className='flex justify-between items-center'>
-                  <h2 className='text-xl font-medium'>Current submission</h2>
-                  <Button
-                    variant='outline'
-                    className='bg-transparent border-orange-600 text-orange-500 hover:bg-orange-950 hover:text-orange-400'
-                  >
-                    View Advance Analysis
+      {/* Main Content */}
+      <main className='container mx-auto px-4 py-8 space-y-6'>
+        {/* Only show these cards if we have submission details */}
+        {showResults && (
+          <>
+            <div className='flex justify-between items-center mb-6'>
+              <div className='flex items-center space-x-2'>
+                <Badge variant='outline' className='flex items-center gap-1'>
+                  <Calendar className='h-3.5 w-3.5' />
+                  {formattedDate}
+                </Badge>
+                <Badge variant='outline' className='flex items-center gap-1'>
+                  <Code2 className='h-3.5 w-3.5' />
+                  {submissionDetails?.language}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Status Card */}
+            <Card className={`${statusInfo.bgColor} border-none shadow-sm`}>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between mb-6'>
+                  <div className='flex items-center'>
+                    <div className={`${statusInfo.color} mr-2`}>
+                      {statusInfo.icon}
+                    </div>
+                    <h2 className={`text-2xl font-bold ${statusInfo.color}`}>
+                      {submissionDetails?.status}
+                    </h2>
+                  </div>
+                  <Button variant='outline' size='sm' className='gap-1'>
+                    <Eye className='h-4 w-4' />
+                    View Code
                   </Button>
                 </div>
 
-                {/* Submission Status Card */}
-                <div className='border border-green-800 rounded-lg bg-green-950/20 p-6'>
-                  <div className='flex justify-between items-start mb-6'>
-                    <div className='flex items-center'>
-                      <span className='text-green-500 font-medium text-lg'>
-                        Accepted
-                      </span>
-                      <CheckCircle className='ml-2 h-5 w-5 text-green-500' />
-                    </div>
-                    <div className='text-gray-400 text-sm'>
-                      Evaluated on 05/16/2025, 10:27:43 PM
-                    </div>
-                  </div>
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                  {/* Test Cases */}
+                  <Card className='bg-white shadow-sm'>
+                    <CardHeader className='pb-2'>
+                      <div className='flex items-center text-sm text-gray-500'>
+                        <FileText className='h-4 w-4 mr-1' />
+                        Test Cases Passed
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className='flex flex-col'>
+                        <div className='flex justify-between items-center mb-2'>
+                          <span className='text-2xl font-bold'>
+                            {submissionDetails?.testCasesPassed}
+                          </span>
+                          <Badge
+                            variant='outline'
+                            className={statusInfo.badgeColor}
+                          >
+                            {Math.round(passPercentage)}%
+                          </Badge>
+                        </div>
+                        <Progress
+                          value={passPercentage}
+                          className='h-2'
+                          indicatorClassName={statusInfo.progressColor}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                  <div className='grid grid-cols-3 gap-4'>
-                    <div>
-                      <div className='flex items-center text-gray-400 mb-1'>
-                        <span>Test cases passed</span>
-                        <FileText className='ml-2 h-4 w-4' />
+                  {/* Time */}
+                  <Card className='bg-white shadow-sm'>
+                    <CardHeader className='pb-2'>
+                      <div className='flex items-center text-sm text-gray-500'>
+                        <Clock className='h-4 w-4 mr-1' />
+                        Time Taken
                       </div>
-                      <div className='text-green-500 text-xl font-medium'>
-                        109/109
+                    </CardHeader>
+                    <CardContent>
+                      <div className='flex items-end justify-between'>
+                        <span className='text-2xl font-bold'>
+                          {submissionDetails?.performance?.totalTime}
+                        </span>
+                        <span className='text-sm text-gray-500'>
+                          Faster than 85% of submissions
+                        </span>
                       </div>
-                    </div>
-                    <div>
-                      <div className='flex items-center text-gray-400 mb-1'>
-                        <span>Time Taken</span>
-                        <Clock className='ml-2 h-4 w-4' />
+                    </CardContent>
+                  </Card>
+
+                  {/* Memory */}
+                  <Card className='bg-white shadow-sm'>
+                    <CardHeader className='pb-2'>
+                      <div className='flex items-center text-sm text-gray-500'>
+                        <HardDrive className='h-4 w-4 mr-1' />
+                        Memory Used
                       </div>
-                      <div className='text-xl font-medium'>279ms</div>
-                    </div>
-                    <div>
-                      <div className='flex items-center text-gray-400 mb-1'>
-                        <span>Memory Used</span>
-                        <HardDrive className='ml-2 h-4 w-4' />
+                    </CardHeader>
+                    <CardContent>
+                      <div className='flex items-end justify-between'>
+                        <span className='text-2xl font-bold'>
+                          {submissionDetails?.performance?.totalMemory}
+                        </span>
+                        <span className='text-sm text-gray-500'>
+                          Better than 72% of submissions
+                        </span>
                       </div>
-                      <div className='text-xl font-medium'>83.52MB</div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* Test Results */}
-                <div className='space-y-4'>
-                  {/* Compilation Check */}
-                  <div className='border border-gray-800 rounded-lg bg-gray-900 p-4'>
+            {/* Test Cases Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle className='text-lg'>Test Results</CardTitle>
+              </CardHeader>
+              <CardContent className='space-y-4'>
+                {testCases.map((test, index) => (
+                  <div
+                    key={index}
+                    className='border rounded-lg p-4 transition-all hover:bg-gray-50'
+                  >
                     <div className='flex justify-between items-center'>
                       <div className='flex items-center'>
-                        <CheckCircle className='h-5 w-5 text-green-500 mr-2' />
-                        <span className='font-medium'>Compilation check</span>
+                        {test.status === 'Passed' ? (
+                          <CheckCircle2 className='h-5 w-5 text-green-600 mr-2' />
+                        ) : (
+                          <XCircle className='h-5 w-5 text-red-600 mr-2' />
+                        )}
+                        <span className='font-medium'>{test.name}</span>
                       </div>
-                      <span className='px-3 py-1 bg-green-900/30 text-green-500 rounded-full text-sm'>
-                        Passed
-                      </span>
+                      <Badge
+                        variant={
+                          test.status === 'Passed' ? 'success' : 'destructive'
+                        }
+                      >
+                        {test.status}
+                      </Badge>
                     </div>
-                    <div className='mt-2 ml-7 text-gray-400'>
-                      Code compiled successfully!
+                    <div className='mt-2 ml-7 text-sm text-gray-600'>
+                      {test.message}
                     </div>
                   </div>
+                ))}
+              </CardContent>
+            </Card>
+          </>
+        )}
 
-                  {/* Test Cases (small) */}
-                  <div className='border border-gray-800 rounded-lg bg-gray-900 p-4'>
-                    <div className='flex justify-between items-center'>
+        {/* Always show submission history */}
+        <Card>
+          <CardHeader className='flex flex-row items-center justify-between'>
+            <CardTitle className='text-lg'>Submission History</CardTitle>
+            {submissionInProgress && (
+              <Badge variant='outline' className='bg-blue-100 text-blue-800'>
+                Submission in progress...
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Language</TableHead>
+                  <TableHead>Runtime</TableHead>
+                  <TableHead>Memory</TableHead>
+                  <TableHead className='text-right'>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {previousSubmissions.map((submission, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
                       <div className='flex items-center'>
-                        <CheckCircle className='h-5 w-5 text-green-500 mr-2' />
-                        <span className='font-medium'>Test Cases (small)</span>
+                        {submission.status === 'Accepted' ? (
+                          <CheckCircle2 className='h-4 w-4 text-green-600 mr-2' />
+                        ) : submission.status === 'Wrong Answer' ? (
+                          <XCircle className='h-4 w-4 text-red-600 mr-2' />
+                        ) : submission.status === 'Time Limit Exceeded' ? (
+                          <Clock className='h-4 w-4 text-amber-600 mr-2' />
+                        ) : (
+                          <Clock className='h-4 w-4 text-gray-400 mr-2 animate-spin' />
+                        )}
+                        <span className={submission.statusColor}>
+                          {submission.status}
+                        </span>
                       </div>
-                      <span className='px-3 py-1 bg-green-900/30 text-green-500 rounded-full text-sm'>
-                        Passed
-                      </span>
-                    </div>
-                    <div className='mt-2 ml-7 text-gray-400'>
-                      Code Passed for the given test case
-                    </div>
-                  </div>
-
-                  {/* Test Cases (Large) */}
-                  <div className='border border-gray-800 rounded-lg bg-gray-900 p-4'>
-                    <div className='flex justify-between items-center'>
-                      <div className='flex items-center'>
-                        <CheckCircle className='h-5 w-5 text-green-500 mr-2' />
-                        <span className='font-medium'>Test Cases (Large)</span>
+                    </TableCell>
+                    <TableCell>{submission.date}</TableCell>
+                    <TableCell>{submission.language}</TableCell>
+                    <TableCell>{submission.runtime}</TableCell>
+                    <TableCell>{submission.memory}</TableCell>
+                    <TableCell className='text-right'>
+                      <div className='flex justify-end gap-2'>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          className='h-8 w-8'
+                          disabled={!submissionDetails && index === 0}
+                        >
+                          <Eye className='h-4 w-4' />
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          className='h-8 w-8'
+                          disabled={!submissionDetails && index === 0}
+                        >
+                          <BarChart3 className='h-4 w-4' />
+                        </Button>
                       </div>
-                      <span className='px-3 py-1 bg-green-900/30 text-green-500 rounded-full text-sm'>
-                        Passed
-                      </span>
-                    </div>
-                    <div className='mt-2 ml-7 text-gray-400'>
-                      Large Testcases Passed Successfully
-                    </div>
-                  </div>
-                </div>
-
-                {/* My Submissions */}
-                <div className='mt-8'>
-                  <h2 className='text-xl font-medium mb-4'>My submissions</h2>
-                  <div className='border border-gray-800 rounded-lg overflow-hidden'>
-                    <Table>
-                      <TableHeader className='bg-gray-900'>
-                        <TableRow className='border-gray-800'>
-                          <TableHead className='text-gray-400 font-medium'>
-                            Status
-                          </TableHead>
-                          <TableHead className='text-gray-400 font-medium'>
-                            Language
-                          </TableHead>
-                          <TableHead className='text-gray-400 font-medium'>
-                            Code
-                          </TableHead>
-                          <TableHead className='text-gray-400 font-medium'>
-                            Advance Analysis
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow className='border-gray-800'>
-                          <TableCell>
-                            <div>
-                              <span className='text-green-500'>Accepted</span>
-                              <div className='text-xs text-gray-500'>
-                                0 seconds ago
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>Java</TableCell>
-                          <TableCell>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='text-gray-400'
-                            >
-                              <Eye className='h-5 w-5' />
-                            </Button>
-                          </TableCell>
-                          <TableCell>
-                            <span className='text-blue-500'>View</span>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow className='border-gray-800'>
-                          <TableCell>
-                            <div>
-                              <span className='text-green-500'>Accepted</span>
-                              <div className='text-xs text-gray-500'>
-                                Sep 3, 2024
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>Java</TableCell>
-                          <TableCell>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='text-gray-400'
-                            >
-                              <Eye className='h-5 w-5' />
-                            </Button>
-                          </TableCell>
-                          <TableCell>
-                            <span className='text-blue-500'>View</span>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-
-
-
-
-
-
-          </Tabs>
-        </div>
-      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }
