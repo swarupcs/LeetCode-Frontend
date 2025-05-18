@@ -1,8 +1,9 @@
 import { Code, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import ProfileIcon from './ProfileIcon';
 
 export function Header() {
   const location = useLocation();
@@ -37,14 +38,10 @@ export function Header() {
     }
   }, []);
 
+
+
+
   // Profile icon component for authenticated users
-  const ProfileIcon = () => (
-    <Link to='/profile' className='flex items-center'>
-      <div className='w-8 h-8 rounded-full bg-premium-purple flex items-center justify-center hover:bg-premium-highlight cursor-pointer transition-colors'>
-        <User className='h-5 w-5 text-white' />
-      </div>
-    </Link>
-  );
 
   // Auth buttons for non-authenticated users
   const AuthButtons = () => (
