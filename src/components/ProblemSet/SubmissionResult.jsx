@@ -27,12 +27,13 @@ import {
 export function SubmissionResult({
   submissionDetails = null,
   submissionInProgress = false,
+  submissionHistory,
 }) {
   const [showResults, setShowResults] = useState(false);
-  console.log("submissionDetails", submissionDetails);
+  console.log('submissionDetails', submissionDetails);
+  console.log('submissionHistory', submissionHistory);
   // console.log("{}", {} == submissionDetails)
   // console.log("type of submissionDetails", typeof submissionDetails);
-
 
   // When submissionDetails changes and is not null, show the results
   useEffect(() => {
@@ -41,50 +42,27 @@ export function SubmissionResult({
     }
   }, [submissionDetails]);
 
-  console.log("showResults", showResults);
+  console.log('showResults', showResults);
 
   // Default submission history data
-  const previousSubmissions = [
-    {
-      status: submissionDetails ? submissionDetails?.status : 'Pending',
-      date: submissionDetails ? 'Just now' : 'In progress...',
-      language: submissionDetails?.language || 'Java',
-      statusColor:
-        submissionDetails?.status === 'Accepted'
-          ? 'text-green-600'
-          : submissionDetails?.status === 'Wrong Answer'
-          ? 'text-red-600'
-          : submissionDetails?.status === 'Time Limit Exceeded'
-          ? 'text-amber-600'
-          : 'text-gray-600',
-      runtime: submissionDetails?.performance?.totalTime || '-',
-      memory: submissionDetails?.performance?.totalMemory || '-',
-    },
-    {
-      status: 'Accepted',
-      date: 'Sep 3, 2024',
-      language: 'Java',
-      statusColor: 'text-green-600',
-      runtime: '285ms',
-      memory: '81.72MB',
-    },
-    {
-      status: 'Wrong Answer',
-      date: 'Sep 2, 2024',
-      language: 'Python',
-      statusColor: 'text-red-600',
-      runtime: '312ms',
-      memory: '95.43MB',
-    },
-    {
-      status: 'Time Limit Exceeded',
-      date: 'Sep 1, 2024',
-      language: 'JavaScript',
-      statusColor: 'text-amber-600',
-      runtime: '754ms',
-      memory: '63.21MB',
-    },
-  ];
+  const previousSubmissions = Array.isArray(submissionHistory)
+    ? submissionHistory.map((submission) => ({
+        status: submission.status || 'Pending',
+        date: submission.date || 'Unknown',
+        language: submission.language || 'N/A',
+        statusColor:
+          submission.status === 'Accepted'
+            ? 'text-green-600'
+            : submission.status === 'Wrong Answer'
+            ? 'text-red-600'
+            : submission.status === 'Time Limit Exceeded'
+            ? 'text-amber-600'
+            : 'text-gray-600',
+        runtime: submission.runtime || '-',
+        memory: submission.memory || '-',
+      }))
+    : [];
+
 
   // Only process additional data if we have submission details
   let statusInfo = {
@@ -136,7 +114,9 @@ export function SubmissionResult({
       });
 
     // Parse test cases passed
-    const [passed, total] = submissionDetails?.testCasesPassed?.split('/').map(Number) || [0, 0];
+    const [passed, total] = submissionDetails?.testCasesPassed
+      ?.split('/')
+      .map(Number) || [0, 0];
     passPercentage = total > 0 ? (passed / total) * 100 : 0;
   }
 
@@ -161,8 +141,6 @@ export function SubmissionResult({
 
   return (
     <div className='min-h-screen bg-gray-50'>
-
-
       {/* Main Content */}
       <main className='container mx-auto px-4 py-8 space-y-6'>
         {/* Only show these cards if we have submission details */}

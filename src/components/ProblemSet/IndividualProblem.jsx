@@ -30,6 +30,8 @@ import { getJudge0LanguageId } from '@/lib/judge0LanguageId/languageUtils';
 import { useExecuteProblem } from '@/hooks/apis/runCode/useExecuteCode';
 import { useSubmitCode } from '@/hooks/apis/submitCode/useSubmitCode';
 import { CodeEditor } from './CodeEditor';
+import { useUserSubmissionSpecificProblem } from '@/hooks/apis/userSubmissionDetails/useUserSubmissionSpecificProblem';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const IndividualProblem = () => {
   const { isLoading, isSuccess, error, getIndividualProblemMutation } =
@@ -50,6 +52,16 @@ export const IndividualProblem = () => {
   } = useSubmitCode();
 
   const problemId = useParams().problemId;
+
+  // Use TanStack Query to fetch submission history
+  const { data: submissionHistoryData, isPending : isUserSubmissionPending, isSuccess: isUserSubmissionSuccess, error: isUserSubmissionError, refetch } =
+    useUserSubmissionSpecificProblem(problemId);
+
+    console.log('submissionHistoryData', submissionHistoryData); 
+
+  // Get query client for cache invalidation
+  const queryClient = useQueryClient();
+
   const [problemDetails, setProblemDetails] = useState({
     problemId: '',
     title: '',
@@ -122,6 +134,12 @@ export const IndividualProblem = () => {
       console.error('Error fetching individual problem:', error);
     }
   };
+
+  useEffect(() => {
+    if (activeTab === 'submissions' && problemId) {
+      refetch(); // this will trigger the fetch manually
+    }
+  }, [problemId, refetch]);
 
   useEffect(() => {
     getIndividualProblem(problemId);
@@ -229,6 +247,8 @@ export const IndividualProblem = () => {
       setSubmissionDetails(response.submission);
       setIsRunning(false);
       setActiveTab('submissions');
+
+      queryClient.invalidateQueries(['submissionDetails', problemId]);
     } catch (error) {
       console.error('Error executing code:', error);
       setIsRunning(false);
@@ -380,6 +400,7 @@ export const IndividualProblem = () => {
               <SubmissionResult
                 submissionDetails={submissionDetails}
                 submissionInProgress={submitPending}
+                submissionHistory={submissionHistoryData?.submissions || []}
               />
             </TabsContent>
           </Tabs>
