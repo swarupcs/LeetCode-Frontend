@@ -8,42 +8,34 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
   const monacoRef = useRef(null);
   const editorRef = useRef(null);
   const containerRef = useRef(null);
-  const isInitialLoad = useRef(true);
   const lastLanguage = useRef(language);
+  const isInitialLoad = useRef(true);
 
-  // On mount, try to load saved code from localStorage
+  // Initialize with code snippets on first load and language change
   useEffect(() => {
-    const savedCode = localStorage.getItem(`code-${language.toLowerCase()}`);
-    if (savedCode !== null) {
+    // Try to load from localStorage first
+    const savedCode = localStorage.getItem(`editor_code_${language.toLowerCase()}`);
+    
+    // If we have saved code for this language, use it
+    if (savedCode) {
       setCode(savedCode);
       if (onChange) {
         onChange(savedCode);
       }
-      isInitialLoad.current = false;
-    }
-  }, [language, onChange]);
-
-  // Update code only on initial load or when language changes
-  useEffect(() => {
-    if (isInitialLoad.current || lastLanguage.current !== language) {
-      if (codeSnippets && Object.keys(codeSnippets).length > 0) {
-        const snippet = codeSnippets[language.toLowerCase()] || '';
-        setCode(snippet);
-        if (onChange) {
-          onChange(snippet);
-        }
-        // Save the snippet to localStorage for persistence
-        localStorage.setItem(`code-${language.toLowerCase()}`, snippet);
-      } else {
-        setCode('');
-        if (onChange) {
-          onChange('');
-        }
-        localStorage.removeItem(`code-${language.toLowerCase()}`);
+    } 
+    // Otherwise, load from codeSnippets when language changes or on initial load
+    else if (lastLanguage.current !== language || isInitialLoad.current) {
+      const snippet = (codeSnippets && codeSnippets[language.toLowerCase()]) || '';
+      setCode(snippet);
+      if (onChange) {
+        onChange(snippet);
       }
-      lastLanguage.current = language;
-      isInitialLoad.current = false;
+      // Save to localStorage for future use
+      localStorage.setItem(`editor_code_${language.toLowerCase()}`, snippet);
     }
+    
+    lastLanguage.current = language;
+    isInitialLoad.current = false;
   }, [language, codeSnippets, onChange]);
 
   // Handle editor mount
@@ -68,7 +60,6 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
       lineNumbersMinChars: 3,
     });
 
-    // Focus the editor shortly after mount
     setTimeout(() => {
       editor.focus();
     }, 100);
@@ -78,11 +69,13 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
   const handleEditorChange = (value) => {
     const newCode = value || '';
     setCode(newCode);
+    
+    // Save to localStorage whenever code changes
+    localStorage.setItem(`editor_code_${language.toLowerCase()}`, newCode);
+    
     if (onChange) {
       onChange(newCode);
     }
-    // Persist the code on every change
-    localStorage.setItem(`code-${language.toLowerCase()}`, newCode);
   };
 
   const getMonacoLanguage = (lang) => {
