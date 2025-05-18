@@ -75,6 +75,8 @@ export const IndividualProblem = () => {
   const startY = useRef(0);
   const [code, setCode] = useState('');
 
+  const [submissionDetails, setSubmissionDetails] = useState({})
+
   // Test cases state
   const [testcases, setTestcases] = useState([
     { input: '100 200', output: '300' },
@@ -221,7 +223,7 @@ export const IndividualProblem = () => {
         problemId,
       });
       console.log('run', response);
-      setResultTestCases(response.results);
+      setSubmissionDetails(response.submission);
       // setResultRunCode(response);
       setIsRunning(false);
       setActiveTab('submissions');
@@ -391,7 +393,7 @@ export const IndividualProblem = () => {
               value='submissions'
               className='flex-1 overflow-auto p-4'
             >
-              <SubmissionResult />
+              <SubmissionResult submissionDetails={submissionDetails} />
             </TabsContent>
           </Tabs>
         </div>

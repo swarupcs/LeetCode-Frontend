@@ -11,10 +11,20 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
   const isInitialLoad = useRef(true);
   const lastLanguage = useRef(language);
 
-  console.log('codeSnippets', codeSnippets);
+  // On mount, try to load saved code from localStorage
+  useEffect(() => {
+    const savedCode = localStorage.getItem(`code-${language.toLowerCase()}`);
+    if (savedCode !== null) {
+      setCode(savedCode);
+      if (onChange) {
+        onChange(savedCode);
+      }
+      isInitialLoad.current = false;
+    }
+  }, [language, onChange]);
+
   // Update code only on initial load or when language changes
   useEffect(() => {
-    // Only update if it's the first load or the language actually changed
     if (isInitialLoad.current || lastLanguage.current !== language) {
       if (codeSnippets && Object.keys(codeSnippets).length > 0) {
         const snippet = codeSnippets[language.toLowerCase()] || '';
@@ -22,16 +32,20 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
         if (onChange) {
           onChange(snippet);
         }
+        // Save the snippet to localStorage for persistence
+        localStorage.setItem(`code-${language.toLowerCase()}`, snippet);
       } else {
         setCode('');
         if (onChange) {
           onChange('');
         }
+        localStorage.removeItem(`code-${language.toLowerCase()}`);
       }
       lastLanguage.current = language;
       isInitialLoad.current = false;
     }
   }, [language, codeSnippets, onChange]);
+
   // Handle editor mount
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -62,13 +76,15 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
 
   // Handle code change from user editing
   const handleEditorChange = (value) => {
-    setCode(value || '');
+    const newCode = value || '';
+    setCode(newCode);
     if (onChange) {
-      onChange(value);
+      onChange(newCode);
     }
+    // Persist the code on every change
+    localStorage.setItem(`code-${language.toLowerCase()}`, newCode);
   };
 
-  // Map language to Monaco language
   const getMonacoLanguage = (lang) => {
     switch (lang?.toLowerCase()) {
       case 'javascript':
@@ -84,7 +100,6 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
     }
   };
 
-  // Global error handler for ResizeObserver issues
   useEffect(() => {
     const handleError = (event) => {
       if (
@@ -95,7 +110,6 @@ export default function CodeEditor({ language, onChange, codeSnippets }) {
         event.stopImmediatePropagation();
       }
     };
-
     window.addEventListener('error', handleError);
     return () => window.removeEventListener('error', handleError);
   }, []);
