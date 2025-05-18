@@ -31,3 +31,14 @@ export const signInRequest = async ({ email, password }) => {
   }
 };
 
+export const getUserDetails = async () => {
+  try {
+    const response = await axios.get('/auth/getUserDetails');
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error.response.data;
+    
+  }
+}
+
