@@ -57,9 +57,7 @@ export const AppRoutes = () => {
         path='/problem-set'
         element={
           <Layout>
-            <PrivateRoute>
               <ProblemPage />
-            </PrivateRoute>
           </Layout>
         }
       />
@@ -87,9 +85,7 @@ export const AppRoutes = () => {
         path='/problems/:problemId'
         element={
           <Layout>
-            <PrivateRoute>
               <IndividualProblemPage />
-            </PrivateRoute>
           </Layout>
         }
       />
