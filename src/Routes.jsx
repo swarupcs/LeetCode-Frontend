@@ -10,8 +10,10 @@ import { ProblemPage } from './Pages/ProblemSet/ProblemPage';
 
 import { PrivateRoute, PublicRoute } from './lib/ProtectedRote/ProtectedRoute';
 import { ProfilePage } from './Pages/Profile/ProfilePage';
-import { CreateProblemPage } from './Pages/ProblemSet/CreateProblemPage';
 import { IndividualProblemPage } from './Pages/IndividualProblem/IndividualProblemPage';
+import { UpdateProblemPage } from './Pages/ProblemForm/UpdateProblemPage';
+import { CreateProblemPage } from './Pages/ProblemForm/CreateProblemPage';
+import { ProblemFormPage } from './Pages/ProblemForm/ProblemFormPage';
 // Layout component that includes the Header for all pages
 const Layout = ({ children }) => {
   return (
@@ -57,7 +59,7 @@ export const AppRoutes = () => {
         path='/problem-set'
         element={
           <Layout>
-              <ProblemPage />
+            <ProblemPage />
           </Layout>
         }
       />
@@ -66,11 +68,23 @@ export const AppRoutes = () => {
         element={
           <Layout>
             <PrivateRoute>
-              <CreateProblemPage />
+              <ProblemFormPage />
             </PrivateRoute>
           </Layout>
         }
       />
+      {/*  */}
+      <Route
+        path='/edit-problem/:id'
+        element={
+          <Layout>
+            <PrivateRoute>
+              <ProblemFormPage />
+            </PrivateRoute>
+          </Layout>
+        }
+      />
+
       <Route
         path='/profile'
         element={
@@ -85,7 +99,7 @@ export const AppRoutes = () => {
         path='/problems/:problemId'
         element={
           <Layout>
-              <IndividualProblemPage />
+            <IndividualProblemPage />
           </Layout>
         }
       />

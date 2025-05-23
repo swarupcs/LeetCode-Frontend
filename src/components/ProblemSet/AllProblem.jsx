@@ -1,14 +1,36 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Plus, ArrowLeft } from 'lucide-react';
+import {
+  Search,
+  Filter,
+  Plus,
+  ArrowLeft,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { isPending } from './../../../node_modules/@reduxjs/toolkit/src/matchers';
 import { useGetAllProblems } from '@/hooks/apis/getAllProblems/useGetAllProblems';
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 // Mock data for demonstration
 const problemCategories = [
   { name: 'Array', count: 1906 },
@@ -121,6 +143,8 @@ export default function AllProblem() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProblems, setFilteredProblems] = useState(problems);
   const [selectedTopic, setSelectedTopic] = useState('All Topics');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [problemToDelete, setProblemToDelete] = useState(null);
 
   // Add this somewhere to verify data is persisted
   const authUser = useSelector((state) => state.auth);
@@ -129,7 +153,7 @@ export default function AllProblem() {
   useEffect(() => {
     // In a real app, you would check user roles from authentication
     const checkIfAdmin = async () => {
-      if(authUser?.role === 'admin') {
+      if(authUser?.role.toLowerCase() === 'admin') {
         setIsAdmin(true);
       }
       
@@ -160,7 +184,9 @@ export default function AllProblem() {
     }
   }, []);
 
-  console.log('problems', problems);
+  console.log("isAdmin", isAdmin);
+
+  // console.log('problems', problems);
 
   // Filter problems based on search query
   useEffect(() => {
@@ -187,6 +213,27 @@ export default function AllProblem() {
         return 'text-red-500';
       default:
         return '';
+    }
+  };
+
+  const handleDeleteProblem = (problem) => {
+    setProblemToDelete(problem);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      // Add your delete API call here
+      console.log('Deleting problem:', problemToDelete);
+
+      // After successful deletion, refresh the problems list
+      await getAllProblems();
+
+      // Close the dialog
+      setDeleteConfirmOpen(false);
+      setProblemToDelete(null);
+    } catch (error) {
+      console.error('Error deleting problem:', error);
     }
   };
 
@@ -386,7 +433,9 @@ export default function AllProblem() {
                   key={index}
                   className='flex items-center p-4 hover:bg-gray-800'
                 >
-                  <div className='w-6 mr-4 text-green-500'>{problem.isSolved?"✓":" "}</div>
+                  <div className='w-6 mr-4 text-green-500'>
+                    {problem.isSolved ? '✓' : ' '}
+                  </div>
                   <div className='flex-1'>
                     <div className='flex items-center'>
                       <span className='mr-2 text-gray-400'>
@@ -406,21 +455,43 @@ export default function AllProblem() {
                     >
                       {problem.difficulty}
                     </span>
-                    {/* <span className='text-gray-400 w-16 text-right'>
-                      {problem.completion}%
-                    </span>
-                    <div className='w-20 h-1 bg-gray-700 rounded-full'>
-                      <div
-                        className={`h-full rounded-full ${
-                          problem.difficulty === 'Easy'
-                            ? 'bg-emerald-500'
-                            : problem.difficulty === 'Medium'
-                            ? 'bg-amber-500'
-                            : 'bg-red-500'
-                        }`}
-                        style={{ width: `${problem.completion}%` }}
-                      ></div>
-                    </div> */}
+                    {/* Admin actions column */}
+                    {isAdmin && (
+                      <div className='ml-4'>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='h-8 w-8 text-gray-400 hover:text-white'
+                            >
+                              <MoreVertical className='h-4 w-4' />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align='end'
+                            className='bg-gray-800 border-gray-700 text-white'
+                          >
+                            <DropdownMenuItem
+                              className='cursor-pointer hover:bg-gray-700 focus:bg-gray-700'
+                              onClick={() =>
+                                (window.location.href = `/edit-problem/${problem.id}`)
+                              }
+                            >
+                              <Pencil className='mr-2 h-4 w-4' />
+                              Update problem
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className='cursor-pointer text-red-500 hover:bg-gray-700 focus:bg-gray-700'
+                              onClick={() => handleDeleteProblem(problem)}
+                            >
+                              <Trash2 className='mr-2 h-4 w-4' />
+                              Delete problem
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -428,6 +499,29 @@ export default function AllProblem() {
           </div>
         </main>
       </div>
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent className='bg-gray-900 border-gray-700 text-white'>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription className='text-gray-400'>
+              This will permanently delete the problem "{problemToDelete?.title}
+              ". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className='bg-gray-800 text-white hover:bg-gray-700'>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='bg-red-600 hover:bg-red-700 text-white'
+              onClick={confirmDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
