@@ -1,18 +1,19 @@
 import React from 'react'
 import { CreateProblemPage } from './CreateProblemPage'
 import { UpdateProblemPage } from './UpdateProblemPage'
+import { useLocation } from 'react-router-dom';
 
-export const ProblemFormPage = ({mode = "update"}) => {
+export const ProblemFormPage = ({ mode: defaultMode = "update" }) => {
+    const location = useLocation();
+    const mode = location.state?.mode || defaultMode;
   return (
     <div>
-      {mode == 'create' ? (
+      {mode === 'create' ? (
         <>
-          {/* <h1 className='text-3xl font-bold mb-6'>Create New Problem</h1> */}
           <CreateProblemPage mode={mode} />
         </>
       ) : (
         <>
-          {/* <h1 className='text-3xl font-bold mb-6'>Update Problem</h1> */}
           <UpdateProblemPage mode={mode} />
         </>
       )}

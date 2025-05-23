@@ -5,7 +5,7 @@ import React from 'react'
 export const CreateProblemPage = () => {
   return (
     <>
-    <ProblemForm/>
+    <ProblemForm mode={"create"}/>
     </>
   )
 }

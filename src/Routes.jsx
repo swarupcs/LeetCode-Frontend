@@ -68,7 +68,7 @@ export const AppRoutes = () => {
         element={
           <Layout>
             <PrivateRoute>
-              <ProblemFormPage />
+              <ProblemFormPage mode='create' />
             </PrivateRoute>
           </Layout>
         }
@@ -79,7 +79,7 @@ export const AppRoutes = () => {
         element={
           <Layout>
             <PrivateRoute>
-              <ProblemFormPage />
+              <ProblemFormPage mode='update' />
             </PrivateRoute>
           </Layout>
         }

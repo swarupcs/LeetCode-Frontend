@@ -395,7 +395,7 @@ export default function AllProblem() {
           {/* Admin create button */}
           {isAdmin && (
             <div className='mb-6'>
-              <Link to='/create-problem'>
+              <Link to='/create-problem' state={{ mode: 'create' }}>
                 <Button className='bg-green-600 hover:bg-green-700'>
                   <Plus className='mr-2 h-4 w-4' />
                   Create New Problem
@@ -472,14 +472,15 @@ export default function AllProblem() {
                             align='end'
                             className='bg-gray-800 border-gray-700 text-white'
                           >
-                            <DropdownMenuItem
-                              className='cursor-pointer hover:bg-gray-700 focus:bg-gray-700'
-                              onClick={() =>
-                                (window.location.href = `/edit-problem/${problem.id}`)
-                              }
-                            >
-                              <Pencil className='mr-2 h-4 w-4' />
-                              Update problem
+                            <DropdownMenuItem asChild>
+                              <Link
+                                to={`/edit-problem/${problem.id}`}
+                                state={{ mode: 'update' }}
+                                className='cursor-pointer hover:bg-gray-700 focus:bg-gray-700 flex items-center'
+                              >
+                                <Pencil className='mr-2 h-4 w-4' />
+                                Update problem
+                              </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className='cursor-pointer text-red-500 hover:bg-gray-700 focus:bg-gray-700'

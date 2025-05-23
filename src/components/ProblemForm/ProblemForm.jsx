@@ -51,7 +51,7 @@ import { FaCheck } from 'react-icons/fa';
 
 const SUPPORTED_LANGUAGES = ['PYTHON', 'JAVASCRIPT', 'JAVA'];
 
-export default function ProblemForm() {
+export default function ProblemForm({mode}) {
   // const [problemDetails, setProblemDetails] = useState({
   //   problemNumber: 42,
   //   problem: {
@@ -327,7 +327,11 @@ export default function ProblemForm() {
 
   return (
     <div className='container mx-auto py-8 bg-premium-darker text-slate-50'>
-      {/* <h1 className='text-3xl font-bold mb-6'>Create New Problem</h1> */}
+      {mode =="create" ? (
+       <h1 className='text-3xl font-bold mb-6'>Create New Problem</h1> 
+      ): (
+        <h1 className='text-3xl font-bold mb-6'>Update Problem</h1>
+      )}
 
       <div className='space-y-8'>
         {/* Basic Information */}
