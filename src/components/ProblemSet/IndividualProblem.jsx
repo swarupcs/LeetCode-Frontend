@@ -32,6 +32,7 @@ import { useSubmitCode } from '@/hooks/apis/submitCode/useSubmitCode';
 import { CodeEditor } from './CodeEditor';
 import { useUserSubmissionSpecificProblem } from '@/hooks/apis/userSubmissionDetails/useUserSubmissionSpecificProblem';
 import { useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 
 export const IndividualProblem = () => {
   const { isLoading, isSuccess, error, getIndividualProblemMutation } =
@@ -53,11 +54,18 @@ export const IndividualProblem = () => {
 
   const problemId = useParams().problemId;
 
-  // Use TanStack Query to fetch submission history
-  const { data: submissionHistoryData, isPending : isUserSubmissionPending, isSuccess: isUserSubmissionSuccess, error: isUserSubmissionError, refetch } =
-    useUserSubmissionSpecificProblem(problemId);
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
-    console.log('submissionHistoryData', submissionHistoryData); 
+  // Use TanStack Query to fetch submission history
+  const {
+    data: submissionHistoryData,
+    isPending: isUserSubmissionPending,
+    isSuccess: isUserSubmissionSuccess,
+    error: isUserSubmissionError,
+    refetch,
+  } = useUserSubmissionSpecificProblem(problemId, isAuthenticated);
+
+    // console.log('submissionHistoryData', submissionHistoryData); 
 
   // Get query client for cache invalidation
   const queryClient = useQueryClient();
@@ -90,6 +98,9 @@ export const IndividualProblem = () => {
     { input: '-500 -600', output: '-1100' },
     { input: '0 0', output: '0' },
   ]);
+
+  // console.log("isAuthenticated", isAuthenticated);
+  
 
   // Load saved language preference from localStorage
   useEffect(() => {
@@ -136,10 +147,10 @@ export const IndividualProblem = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'submissions' && problemId) {
-      refetch(); // this will trigger the fetch manually
+    if (activeTab === 'submissions' && problemId && isAuthenticated) {
+      refetch();
     }
-  }, [problemId, refetch]);
+  }, [activeTab, problemId, isAuthenticated, refetch]);
 
   useEffect(() => {
     getIndividualProblem(problemId);
