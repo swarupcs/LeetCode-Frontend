@@ -51,7 +51,7 @@ import { FaCheck } from 'react-icons/fa';
 
 const SUPPORTED_LANGUAGES = ['PYTHON', 'JAVASCRIPT', 'JAVA'];
 
-export default function ProblemForm({mode}) {
+export default function ProblemForm({mode, problemInfo}) {
   // const [problemDetails, setProblemDetails] = useState({
   //   problemNumber: 42,
   //   problem: {
@@ -138,40 +138,50 @@ export default function ProblemForm({mode}) {
   //   },
   // });
 
+  console.log("problemInfo", problemInfo )
+
   const [problemDetails, setProblemDetails] = useState({
-    problemNumber: '',
+    problemNumber: problemInfo.problemNumber || '',
     problem: {
-      title: '',
-      description: '',
-      difficulty: '',
-      tags: [],
-      examples: [
+      title: problemInfo.title || '',
+      description: problemInfo.description || '',
+      difficulty: problemInfo.difficulty || 'EASY',
+      tags: problemInfo.tags || [],
+      examples: problemInfo.examples?.map((example) => ({
+        input: example.input || '',
+        output: example.output || '',
+        explanation: example.explanation || '',
+      })) || [
         {
           input: '',
           output: '',
           explanation: '',
         },
-        
       ],
-      constraints: '',
+      constraints: problemInfo.constraints || '',
+      hints: problemInfo.hints || '',
+      editorial: problemInfo.editorial || '',
       codeSnippets: {
-        python:'',
-        javascript: '',
-        java: '',
+        python: problemInfo.codeSnippets?.python || '',
+        javascript: problemInfo.codeSnippets?.javascript || '',
+        java: problemInfo.codeSnippets?.java || '',
       },
       referenceSolutions: {
-        java: '',
-        javascript: '',
-        python: '',
+        java: problemInfo.referenceSolutions?.java || '',
+        javascript: problemInfo.referenceSolutions?.javascript || '',
+        python: problemInfo.referenceSolutions?.python || '',
       },
     },
-    testCases: [
+    testCases: problemInfo.testCases?.map((testCase) => ({
+      input: testCase.input || '',
+      expected: testCase.expected || '',
+      isPublic: testCase.isPublic || false, // This field doesn't exist in your problemInfo, so defaulting to false
+    })) || [
       {
         input: '',
-        isPublic: '',
         expected: '',
+        isPublic: false,
       },
-     
     ],
   });
   const examplesArray = problemDetails.problem.examples || [];
