@@ -123,8 +123,8 @@ export default function AllProblem() {
   const [selectedTopic, setSelectedTopic] = useState('All Topics');
 
   // Add this somewhere to verify data is persisted
-  const auth = useSelector((state) => state.auth);
-  console.log('Current auth state:', auth);
+  const authUser = useSelector((state) => state.auth);
+  console.log('Current auth state:', authUser);
   // Simulate checking if user is admin
   useEffect(() => {
     // In a real app, you would check user roles from authentication
@@ -141,7 +141,8 @@ export default function AllProblem() {
 
   const getAllProblems = async () => {
     try {
-      const data = await getAllProblemsMutation();
+      const userId = authUser?.id || null;
+      const data = await getAllProblemsMutation(userId);
       console.log('Fetched all problems:', data);
       setProblems(data.problems);
       setFilteredProblems(data.problems);
@@ -383,10 +384,12 @@ export default function AllProblem() {
                   key={index}
                   className='flex items-center p-4 hover:bg-gray-800'
                 >
-                  <div className='w-6 mr-4 text-green-500'>✓</div>
+                  <div className='w-6 mr-4 text-green-500'>{problem.isSolved?"✓":" "}</div>
                   <div className='flex-1'>
                     <div className='flex items-center'>
-                      <span className='mr-2 text-gray-400'>{problem.id}.</span>
+                      <span className='mr-2 text-gray-400'>
+                        {problem.problemNumber}.
+                      </span>
                       <Link
                         to={`/problems/${problem.id}`}
                         className='text-white hover:text-blue-400'

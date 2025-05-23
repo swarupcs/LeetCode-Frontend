@@ -8,7 +8,7 @@ export const useGetAllProblems = () => {
     error,
     mutateAsync: getAllProblemsMutation,
   } = useMutation({
-    mutationFn: getAllProblemsRequest,
+    mutationFn: (userId) => getAllProblemsRequest(userId),
     onSuccess: (data) => {
       console.log('Successfully fetched all problems', data);
     },

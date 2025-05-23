@@ -23,6 +23,8 @@ export const useSignin = () => {
         loginSuccess({
           user: data.user.name, 
           role: data.user.role,
+          id: data.user.id,
+          isAuthenticated: true,
         })
       );
 
