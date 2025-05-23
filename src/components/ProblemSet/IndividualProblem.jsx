@@ -33,6 +33,8 @@ import { CodeEditor } from './CodeEditor';
 import { useUserSubmissionSpecificProblem } from '@/hooks/apis/userSubmissionDetails/useUserSubmissionSpecificProblem';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
+import { is } from './../../../node_modules/date-fns/locale/is';
+import { toast } from 'sonner';
 
 export const IndividualProblem = () => {
   const { isLoading, isSuccess, error, getIndividualProblemMutation } =
@@ -223,6 +225,11 @@ export const IndividualProblem = () => {
   };
 
   const handleRunCode = async () => {
+    if(!isAuthenticated) {
+      toast.warning('Please login to run the code');
+      return ;
+    }
+
     const source_code = code;
     const language_id = getJudge0LanguageId(language);
     const problemId = problemDetails.problemId;
@@ -243,6 +250,10 @@ export const IndividualProblem = () => {
   };
 
   const handleSubmitCode = async () => {
+    if (!isAuthenticated) {
+      toast.warning('Please login to submit the code');
+      return;
+    }
     const source_code = code;
     const language_id = getJudge0LanguageId(language);
     const problemId = problemDetails.problemId;
