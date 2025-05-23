@@ -28,11 +28,9 @@ const ProfileIcon = () => {
 
   return (
     <div className='relative' onMouseEnter={() => setIsOpen(true)}>
-      <Link to='/profile' className='flex items-center'>
         <div className='w-8 h-8 rounded-full bg-premium-purple flex items-center justify-center hover:bg-premium-highlight cursor-pointer transition-colors'>
           <User className='h-5 w-5 text-white' />
         </div>
-      </Link>
       {isOpen && (
         <div
           ref={dropdownRef}

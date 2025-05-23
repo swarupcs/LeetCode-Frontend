@@ -8,6 +8,8 @@ export const Profile = () => {
     const { user } = useSelector((state) => state.auth);
     console.log('User:', user);
 
+    const [usersDetails, setUsersDetails] = useState({});
+
     const [userSubmissionDetails, setUserSubmissionDetails] = useState({});
 
     const { isLoading, isSuccess, error, getUserAllSubmissionsMutation } = useGetUsersAllSubmissions();
@@ -33,6 +35,7 @@ export const Profile = () => {
       try {
         const response = await getUserDetailsMutation();
         console.log('User Details:', response);
+        setUsersDetails(response?.user);
       } catch (error) {
         console.log("error while fetching user details", error);
       }
@@ -47,7 +50,10 @@ export const Profile = () => {
   return (
     <div className='container py-10'>
       <h1 className='text-3xl font-bold mb-8'>Your Profile</h1>
-      <UserProfile userSubmissionDetails={userSubmissionDetails} />
+      <UserProfile
+        userSubmissionDetails={userSubmissionDetails}
+        usersDetails={usersDetails}
+      />
     </div>
   );
 }

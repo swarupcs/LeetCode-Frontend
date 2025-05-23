@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -25,6 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 const userFormSchema = z.object({
   name: z.string().min(2, {
@@ -33,50 +33,60 @@ const userFormSchema = z.object({
   email: z.string().email({
     message: 'Please enter a valid email address.',
   }),
-  bio: z.string().max(160, {
-    message: 'Bio must not be longer than 160 characters.',
-  }),
+  bio: z.string().max(160).optional(),
   username: z.string().min(2, {
     message: 'Username must be at least 2 characters.',
   }),
 });
 
-// Mock user data - in a real app, this would come from your backend
-const mockUser = {
-  id: '1',
-  name: 'John Doe',
-  email: 'john.doe@example.com',
-  bio: 'Software developer passionate about solving problems and learning new technologies.',
-  username: 'johndoe',
-  avatarUrl: '/placeholder.svg?height=100&width=100',
-  level: 'Advanced',
-  joinDate: 'Jan 2023',
-  badges: ['Problem Solver', 'Fast Learner', 'Team Player'],
-};
-
-export function UserDetails() {
+export function UserDetails({ usersDetails }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [user, setUser] = useState(mockUser);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    if (usersDetails) {
+      const createdAt = new Date(usersDetails.createdAt);
+      const isValidDate = !isNaN(createdAt);
+
+      const day = isValidDate ? format(createdAt, 'dd') : 'Unknown';
+      const month = isValidDate ? format(createdAt, 'MMM') : 'Unknown';
+      const year = isValidDate ? format(createdAt, 'yyyy') : 'Unknown';
+
+      setUser({
+        ...usersDetails,
+        bio: usersDetails.bio || '',
+        avatarUrl: usersDetails.image || '/placeholder.svg',
+        level: usersDetails.role || 'Member',
+        joinDate: isValidDate ? `${day} ${month} ${year}` : 'Unknown', // "17 May 2025"
+        badges: ['Active Member', 'Contributor'],
+        createdDay: day,
+        createdMonth: month,
+        createdYear: year,
+      });
+    }
+  }, [usersDetails]);
+  
 
   const form = useForm({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
-      name: user.name,
-      email: user.email,
-      bio: user.bio,
-      username: user.username,
+      name: usersDetails?.name || '',
+      email: usersDetails?.email || '',
+      bio: '',
+      username: usersDetails?.username || '',
     },
   });
 
   function onSubmit(values) {
-    // In a real app, you would send this data to your backend
-    setUser({
-      ...user,
+    setUser((prev) => ({
+      ...prev,
       ...values,
-    });
+    }));
     setIsEditing(false);
     toast.success('Your profile has been updated successfully');
   }
+
+  if (!user) return null;
 
   return (
     <Card>
@@ -84,19 +94,16 @@ export function UserDetails() {
         <div className='flex flex-col md:flex-row gap-4 items-start md:items-center justify-between'>
           <div className='flex items-center gap-4'>
             <Avatar className='h-20 w-20'>
-              <AvatarImage
-                src={user.avatarUrl || '/placeholder.svg'}
-                alt={user.name}
-              />
+              <AvatarImage src={user.avatarUrl} alt={user.name} />
               <AvatarFallback>
-                {user.name.substring(0, 2).toUpperCase()}
+                {user.name?.substring(0, 2)?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <CardTitle>{user.name}</CardTitle>
               <CardDescription>@{user.username}</CardDescription>
               <div className='flex flex-wrap gap-2 mt-2'>
-                {user.badges.map((badge) => (
+                {user.badges?.map((badge) => (
                   <Badge key={badge} variant='secondary'>
                     {badge}
                   </Badge>
@@ -198,13 +205,27 @@ export function UserDetails() {
               <h3 className='text-sm font-medium'>Email</h3>
               <p className='text-sm text-muted-foreground mt-1'>{user.email}</p>
             </div>
-            <div>
-              <h3 className='text-sm font-medium'>Bio</h3>
-              <p className='text-sm text-muted-foreground mt-1'>{user.bio}</p>
-            </div>
-            <div className='flex justify-end'>
-              <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
-            </div>
+            {user.bio && (
+              <div>
+                <h3 className='text-sm font-medium'>Bio</h3>
+                <p className='text-sm text-muted-foreground mt-1'>{user.bio}</p>
+              </div>
+            )}
+            {/* <div className='flex justify-end'>
+              <Button
+                onClick={() => {
+                  form.reset({
+                    name: user.name || '',
+                    username: user.username || '',
+                    email: user.email || '',
+                    bio: user.bio || '',
+                  });
+                  setIsEditing(true);
+                }}
+              >
+                Edit Profile
+              </Button>
+            </div> */}
           </div>
         )}
       </CardContent>

@@ -6,7 +6,7 @@ import { UserStats } from './UserStats';
 import { SolvedProblems } from './SolvedProblems';
 
 
-export function UserProfile({ userSubmissionDetails }) {
+export function UserProfile({ userSubmissionDetails, usersDetails }) {
   const [activeTab, setActiveTab] = useState('details');
 
   return (
@@ -21,7 +21,7 @@ export function UserProfile({ userSubmissionDetails }) {
         <TabsTrigger value='problems'>Solved Problems</TabsTrigger>
       </TabsList>
       <TabsContent value='details' className='mt-6'>
-        <UserDetails />
+        <UserDetails usersDetails={usersDetails} />
       </TabsContent>
       <TabsContent value='stats' className='mt-6'>
         <UserStats />
