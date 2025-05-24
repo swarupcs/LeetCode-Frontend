@@ -51,7 +51,7 @@ import { FaCheck } from 'react-icons/fa';
 
 const SUPPORTED_LANGUAGES = ['PYTHON', 'JAVASCRIPT', 'JAVA'];
 
-export default function ProblemForm({mode, problemInfo}) {
+export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo }) {
   // const [problemDetails, setProblemDetails] = useState({
   //   problemNumber: 42,
   //   problem: {
@@ -138,7 +138,11 @@ export default function ProblemForm({mode, problemInfo}) {
   //   },
   // });
 
-  console.log("problemInfo", problemInfo )
+  console.log('problemInfo', problemInfo);
+
+  debugger;
+
+  console.log('isSuccessProblemInfo', isSuccessProblemInfo);
 
   const [problemDetails, setProblemDetails] = useState({
     problemNumber: problemInfo.problemNumber || '',
@@ -327,6 +331,10 @@ export default function ProblemForm({mode, problemInfo}) {
     // Notify user on success
     toast.success('Your problem has been created and saved.');
   };
+
+  const handleUpdate = async () => {
+
+  }
   useEffect(() => {
     if (isSuccess) {
       setTimeout(() => {
@@ -337,9 +345,9 @@ export default function ProblemForm({mode, problemInfo}) {
 
   return (
     <div className='container mx-auto py-8 bg-premium-darker text-slate-50'>
-      {mode =="create" ? (
-       <h1 className='text-3xl font-bold mb-6'>Create New Problem</h1> 
-      ): (
+      {mode == 'create' ? (
+        <h1 className='text-3xl font-bold mb-6'>Create New Problem</h1>
+      ) : (
         <h1 className='text-3xl font-bold mb-6'>Update Problem</h1>
       )}
 
@@ -599,11 +607,19 @@ export default function ProblemForm({mode, problemInfo}) {
         </Card>
 
         {/* Submit Button */}
+
         <div className='flex justify-end'>
-          <Button onClick={handleSubmit} size='lg'>
-            <Save size={18} className='mr-2' />
-            Create Problem
-          </Button>
+          {mode == 'create' ? (
+            <Button onClick={handleSubmit} size='lg'>
+              <Save size={18} className='mr-2' />
+              Create Problem
+            </Button>
+          ) : (
+            <Button onClick={handleUpdate} size='lg'>
+              <Save size={18} className='mr-2' />
+              Update Problem
+            </Button>
+          )}
         </div>
       </div>
     </div>
