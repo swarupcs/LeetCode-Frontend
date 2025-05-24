@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useDeleteProblem } from '@/hooks/apis/deleteProblem/useDeleteProblem';
 // Mock data for demonstration
 const problemCategories = [
   { name: 'Array', count: 1906 },
@@ -153,10 +154,9 @@ export default function AllProblem() {
   useEffect(() => {
     // In a real app, you would check user roles from authentication
     const checkIfAdmin = async () => {
-      if(authUser?.role.toLowerCase() === 'admin') {
+      if (authUser?.role.toLowerCase() === 'admin') {
         setIsAdmin(true);
       }
-      
     };
 
     checkIfAdmin();
@@ -164,6 +164,9 @@ export default function AllProblem() {
 
   const { isPending, isSuccess, error, getAllProblemsMutation } =
     useGetAllProblems();
+
+  const { isLoading, isSuccess: deleteSuccess, error: deleteError, deleteProblemMutation } =
+    useDeleteProblem();
 
   const getAllProblems = async () => {
     try {
@@ -184,7 +187,7 @@ export default function AllProblem() {
     }
   }, []);
 
-  console.log("isAdmin", isAdmin);
+  console.log('isAdmin', isAdmin);
 
   // console.log('problems', problems);
 
@@ -221,11 +224,12 @@ export default function AllProblem() {
     setDeleteConfirmOpen(true);
   };
 
-  const confirmDelete = async ({problemId}) => {
+  const confirmDelete = async () => {
     try {
       // Add your delete API call here
-      console.log('problemId', problemId);
       console.log('Deleting problem:', problemToDelete);
+
+      await deleteProblemMutation(problemToDelete.id);
 
       // After successful deletion, refresh the problems list
       await getAllProblems();
@@ -237,7 +241,6 @@ export default function AllProblem() {
       console.error('Error deleting problem:', error);
     }
   };
-
 
   return (
     <div className='min-h-screen bg-gray-950 text-gray-100'>
@@ -453,7 +456,9 @@ export default function AllProblem() {
                   </div>
                   <div className='flex items-center space-x-6'>
                     <span
-                      className={`${getDifficultyColor(problem.difficulty.toLowerCase())} text-sm font-medium`}
+                      className={`${getDifficultyColor(
+                        problem.difficulty.toLowerCase()
+                      )} text-sm font-medium`}
                     >
                       {problem.difficulty}
                     </span>
@@ -495,7 +500,6 @@ export default function AllProblem() {
                         </DropdownMenu>
                       </div>
                     )}
-                    
                   </div>
                 </div>
               ))}
