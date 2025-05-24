@@ -14,6 +14,8 @@ import { IndividualProblemPage } from './Pages/IndividualProblem/IndividualProbl
 import { UpdateProblemPage } from './Pages/ProblemForm/UpdateProblemPage';
 import { CreateProblemPage } from './Pages/ProblemForm/CreateProblemPage';
 import { ProblemFormPage } from './Pages/ProblemForm/ProblemFormPage';
+import { ProblemSheetPage } from './Pages/ProblemSheet/ProblemSheetPage';
+import Navbar from './components/ProblemSet/NavBar';
 // Layout component that includes the Header for all pages
 const Layout = ({ children }) => {
   return (
@@ -23,6 +25,18 @@ const Layout = ({ children }) => {
     </div>
   );
 };
+
+const NavLayout = ({ children }) => {
+  return (
+    <div>
+      <Navbar />
+      <main>{children}</main>
+    </div>
+  );
+};
+
+export default Layout;
+
 
 export const AppRoutes = () => {
   return (
@@ -59,7 +73,19 @@ export const AppRoutes = () => {
         path='/problem-set'
         element={
           <Layout>
-            <ProblemPage />
+            <NavLayout>
+              <ProblemPage />
+            </NavLayout>
+          </Layout>
+        }
+      />
+      <Route
+        path='/dsaSheet'
+        element={
+          <Layout>
+            <NavLayout>
+              <ProblemSheetPage />
+            </NavLayout>
           </Layout>
         }
       />

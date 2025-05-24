@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useDeleteProblem } from '@/hooks/apis/deleteProblem/useDeleteProblem';
+import Navbar from './NavBar';
 // Mock data for demonstration
 const problemCategories = [
   { name: 'Array', count: 1906 },
@@ -242,41 +243,12 @@ export default function AllProblem() {
     }
   };
 
+
+
   return (
     <div className='min-h-screen bg-gray-950 text-gray-100'>
       {/* Navigation */}
-      <header className='border-b border-gray-800'>
-        <div className='container mx-auto px-4'>
-          <div className='flex items-center h-14'>
-            <Link to='/' className='mr-6'>
-              <ArrowLeft className='h-5 w-5' />
-            </Link>
-            <nav className='flex space-x-6'>
-              <Link to='/explore' className='text-gray-400 hover:text-white'>
-                Explore
-              </Link>
-              <Link
-                to='/problems'
-                className='text-white font-medium border-b-2 border-white pb-4'
-              >
-                Problems
-              </Link>
-              <Link to='/contest' className='text-gray-400 hover:text-white'>
-                Contest
-              </Link>
-              <Link to='/discuss' className='text-gray-400 hover:text-white'>
-                Discuss
-              </Link>
-              <Link to='/interview' className='text-gray-400 hover:text-white'>
-                Interview
-              </Link>
-              <Link to='/store' className='text-gray-400 hover:text-white'>
-                Store
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+    {/* <Navbar/> */}
 
       <div className='flex'>
         {/* Sidebar */}
