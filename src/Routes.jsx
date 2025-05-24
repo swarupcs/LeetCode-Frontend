@@ -90,7 +90,10 @@ export const AppRoutes = () => {
           </Layout>
         }
       />
-      <Route path='/dsaSheet/:id' element={<IndividualProblemSheetDetails />} />
+      <Route
+        path='/dsaSheet/:sheetId'
+        element={<IndividualProblemSheetDetails />}
+      />
       <Route
         path='/create-problem'
         element={
