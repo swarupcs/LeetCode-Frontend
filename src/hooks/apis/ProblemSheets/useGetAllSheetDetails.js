@@ -1,4 +1,4 @@
-import { getAllSheetDetailsRequest } from "@/apis/getAllSheetDetails";
+import { getAllSheetDetailsRequest } from "@/apis/ProblemSheet/getAllSheetDetails";
 import { useMutation } from "@tanstack/react-query";
 
 
