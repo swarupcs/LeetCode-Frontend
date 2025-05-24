@@ -2,7 +2,7 @@ import axios from '@/config/axiosConfig';
 
 export const createSheetRequest = async ({name, description}) => {
   try {
-    const response = await axios.post('/sheets/create-sheet', {
+    const response = await axios.post('/sheets/createSheet', {
       name,
       description,
     });

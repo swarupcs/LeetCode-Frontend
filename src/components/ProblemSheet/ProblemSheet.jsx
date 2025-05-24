@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -60,6 +60,7 @@ import {
 import { useGetAllSheetDetails } from '@/hooks/apis/ProblemSheets/useGetAllSheetDetails';
 import { set } from 'date-fns';
 import { SkeletonCard } from '@/Pages/SkeletonPage/SkeletonCard';
+import { useCreateSheet } from '@/hooks/apis/ProblemSheets/useCreateSheet';
 
 // Mock data
 const sdeSheets = [
@@ -153,16 +154,28 @@ export default function ProblemSheet() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState(null);
 
+  const [sheetData, setSheetData] = useState({
+    name: '',
+    description: '',
+  });
+
+  const handleInputChange = (field, value) => {
+    setSheetData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   const { isLoading, isSuccess, error, getAllSheetDetailsMutation } =
     useGetAllSheetDetails();
+
+  const { isPending, isSuccess: createSheetSuccess, error: createSheetError, createSheetMutation } = useCreateSheet();
 
   const fetchSheetDetails = async () => {
     try {
       const data = await getAllSheetDetailsMutation();
-      if (!isSuccess) {
-        console.log('Successfully fetched sheet details:', data.sdeSheets);
-        setSheetDetails(data.sdeSheets || []);
-      }
+      console.log('Fetched sheet details:', data.sdeSheets);
+      setSheetDetails(data.sdeSheets || []);
     } catch (error) {
       console.error('Error fetching sheet details:', error);
     }
@@ -171,6 +184,20 @@ export default function ProblemSheet() {
   useEffect(() => {
     fetchSheetDetails();
   }, []);
+
+  const createSheet = async () => {
+    try {
+      console.log('sheetData:', sheetData);
+      const data = await createSheetMutation(sheetData);
+      console.log('Successfully created sheet:', data);
+      // Always update sheetDetails regardless of createSheetSuccess
+      await fetchSheetDetails();
+    } catch (error) {
+      console.error('Error creating sheet:', error);
+    }
+  };
+
+  console.log('createSheetSuccess', createSheetSuccess);
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty.toLowerCase()) {
@@ -187,34 +214,42 @@ export default function ProblemSheet() {
 
   // Updated filter function for sheetDetails array
   // Updated filter function for sheetDetails array with error handling
-  const filteredSheets = sheetDetails.filter((sheet) => {
-    if (!sheet) return false;
+  const filteredSheets = useMemo(() => {
+    return sheetDetails.filter((sheet) => {
+      if (!sheet) return false;
 
-    const name = sheet.name || '';
-    const description = sheet.description || '';
-    const tags = sheet.allTags || [];
-    const query = (searchQuery || '').toLowerCase();
+      const name = sheet.name || '';
+      const description = sheet.description || '';
+      const tags = sheet.allTags || [];
+      const query = (searchQuery || '').toLowerCase();
 
-    return (
-      name.toLowerCase().includes(query) ||
-      description.toLowerCase().includes(query) ||
-      tags.some((tag) => (tag || '').toLowerCase().includes(query))
-    );
-  });
+      return (
+        name.toLowerCase().includes(query) ||
+        description.toLowerCase().includes(query) ||
+        tags.some((tag) => (tag || '').toLowerCase().includes(query))
+      );
+    });
+  }, [sheetDetails, searchQuery]);
 
-  // console.log('Filtered Sheets:', filteredSheets);
 
-  console.log("sheetDetails:", sheetDetails);
+
+  console.log('Filtered Sheets:', filteredSheets);
+
+  console.log('sheetDetails:', sheetDetails);
 
   console.log('isSuccess:', isSuccess);
   // console.log("isLoading:", isLoading);
 
-  const handleCreateSheet = () => {
+  const handleCreateSheet = async () => {
     // Logic to create a new sheet
-    console.log('Creating new sheet...');
+    // console.log('Creating new sheet...');
+    await createSheet();
     setCreateSheetOpen(false);
-    // Reset form fields if needed
-  }
+    setSheetData({
+      name: '',
+      description: '',
+    });
+  };
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -246,13 +281,24 @@ export default function ProblemSheet() {
                         <div className='grid gap-4 py-4'>
                           <div className='grid gap-2'>
                             <Label htmlFor='title'>Title</Label>
-                            <Input id='title' placeholder='Enter sheet title' />
+                            <Input
+                              id='title'
+                              placeholder='Enter sheet title'
+                              value={sheetData.name}
+                              onChange={(e) =>
+                                handleInputChange('name', e.target.value)
+                              }
+                            />
                           </div>
                           <div className='grid gap-2'>
                             <Label htmlFor='description'>Description</Label>
                             <Textarea
                               id='description'
                               placeholder='Describe your sheet'
+                              value={sheetData.description}
+                              onChange={(e) =>
+                                handleInputChange('description', e.target.value)
+                              }
                             />
                           </div>
                           {/* <div className='grid gap-2'>
