@@ -155,7 +155,7 @@ export default function AllProblem() {
   useEffect(() => {
     // In a real app, you would check user roles from authentication
     const checkIfAdmin = async () => {
-      if (authUser?.role.toLowerCase() === 'admin') {
+      if (authUser?.role?.toLowerCase() === 'admin') {
         setIsAdmin(true);
       }
     };
