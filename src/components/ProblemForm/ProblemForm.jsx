@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { useCreateProblem } from '@/hooks/apis/createProblem/useCreateProblem';
 import { useNavigate } from 'react-router-dom';
 import { FaCheck } from 'react-icons/fa';
+import { useUpdateProblemDetails } from '@/hooks/apis/updateProblemDetails/useUpdateProblemDetails';
 // import { toast } from "@/hooks/use-toast"
 // import { useTheme } from "next-themes"
 
@@ -145,13 +146,13 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
   console.log('isSuccessProblemInfo', isSuccessProblemInfo);
 
   const [problemDetails, setProblemDetails] = useState({
-    problemNumber: problemInfo.problemNumber || '',
+    problemNumber: problemInfo?.problemNumber || '',
     problem: {
-      title: problemInfo.title || '',
-      description: problemInfo.description || '',
-      difficulty: problemInfo.difficulty || 'EASY',
-      tags: problemInfo.tags || [],
-      examples: problemInfo.examples?.map((example) => ({
+      title: problemInfo?.title || '',
+      description: problemInfo?.description || '',
+      difficulty: problemInfo?.difficulty || 'EASY',
+      tags: problemInfo?.tags || [],
+      examples: problemInfo?.examples?.map((example) => ({
         input: example.input || '',
         output: example.output || '',
         explanation: example.explanation || '',
@@ -162,21 +163,21 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
           explanation: '',
         },
       ],
-      constraints: problemInfo.constraints || '',
-      hints: problemInfo.hints || '',
-      editorial: problemInfo.editorial || '',
+      constraints: problemInfo?.constraints || '',
+      hints: problemInfo?.hints || '',
+      editorial: problemInfo?.editorial || '',
       codeSnippets: {
-        python: problemInfo.codeSnippets?.python || '',
-        javascript: problemInfo.codeSnippets?.javascript || '',
-        java: problemInfo.codeSnippets?.java || '',
+        python: problemInfo?.codeSnippets?.python || '',
+        javascript: problemInfo?.codeSnippets?.javascript || '',
+        java: problemInfo?.codeSnippets?.java || '',
       },
       referenceSolutions: {
-        java: problemInfo.referenceSolutions?.java || '',
-        javascript: problemInfo.referenceSolutions?.javascript || '',
-        python: problemInfo.referenceSolutions?.python || '',
+        java: problemInfo?.referenceSolutions?.java || '',
+        javascript: problemInfo?.referenceSolutions?.javascript || '',
+        python: problemInfo?.referenceSolutions?.python || '',
       },
     },
-    testCases: problemInfo.testCases?.map((testCase) => ({
+    testCases: problemInfo?.testCases?.map((testCase) => ({
       input: testCase.input || '',
       expected: testCase.expected || '',
       isPublic: testCase.isPublic || false, // This field doesn't exist in your problemInfo, so defaulting to false
@@ -304,7 +305,9 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
 
   const { isPending, isSuccess, error, createProblemMutation } =
     useCreateProblem();
-  console.log('problemDetails', problemDetails);
+  // console.log('problemDetails', problemDetails);
+
+  const {isLoading, isSuccess: updateProblemSuccess, error: updateProblemError, updateProblemMutation} = useUpdateProblemDetails()
 
   const navigate = useNavigate();
   // Handle form submission
@@ -323,7 +326,7 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
     };
 
     // Log the payload
-    console.log('payload ', JSON.stringify(payload, null, 2));
+    // console.log('payload ', JSON.stringify(payload, null, 2));
 
     // Pass the correct payload to your mutation
     await createProblemMutation(payload);
@@ -333,8 +336,27 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
   };
 
   const handleUpdate = async () => {
+    // Validate form
+    if (!problemDetails.problem.title || !problemDetails.problem.description) {
+      toast.warning('Missing required fields');
+      return;
+    }
+    const problemId = problemInfo.id;
+    // console.log('problemId', problemId);
+    // Optionally convert problemNumber to a number
+    const payload = {
+      problemNumber: Number(problemDetails.problemNumber),
+      problem: problemDetails.problem,
+      testCases: problemDetails.testCases,
+    };
+
+    console.log("payload ", payload);
+    await updateProblemMutation({ problemId: problemId, ...payload });
+    toast.success('Your problem has been updated.');
 
   }
+
+  
   useEffect(() => {
     if (isSuccess) {
       setTimeout(() => {
@@ -342,6 +364,14 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
       }, 1500);
     }
   }, [isSuccess, navigate]);
+
+  useEffect(() => {
+    if (updateProblemSuccess) {
+      setTimeout(() => {
+        navigate('/problem-set');
+      }, 1500);
+    }
+  }, [updateProblemSuccess, navigate]);
 
   return (
     <div className='container mx-auto py-8 bg-premium-darker text-slate-50'>
