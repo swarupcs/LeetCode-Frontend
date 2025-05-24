@@ -150,6 +150,9 @@ export default function ProblemSheet() {
 
   const [sheetDetails, setSheetDetails] = useState([]);
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+
   const { isLoading, isSuccess, error, getAllSheetDetailsMutation } =
     useGetAllSheetDetails();
 
@@ -408,7 +411,16 @@ export default function ProblemSheet() {
                         </CardDescription>
                       </div>
                       {isAdmin && (
-                        <DropdownMenu>
+                        <DropdownMenu
+                          open={openDropdownId === sheet.id}
+                          onOpenChange={(open) => {
+                            if (open) {
+                              setOpenDropdownId(sheet.id);
+                            } else {
+                              setOpenDropdownId(null);
+                            }
+                          }}
+                        >
                           <DropdownMenuTrigger asChild>
                             <Button variant='ghost' size='sm'>
                               <MoreVertical className='h-4 w-4' />
@@ -424,7 +436,10 @@ export default function ProblemSheet() {
                               Edit Sheet
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => setAddProblemOpen(true)}
+                              onClick={() => {
+                                setDropdownOpen(false); // manually close dropdown
+                                setTimeout(() => setAddProblemOpen(true), 50);
+                              }}
                               className='text-blue-600'
                             >
                               <Plus className='mr-2 h-4 w-4' />
@@ -598,7 +613,7 @@ export default function ProblemSheet() {
         </>
       ) : (
         <>
-         <SkeletonCard/>
+          <SkeletonCard />
         </>
       )}
     </div>
