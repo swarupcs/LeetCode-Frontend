@@ -477,6 +477,9 @@ export default function ProblemSheet() {
                 <Card
                   key={sheet.id}
                   className='hover:shadow-lg transition-shadow cursor-pointer'
+                  onClick={() =>
+                    (window.location.href = `/dsaSheet/${sheet.id}`)
+                  }
                 >
                   <CardHeader>
                     <div className='flex items-start justify-between'>

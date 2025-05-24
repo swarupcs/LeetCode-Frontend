@@ -16,6 +16,7 @@ import { CreateProblemPage } from './Pages/ProblemForm/CreateProblemPage';
 import { ProblemFormPage } from './Pages/ProblemForm/ProblemFormPage';
 import { ProblemSheetPage } from './Pages/ProblemSheet/ProblemSheetPage';
 import Navbar from './components/ProblemSet/NavBar';
+import IndividualProblemSheetDetails from './components/ProblemSheet/IndividualProblemSheetDetails';
 // Layout component that includes the Header for all pages
 const Layout = ({ children }) => {
   return (
@@ -89,6 +90,7 @@ export const AppRoutes = () => {
           </Layout>
         }
       />
+      <Route path='/dsaSheet/:id' element={<IndividualProblemSheetDetails />} />
       <Route
         path='/create-problem'
         element={
