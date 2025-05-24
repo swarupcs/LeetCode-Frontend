@@ -61,6 +61,8 @@ import { useGetAllSheetDetails } from '@/hooks/apis/ProblemSheets/useGetAllSheet
 import { set } from 'date-fns';
 import { SkeletonCard } from '@/Pages/SkeletonPage/SkeletonCard';
 import { useCreateSheet } from '@/hooks/apis/ProblemSheets/useCreateSheet';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { useDeleteSheet } from '@/hooks/apis/ProblemSheets/useDeleteSheet';
 
 // Mock data
 const sdeSheets = [
@@ -159,6 +161,9 @@ export default function ProblemSheet() {
     description: '',
   });
 
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [sheetToDelete, setSheetToDelete] = useState(null);
+
   const handleInputChange = (field, value) => {
     setSheetData((prev) => ({
       ...prev,
@@ -170,6 +175,11 @@ export default function ProblemSheet() {
     useGetAllSheetDetails();
 
   const { isPending, isSuccess: createSheetSuccess, error: createSheetError, createSheetMutation } = useCreateSheet();
+
+  const { isLoading: deleteSheetLoading,
+    isSucess: deleteSheetSuccess,
+    error: deleteSheetError,
+    deleteSheetMutation} = useDeleteSheet();
 
   const fetchSheetDetails = async () => {
     try {
@@ -196,6 +206,20 @@ export default function ProblemSheet() {
       console.error('Error creating sheet:', error);
     }
   };
+
+  const handleDeleteSheet = async (sheetId) => { 
+    try {
+      console.log('sheetId:', sheetId);
+      await deleteSheetMutation(sheetId);
+      setSheetToDelete(null);
+      await fetchSheetDetails();
+    } catch (error) {
+      console.error('Error deleting sheet:', error);
+      return;
+      
+    }
+    
+  }
 
   console.log('createSheetSuccess', createSheetSuccess);
 
@@ -500,7 +524,14 @@ export default function ProblemSheet() {
                               Add Problem
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className='text-red-600'>
+                            <DropdownMenuItem
+                              className='text-red-600'
+                              onClick={() => {
+                                setSheetToDelete(sheet);
+                                setDeleteConfirmOpen(true);
+                                setOpenDropdownId(null); // Close dropdown
+                              }}
+                            >
                               <Trash2 className='mr-2 h-4 w-4' />
                               Delete
                             </DropdownMenuItem>
@@ -663,6 +694,40 @@ export default function ProblemSheet() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <AlertDialog
+              open={deleteConfirmOpen}
+              onOpenChange={setDeleteConfirmOpen}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    the sheet
+                    {sheetToDelete?.name && ` "${sheetToDelete.name}"`} and all
+                    of its problems.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setSheetToDelete(null)}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (sheetToDelete) {
+                        handleDeleteSheet(sheetToDelete.id);
+                        setSheetToDelete(null);
+                        setDeleteConfirmOpen(false);
+                      }
+                    }}
+                    className='bg-red-600 hover:bg-red-700'
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </main>
         </>
       ) : (
