@@ -92,8 +92,18 @@ export const AppRoutes = () => {
       />
       <Route
         path='/dsaSheet/:sheetId'
-        element={<IndividualProblemSheetDetails />}
+        element={
+          <Layout>
+            <IndividualProblemSheetDetails />
+          </Layout>
+        }
       />
+
+      {/* <Route
+        path='/dsaSheet/:sheetId'
+        element={           <IndividualProblemSheetDetails />
+        }
+      /> */}
       <Route
         path='/create-problem'
         element={

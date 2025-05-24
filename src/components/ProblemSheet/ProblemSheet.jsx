@@ -63,6 +63,7 @@ import { SkeletonCard } from '@/Pages/SkeletonPage/SkeletonCard';
 import { useCreateSheet } from '@/hooks/apis/ProblemSheets/useCreateSheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { useDeleteSheet } from '@/hooks/apis/ProblemSheets/useDeleteSheet';
+import { useNavigate } from 'react-router-dom';
 
 // Mock data
 const sdeSheets = [
@@ -163,6 +164,8 @@ export default function ProblemSheet() {
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [sheetToDelete, setSheetToDelete] = useState(null);
+
+  const navigate = useNavigate();
 
   const handleInputChange = (field, value) => {
     setSheetData((prev) => ({
@@ -477,9 +480,7 @@ export default function ProblemSheet() {
                 <Card
                   key={sheet.id}
                   className='hover:shadow-lg transition-shadow cursor-pointer'
-                  onClick={() =>
-                    (window.location.href = `/dsaSheet/${sheet.id}`)
-                  }
+                  onClick={() => navigate(`/dsaSheet/${sheet.id}`)}
                 >
                   <CardHeader>
                     <div className='flex items-start justify-between'>
