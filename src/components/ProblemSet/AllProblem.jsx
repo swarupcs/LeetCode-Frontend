@@ -205,11 +205,11 @@ export default function AllProblem() {
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case 'Easy':
+      case 'easy':
         return 'text-emerald-500';
-      case 'Medium':
+      case 'medium':
         return 'text-amber-500';
-      case 'Hard':
+      case 'hard':
         return 'text-red-500';
       default:
         return '';
@@ -221,9 +221,10 @@ export default function AllProblem() {
     setDeleteConfirmOpen(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = async ({problemId}) => {
     try {
       // Add your delete API call here
+      console.log('problemId', problemId);
       console.log('Deleting problem:', problemToDelete);
 
       // After successful deletion, refresh the problems list
@@ -236,6 +237,7 @@ export default function AllProblem() {
       console.error('Error deleting problem:', error);
     }
   };
+
 
   return (
     <div className='min-h-screen bg-gray-950 text-gray-100'>
@@ -451,7 +453,7 @@ export default function AllProblem() {
                   </div>
                   <div className='flex items-center space-x-6'>
                     <span
-                      className={`${getDifficultyColor(problem.difficulty)}`}
+                      className={`${getDifficultyColor(problem.difficulty.toLowerCase())} text-sm font-medium`}
                     >
                       {problem.difficulty}
                     </span>
@@ -493,6 +495,7 @@ export default function AllProblem() {
                         </DropdownMenu>
                       </div>
                     )}
+                    
                   </div>
                 </div>
               ))}
