@@ -209,6 +209,13 @@ export default function ProblemSheet() {
   console.log('isSuccess:', isSuccess);
   // console.log("isLoading:", isLoading);
 
+  const handleCreateSheet = () => {
+    // Logic to create a new sheet
+    console.log('Creating new sheet...');
+    setCreateSheetOpen(false);
+    // Reset form fields if needed
+  }
+
   return (
     <div className='min-h-screen bg-gray-50'>
       {isSuccess ? (
@@ -248,7 +255,7 @@ export default function ProblemSheet() {
                               placeholder='Describe your sheet'
                             />
                           </div>
-                          <div className='grid gap-2'>
+                          {/* <div className='grid gap-2'>
                             <Label htmlFor='difficulty'>Difficulty Level</Label>
                             <Select>
                               <SelectTrigger>
@@ -261,19 +268,20 @@ export default function ProblemSheet() {
                                 <SelectItem value='mixed'>Mixed</SelectItem>
                               </SelectContent>
                             </Select>
-                          </div>
-                          <div className='grid gap-2'>
+                          </div> */}
+                          {/* <div className='grid gap-2'>
                             <Label htmlFor='tags'>Tags (comma separated)</Label>
                             <Input
                               id='tags'
                               placeholder='Arrays, Strings, Trees...'
                             />
-                          </div>
+                          </div> */}
                         </div>
                         <DialogFooter>
                           <Button
                             type='submit'
-                            onClick={() => setCreateSheetOpen(false)}
+                            onClick={handleCreateSheet}
+                            className='bg-blue-600 hover:bg-blue-700'
                           >
                             Create Sheet
                           </Button>
