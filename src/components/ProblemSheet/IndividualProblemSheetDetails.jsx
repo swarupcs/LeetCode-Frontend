@@ -52,9 +52,11 @@ import {
   ExternalLink,
   Code,
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useGetIndividualSheetDetails } from '@/hooks/apis/ProblemSheets/useGetIndividualSheetDetails';
 import { SkeletonCard } from '@/Pages/SkeletonPage/SkeletonCard';
+import { useGetAllProblems } from '@/hooks/apis/getAllProblems/useGetAllProblems';
+import { useSelector } from 'react-redux';
 // Mock data based on your structure
 const mockSheetData = {
   id: '4b22f483-3178-4a5f-9a4b-bdf7bafff80e',
@@ -172,10 +174,15 @@ export default function IndividualProblemSheetDetails({ params }) {
   const { isLoading, isSuccess, error, getIndividualSheetDetailsMutation } =
     useGetIndividualSheetDetails();
 
+     const { isPending, isSuccess: getAllProblemSuccess, error: getAllProblemError, getAllProblemsMutation } =
+        useGetAllProblems();
+
   console.log('isSuccess', isSuccess);
 
+  const [problems, setProblems] = useState([]);
+//   const [filteredProblems, setFilteredProblems] = useState(problems);
  
-
+  const authUser = useSelector((state) => state.auth);
   const { sheetId } = useParams();
 
   console.log('sheetId', sheetId);
@@ -195,6 +202,27 @@ export default function IndividualProblemSheetDetails({ params }) {
   }, [sheetId]);
 
   console.log('Sheet Data:', sheetData);
+
+  const getAllProblems = async () => {
+    try {
+      const userId = authUser?.id || null;
+      const data = await getAllProblemsMutation(userId);
+      console.log('Fetched all problems:', data);
+      setProblems(data.problems);
+    //   setFilteredProblems(data.problems);
+    } catch (error) {
+      console.error('Error fetching problems:', error);
+    }
+  };
+
+  console.log("problems", problems);
+
+  useEffect(() => {
+    getAllProblems();
+    if (isSuccess) {
+      console.log('Successfully fetched all problems');
+    }
+  }, []);
 
   // Updated filtering function
   const filteredProblems = sheetData.problems.filter((problemItem) => {
@@ -246,6 +274,10 @@ export default function IndividualProblemSheetDetails({ params }) {
     }));
   };
 
+  const handleAddProblemClick = () => {
+    // setAddProblemOpen(true);
+  }
+
   return (
     <div className='min-h-screen bg-gray-50'>
       {isSuccess ? (
@@ -254,7 +286,10 @@ export default function IndividualProblemSheetDetails({ params }) {
             <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
               <div className='flex justify-between items-center h-16'>
                 <div className='flex items-center space-x-4'>
-                  <Button className='bg-blue-600 hover:bg-blue-700' onClick={() => navigate(-1)}>
+                  <Button
+                    className='bg-blue-600 hover:bg-blue-700'
+                    onClick={() => navigate(-1)}
+                  >
                     <ArrowLeft className='h-4 w-4 mr-2' />
                     Back
                   </Button>
@@ -271,12 +306,15 @@ export default function IndividualProblemSheetDetails({ params }) {
                       onOpenChange={setAddProblemOpen}
                     >
                       <DialogTrigger asChild>
-                        <Button className='bg-blue-600 hover:bg-blue-700'>
+                        <Button
+                          className='bg-blue-600 hover:bg-blue-700'
+                          onClick={handleAddProblemClick}
+                        >
                           <Plus className='h-4 w-4 mr-2' />
                           Add Problem
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className='sm:max-w-[525px]'>
+                      <DialogContent className='sm:max-w-[525px] max-h-[calc(100vh-4rem)] overflow-y-auto'>
                         <DialogHeader>
                           <DialogTitle>Add New Problem</DialogTitle>
                           <DialogDescription>
@@ -334,6 +372,49 @@ export default function IndividualProblemSheetDetails({ params }) {
                             Add Problem
                           </Button>
                         </DialogFooter>
+
+                        {/* Problems List */}
+                        <div className='mt-6'>
+                          <h3 className='text-lg font-semibold mb-2 text-white'>
+                            Problem List
+                          </h3>
+                          <div className='bg-gray-900 rounded-lg overflow-scroll h-[calc(100vh-20rem)]'>
+                            <div className='divide-y divide-gray-800'>
+                              {problems.map((problem, index) => (
+                                <div
+                                  key={index}
+                                  className='flex items-center p-4 hover:bg-gray-800'
+                                >
+                                  <div className='w-6 mr-4 text-green-500'>
+                                    {problem.isSolved ? '✓' : ' '}
+                                  </div>
+                                  <div className='flex-1'>
+                                    <div className='flex items-center'>
+                                      <span className='mr-2 text-gray-400'>
+                                        {problem.problemNumber}.
+                                      </span>
+                                      <Link
+                                        to={`/problems/${problem.id}`}
+                                        className='text-white hover:text-blue-400'
+                                      >
+                                        {problem.title}
+                                      </Link>
+                                    </div>
+                                  </div>
+                                  <div className='flex items-center space-x-6'>
+                                    <span
+                                      className={`${getDifficultyColor(
+                                        problem.difficulty.toLowerCase()
+                                      )} text-sm font-medium`}
+                                    >
+                                      {problem.difficulty}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
                       </DialogContent>
                     </Dialog>
                   )}
