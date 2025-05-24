@@ -1,0 +1,28 @@
+import { getAllSheetDetailsRequest } from "@/apis/getAllSheetDetails";
+import { useMutation } from "@tanstack/react-query";
+
+
+
+export const useGetAllSheetDetails = () => { 
+    const {
+      isLoading,
+      isSuccess,
+      error,
+      mutateAsync: getAllSheetDetailsMutation,
+    } = useMutation({
+      mutationFn: () => getAllSheetDetailsRequest(),
+      onSuccess: (data) => {
+        console.log('Successfully fetched all sheet details', data);
+      },
+      onError: (error) => {
+        console.error('Error fetching all sheet details', error);
+      },
+    });
+
+    return {
+      isLoading,
+      isSuccess,
+      error,
+      getAllSheetDetailsMutation,
+    };
+}
