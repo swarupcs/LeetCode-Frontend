@@ -128,15 +128,20 @@ export function SubmissionResult({
       message: 'Code compiled successfully!',
     },
     {
-      name: 'Test Cases (small)',
+      name: 'Test Cases',
       status: 'Passed',
-      message: 'Code Passed for the given test case',
+      message: 'Testcases Passed Successfully',
     },
-    {
-      name: 'Test Cases (Large)',
-      status: 'Passed',
-      message: 'Large Testcases Passed Successfully',
-    },
+    // {
+    //   name: 'Test Cases (small)',
+    //   status: 'Passed',
+    //   message: 'Code Passed for the given test case',
+    // },
+    // {
+    //   name: 'Test Cases (Large)',
+    //   status: 'Passed',
+    //   message: 'Large Testcases Passed Successfully',
+    // },
   ];
 
   return (
