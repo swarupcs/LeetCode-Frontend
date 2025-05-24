@@ -1,4 +1,4 @@
-import { ProblemSheet } from '@/components/ProblemSheet/ProblemSheet'
+import ProblemSheet from '@/components/ProblemSheet/ProblemSheet'
 import React from 'react'
 
 export const ProblemSheetPage = () => {
