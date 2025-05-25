@@ -51,110 +51,39 @@ import {
   Share2,
   ExternalLink,
   Code,
+  Minus,
 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useGetIndividualSheetDetails } from '@/hooks/apis/ProblemSheets/useGetIndividualSheetDetails';
 import { SkeletonCard } from '@/Pages/SkeletonPage/SkeletonCard';
 import { useGetAllProblems } from '@/hooks/apis/getAllProblems/useGetAllProblems';
 import { useSelector } from 'react-redux';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../ui/alert-dialog';
+import { useUpdateProblemsInSheet } from '@/hooks/apis/ProblemSheets/useUpdateProblemsInSheet';
 // Mock data based on your structure
-const mockSheetData = {
-  id: '4b22f483-3178-4a5f-9a4b-bdf7bafff80e',
-  name: 'Test SDE Sheets4',
-  description: 'Test Description',
-  userId: '33ccebfb-7b81-4d8f-b49d-8211d64884e0',
-  createdAt: '2025-05-24T08:54:24.990Z',
-  updatedAt: '2025-05-24T08:54:24.990Z',
-  user: {
-    id: '33ccebfb-7b81-4d8f-b49d-8211d64884e0',
-    name: 'Swarup Das',
-    username: 'swarupd',
-    image: null,
-  },
-  problems: [
-    {
-      id: '0a139a56-77db-4d25-9f91-4f927998e56b',
-      sheetId: '4b22f483-3178-4a5f-9a4b-bdf7bafff80e',
-      problemId: '39c008a7-022b-4ac6-b08b-f1e243760470',
-      createdAt: '2025-05-24T08:59:12.461Z',
-      updatedAt: '2025-05-24T08:59:12.461Z',
-      problem: {
-        id: '39c008a7-022b-4ac6-b08b-f1e243760470',
-        title: 'Reverse Number For Test-4',
-        problemNumber: 4,
-        difficulty: 'EASY',
-        tags: ['math', 'string', 'number-theory'],
-      },
-      completed: false,
-    },
-    {
-      id: '009bced8-c152-4a50-b2c7-d12ce2215ca5',
-      sheetId: '4b22f483-3178-4a5f-9a4b-bdf7bafff80e',
-      problemId: 'af07b227-373e-4a8e-a683-443e1c23893c',
-      createdAt: '2025-05-24T08:59:12.461Z',
-      updatedAt: '2025-05-24T08:59:12.461Z',
-      problem: {
-        id: 'af07b227-373e-4a8e-a683-443e1c23893c',
-        title: 'Reverse Number For Test-1',
-        problemNumber: 1,
-        difficulty: 'EASY',
-        tags: ['math', 'string', 'number-theory'],
-      },
-      completed: true,
-    },
-    {
-      id: 'additional-1',
-      sheetId: '4b22f483-3178-4a5f-9a4b-bdf7bafff80e',
-      problemId: 'additional-problem-1',
-      createdAt: '2025-05-24T09:00:00.000Z',
-      updatedAt: '2025-05-24T09:00:00.000Z',
-      problem: {
-        id: 'additional-problem-1',
-        title: 'Two Sum',
-        problemNumber: 2,
-        difficulty: 'MEDIUM',
-        tags: ['array', 'hash-table'],
-      },
-      completed: true,
-    },
-    {
-      id: 'additional-2',
-      sheetId: '4b22f483-3178-4a5f-9a4b-bdf7bafff80e',
-      problemId: 'additional-problem-2',
-      createdAt: '2025-05-24T09:01:00.000Z',
-      updatedAt: '2025-05-24T09:01:00.000Z',
-      problem: {
-        id: 'additional-problem-2',
-        title: 'Binary Tree Traversal',
-        problemNumber: 3,
-        difficulty: 'HARD',
-        tags: ['tree', 'dfs', 'recursion'],
-      },
-      completed: false,
-    },
-  ],
-  totalProblems: 4,
-  allTags: [
-    'math',
-    'string',
-    'number-theory',
-    'array',
-    'hash-table',
-    'tree',
-    'dfs',
-    'recursion',
-  ],
-  allDifficulties: ['EASY', 'MEDIUM', 'HARD'],
-};
 
 export default function IndividualProblemSheetDetails({ params }) {
-  const [sheetData, setSheetData] = useState(mockSheetData);
+  const [sheetData, setSheetData] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
   const [completionFilter, setCompletionFilter] = useState('all');
   const [addProblemOpen, setAddProblemOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(true); // Toggle for demo
+  const [dialogSearchQuery, setDialogSearchQuery] = useState('');
+  const [dialogDifficultyFilter, setDialogDifficultyFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(false);
+  const [sheetProblems, setSheetProblems] = useState([]);
 
   const navigate = useNavigate();
 
@@ -171,17 +100,34 @@ export default function IndividualProblemSheetDetails({ params }) {
     }
   };
 
-  const { isLoading, isSuccess, error, getIndividualSheetDetailsMutation } =
-    useGetIndividualSheetDetails();
+  const {
+    isLoading: sheetDetailsLoading,
+    isSuccess,
+    error,
+    getIndividualSheetDetailsMutation,
+  } = useGetIndividualSheetDetails();
 
-     const { isPending, isSuccess: getAllProblemSuccess, error: getAllProblemError, getAllProblemsMutation } =
-        useGetAllProblems();
+  const {
+    isPending,
+    isSuccess: getAllProblemSuccess,
+    error: getAllProblemError,
+    getAllProblemsMutation,
+  } = useGetAllProblems();
+
+  const {
+    isLoading: isUpdateLoading,
+    isSucess,
+    error: updateError,
+    updateProblemsInSheetMutation,
+  } = useUpdateProblemsInSheet();
 
   console.log('isSuccess', isSuccess);
 
   const [problems, setProblems] = useState([]);
-//   const [filteredProblems, setFilteredProblems] = useState(problems);
- 
+  //   const [filteredProblems, setFilteredProblems] = useState(problems);
+
+  console.log('problems', problems);
+
   const authUser = useSelector((state) => state.auth);
   const { sheetId } = useParams();
 
@@ -209,13 +155,13 @@ export default function IndividualProblemSheetDetails({ params }) {
       const data = await getAllProblemsMutation(userId);
       console.log('Fetched all problems:', data);
       setProblems(data.problems);
-    //   setFilteredProblems(data.problems);
+      //   setFilteredProblems(data.problems);
     } catch (error) {
       console.error('Error fetching problems:', error);
     }
   };
 
-  console.log("problems", problems);
+  console.log('problems', problems);
 
   useEffect(() => {
     getAllProblems();
@@ -225,7 +171,7 @@ export default function IndividualProblemSheetDetails({ params }) {
   }, []);
 
   // Updated filtering function
-  const filteredProblems = sheetData.problems.filter((problemItem) => {
+  const filteredProblems = sheetData?.problems?.filter((problemItem) => {
     const problem = problemItem.problem;
 
     // Search filter - check title and tags
@@ -255,7 +201,7 @@ export default function IndividualProblemSheetDetails({ params }) {
     );
   });
 
-  const completedCount = sheetData.problems.filter(
+  const completedCount = sheetData?.problems?.filter(
     (item) => item.completed || false
   ).length;
   const progressPercentage =
@@ -276,7 +222,151 @@ export default function IndividualProblemSheetDetails({ params }) {
 
   const handleAddProblemClick = () => {
     // setAddProblemOpen(true);
-  }
+  };
+
+  // Check if a problem is already in the sheet
+  const isProblemInSheet = (problemId) => {
+    return sheetData.problems.some(
+      (sheetProblem) => sheetProblem.problemId === problemId
+    );
+  };
+
+  // Add problem to sheet with proper validation
+  const addProblemToSheet = async (problem) => {
+    // Check if problem is already in sheet
+    if (isProblemInSheet(problem.id)) {
+      alert('This problem is already in the sheet!');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const newSheetProblem = {
+        id: `temp-${Date.now()}-${Math.random()}`,
+        sheetId: sheetData.id,
+        problemId: problem.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        problem: problem,
+        completed: false,
+      };
+
+      setSheetData((prev) => {
+        const updatedTags = [...new Set([...prev.allTags, ...problem.tags])];
+        const updatedDifficulties = [
+          ...new Set([...prev.allDifficulties, problem.difficulty]),
+        ];
+
+        return {
+          ...prev,
+          problems: [...prev.problems, newSheetProblem],
+          totalProblems: prev.totalProblems + 1,
+          allTags: updatedTags,
+          allDifficulties: updatedDifficulties,
+        };
+      });
+
+      console.log(`Added problem "${problem.title}" to sheet`);
+    } catch (error) {
+      console.error('Error adding problem to sheet:', error);
+      alert('Failed to add problem to sheet. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Remove problem from sheet with proper validation
+  const removeProblemFromSheet = async (problemId) => {
+    // Check if problem exists in sheet
+    if (!isProblemInSheet(problemId)) {
+      alert('This problem is not in the sheet!');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      setSheetData((prev) => {
+        const updatedProblems = prev.problems.filter(
+          (sp) => sp.problemId !== problemId
+        );
+
+        // Recalculate tags and difficulties from remaining problems
+        const remainingTags = [
+          ...new Set(updatedProblems.flatMap((p) => p.problem.tags)),
+        ];
+        const remainingDifficulties = [
+          ...new Set(updatedProblems.map((p) => p.problem.difficulty)),
+        ];
+
+        return {
+          ...prev,
+          problems: updatedProblems,
+          totalProblems: updatedProblems.length,
+          allTags: remainingTags,
+          allDifficulties: remainingDifficulties,
+        };
+      });
+
+      console.log(`Removed problem with ID ${problemId} from sheet`);
+    } catch (error) {
+      console.error('Error removing problem from sheet:', error);
+      alert('Failed to remove problem from sheet. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateProblems = async () => {
+    setIsLoading(true);
+    try {
+      setAddProblemOpen(false);
+
+      let sheetProblemsId = sheetData.problems.map(
+        (problem) => problem.problem.id
+      );
+      console.log('sheetProblemsId', sheetProblemsId);
+
+      // Call the mutation properly
+      await updateProblemsInSheetMutation({
+        sheetId: sheetData.id,
+        problemIds: sheetProblemsId,
+      });
+
+      console.log('Updated problems in sheet successfully!');
+    } catch (error) {
+      console.error('Error updating problems in sheet:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+
+  // Filter problems in dialog (excluding problems already in sheet for "Add" view)
+  const filteredDialogProblems = problems.filter((problem) => {
+    const matchesSearch =
+      problem.title.toLowerCase().includes(dialogSearchQuery.toLowerCase()) ||
+      problem.tags.some((tag) =>
+        tag.toLowerCase().includes(dialogSearchQuery.toLowerCase())
+      );
+
+    const matchesDifficulty =
+      dialogDifficultyFilter === 'all' ||
+      problem.difficulty.toLowerCase() === dialogDifficultyFilter.toLowerCase();
+
+    return matchesSearch && matchesDifficulty;
+  });
+
+
+
+
+
+
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -321,100 +411,170 @@ export default function IndividualProblemSheetDetails({ params }) {
                             Add a new problem to this sheet
                           </DialogDescription>
                         </DialogHeader>
-                        <div className='grid gap-4 py-4'>
-                          <div className='grid gap-2'>
-                            <Label htmlFor='problem-title'>Problem Title</Label>
-                            <Input
-                              id='problem-title'
-                              placeholder='Enter problem title'
-                            />
-                          </div>
-                          <div className='grid gap-2'>
-                            <Label htmlFor='problem-number'>
-                              Problem Number
-                            </Label>
-                            <Input
-                              id='problem-number'
-                              type='number'
-                              placeholder='Enter problem number'
-                            />
-                          </div>
-                          <div className='grid gap-2'>
-                            <Label htmlFor='problem-difficulty'>
-                              Difficulty
-                            </Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder='Select difficulty' />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value='EASY'>Easy</SelectItem>
-                                <SelectItem value='MEDIUM'>Medium</SelectItem>
-                                <SelectItem value='HARD'>Hard</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className='grid gap-2'>
-                            <Label htmlFor='problem-tags'>
-                              Tags (comma separated)
-                            </Label>
-                            <Input
-                              id='problem-tags'
-                              placeholder='array, string, math...'
-                            />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            type='submit'
-                            onClick={() => setAddProblemOpen(false)}
-                          >
-                            Add Problem
-                          </Button>
-                        </DialogFooter>
 
                         {/* Problems List */}
-                        <div className='mt-6'>
-                          <h3 className='text-lg font-semibold mb-2 text-white'>
-                            Problem List
-                          </h3>
-                          <div className='bg-gray-900 rounded-lg overflow-scroll h-[calc(100vh-20rem)]'>
-                            <div className='divide-y divide-gray-800'>
-                              {problems.map((problem, index) => (
-                                <div
-                                  key={index}
-                                  className='flex items-center p-4 hover:bg-gray-800'
-                                >
-                                  <div className='w-6 mr-4 text-green-500'>
-                                    {problem.isSolved ? '✓' : ' '}
-                                  </div>
-                                  <div className='flex-1'>
-                                    <div className='flex items-center'>
-                                      <span className='mr-2 text-gray-400'>
-                                        {problem.problemNumber}.
-                                      </span>
-                                      <Link
-                                        to={`/problems/${problem.id}`}
-                                        className='text-white hover:text-blue-400'
+                        <div className='mt-4'>
+                          <div className='bg-white rounded-lg border max-h-96 overflow-y-auto'>
+                            <Table>
+                              <TableHeader className='sticky top-0 bg-white border-b'>
+                                <TableRow>
+                                  <TableHead className='w-16'>#</TableHead>
+                                  <TableHead>Title</TableHead>
+                                  <TableHead className='w-24'>
+                                    Difficulty
+                                  </TableHead>
+                                  <TableHead className='w-32'>Status</TableHead>
+                                  <TableHead className='w-32'>Action</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {filteredDialogProblems.length > 0 ? (
+                                  filteredDialogProblems.map((problem) => {
+                                    const isInSheet = isProblemInSheet(
+                                      problem.id
+                                    );
+                                    return (
+                                      <TableRow
+                                        key={problem.id}
+                                        className='hover:bg-gray-50'
                                       >
-                                        {problem.title}
-                                      </Link>
-                                    </div>
-                                  </div>
-                                  <div className='flex items-center space-x-6'>
-                                    <span
-                                      className={`${getDifficultyColor(
-                                        problem.difficulty.toLowerCase()
-                                      )} text-sm font-medium`}
+                                        <TableCell className='font-medium'>
+                                          {problem.problemNumber}
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className='flex flex-col'>
+                                            <span className='font-medium'>
+                                              {problem.title}
+                                            </span>
+                                            <div className='flex flex-wrap gap-1 mt-1'>
+                                              {problem.tags
+                                                .slice(0, 3)
+                                                .map((tag) => (
+                                                  <Badge
+                                                    key={tag}
+                                                    variant='outline'
+                                                    className='text-xs'
+                                                  >
+                                                    {tag}
+                                                  </Badge>
+                                                ))}
+                                              {problem.tags.length > 3 && (
+                                                <Badge
+                                                  variant='outline'
+                                                  className='text-xs'
+                                                >
+                                                  +{problem.tags.length - 3}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Badge
+                                            className={getDifficultyColor(
+                                              problem.difficulty
+                                            )}
+                                          >
+                                            {problem.difficulty}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                          {isInSheet ? (
+                                            <Badge
+                                              variant='secondary'
+                                              className='bg-green-100 text-green-800'
+                                            >
+                                              In Sheet
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant='outline'>
+                                              Available
+                                            </Badge>
+                                          )}
+                                        </TableCell>
+                                        <TableCell>
+                                          {isInSheet ? (
+                                            <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                <Button
+                                                  variant='destructive'
+                                                  size='sm'
+                                                  disabled={isLoading}
+                                                >
+                                                  <Minus className='h-4 w-4 mr-1' />
+                                                  Remove
+                                                </Button>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                  <AlertDialogTitle>
+                                                    Remove Problem
+                                                  </AlertDialogTitle>
+                                                  <AlertDialogDescription>
+                                                    Are you sure you want to
+                                                    remove "{problem.title}"
+                                                    from this sheet? This action
+                                                    cannot be undone.
+                                                  </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                  <AlertDialogCancel>
+                                                    Cancel
+                                                  </AlertDialogCancel>
+                                                  <AlertDialogAction
+                                                    onClick={() =>
+                                                      removeProblemFromSheet(
+                                                        problem.id
+                                                      )
+                                                    }
+                                                    className='bg-red-600 hover:bg-red-700'
+                                                  >
+                                                    Remove
+                                                  </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                            </AlertDialog>
+                                          ) : (
+                                            <Button
+                                              variant='default'
+                                              size='sm'
+                                              onClick={() =>
+                                                addProblemToSheet(problem)
+                                              }
+                                              disabled={isLoading}
+                                              className='bg-green-600 hover:bg-green-700'
+                                            >
+                                              <Plus className='h-4 w-4 mr-1' />
+                                              Add
+                                            </Button>
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })
+                                ) : (
+                                  <TableRow>
+                                    <TableCell
+                                      colSpan={5}
+                                      className='text-center py-8 text-gray-500'
                                     >
-                                      {problem.difficulty}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                                      No problems found matching your filters.
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </TableBody>
+                            </Table>
                           </div>
                         </div>
+
+                        <DialogFooter>
+                          <Button
+                            variant='outline'
+                            onClick={handleUpdateProblems}
+                          >
+                            Save Changes
+                          </Button>
+                        </DialogFooter>
                       </DialogContent>
                     </Dialog>
                   )}
