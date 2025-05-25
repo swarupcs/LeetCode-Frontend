@@ -217,6 +217,7 @@
 
 /* Utilities layer */
 @layer utilities {
+  /* Existing colors */
   .bg-premium-darker {
     background-color: hsl(var(--premium-darker, 240 25% 5%));
   }
@@ -272,7 +273,145 @@
   .bg-premium-blue\/20 {
     background-color: hsl(var(--premium-blue, 259 88% 33%) / 0.2);
   }
+
+  /* NEW BACKGROUND COLORS - Dark Theme Extension */
   
+  /* Ultra dark backgrounds */
+  .bg-premium-void {
+    background-color: hsl(var(--premium-void, 240 35% 3%));
+  }
+  
+  .bg-premium-shadow {
+    background-color: hsl(var(--premium-shadow, 245 28% 6%));
+  }
+  
+  .bg-premium-midnight {
+    background-color: hsl(var(--premium-midnight, 248 25% 10%));
+  }
+  
+  /* Medium dark backgrounds */
+  .bg-premium-charcoal {
+    background-color: hsl(var(--premium-charcoal, 252 22% 12%));
+  }
+  
+  .bg-premium-slate {
+    background-color: hsl(var(--premium-slate, 255 20% 15%));
+  }
+  
+  .bg-premium-steel {
+    background-color: hsl(var(--premium-steel, 258 18% 18%));
+  }
+  
+  /* Accent dark backgrounds */
+  .bg-premium-navy {
+    background-color: hsl(var(--premium-navy, 230 35% 12%));
+  }
+  
+  .bg-premium-indigo-dark {
+    background-color: hsl(var(--premium-indigo-dark, 265 25% 14%));
+  }
+  
+  .bg-premium-violet-dark {
+    background-color: hsl(var(--premium-violet-dark, 280 28% 16%));
+  }
+  
+  /* Subtle tinted backgrounds */
+  .bg-premium-blue-dark {
+    background-color: hsl(var(--premium-blue-dark, 259 40% 11%));
+  }
+  
+  .bg-premium-purple-dark {
+    background-color: hsl(var(--premium-purple-dark, 278 35% 13%));
+  }
+  
+  .bg-premium-cyan-dark {
+    background-color: hsl(var(--premium-cyan-dark, 195 45% 9%));
+  }
+  
+  /* With opacity variants */
+  .bg-premium-void\/50 {
+    background-color: hsl(var(--premium-void, 240 35% 3%) / 0.5);
+  }
+  
+  .bg-premium-shadow\/80 {
+    background-color: hsl(var(--premium-shadow, 245 28% 6%) / 0.8);
+  }
+  
+  .bg-premium-midnight\/30 {
+    background-color: hsl(var(--premium-midnight, 248 25% 10%) / 0.3);
+  }
+  
+  .bg-premium-charcoal\/60 {
+    background-color: hsl(var(--premium-charcoal, 252 22% 12%) / 0.6);
+  }
+  
+  .bg-premium-slate\/40 {
+    background-color: hsl(var(--premium-slate, 255 20% 15%) / 0.4);
+  }
+  
+  .bg-premium-steel\/70 {
+    background-color: hsl(var(--premium-steel, 258 18% 18%) / 0.7);
+  }
+  
+  /* Hover variants */
+  .hover\:bg-premium-void:hover {
+    background-color: hsl(var(--premium-void, 240 35% 3%));
+  }
+  
+  .hover\:bg-premium-shadow:hover {
+    background-color: hsl(var(--premium-shadow, 245 28% 6%));
+  }
+  
+  .hover\:bg-premium-midnight:hover {
+    background-color: hsl(var(--premium-midnight, 248 25% 10%));
+  }
+  
+  .hover\:bg-premium-charcoal:hover {
+    background-color: hsl(var(--premium-charcoal, 252 22% 12%));
+  }
+  
+  .hover\:bg-premium-slate:hover {
+    background-color: hsl(var(--premium-slate, 255 20% 15%));
+  }
+  
+  .hover\:bg-premium-steel:hover {
+    background-color: hsl(var(--premium-steel, 258 18% 18%));
+  }
+  
+  .hover\:bg-premium-navy:hover {
+    background-color: hsl(var(--premium-navy, 230 35% 12%));
+  }
+  
+  .hover\:bg-premium-indigo-dark:hover {
+    background-color: hsl(var(--premium-indigo-dark, 265 25% 14%));
+  }
+  
+  .hover\:bg-premium-violet-dark:hover {
+    background-color: hsl(var(--premium-violet-dark, 280 28% 16%));
+  }
+  
+  /* Border variants */
+  .border-premium-void {
+    border-color: hsl(var(--premium-void, 240 35% 3%));
+  }
+  
+  .border-premium-shadow\/30 {
+    border-color: hsl(var(--premium-shadow, 245 28% 6%) / 0.3);
+  }
+  
+  .border-premium-midnight\/50 {
+    border-color: hsl(var(--premium-midnight, 248 25% 10%) / 0.5);
+  }
+  
+  .border-premium-charcoal\/40 {
+    border-color: hsl(var(--premium-charcoal, 252 22% 12%) / 0.4);
+  }
+  
+  .border-premium-slate\/60 {
+    border-color: hsl(var(--premium-slate, 255 20% 15%) / 0.6);
+  }
+  
+  /* Existing gradients and utilities */
   .bg-gradient-radial {
     background-image: radial-gradient(var(--tw-gradient-stops));
   }
@@ -295,6 +434,22 @@
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, hsl(var(--premium-blue, 259 88% 33%) / 0));
   }
   
+  /* New gradient variants */
+  .from-premium-void {
+    --tw-gradient-from: hsl(var(--premium-void, 240 35% 3%));
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, hsl(var(--premium-void, 240 35% 3%) / 0));
+  }
+  
+  .from-premium-shadow {
+    --tw-gradient-from: hsl(var(--premium-shadow, 245 28% 6%));
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, hsl(var(--premium-shadow, 245 28% 6%) / 0));
+  }
+  
+  .from-premium-midnight {
+    --tw-gradient-from: hsl(var(--premium-midnight, 248 25% 10%));
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, hsl(var(--premium-midnight, 248 25% 10%) / 0));
+  }
+  
   .to-transparent {
     --tw-gradient-to: transparent;
   }
@@ -302,6 +457,220 @@
   .animate-glow {
     animation: glow 3s ease-in-out infinite;
   }
+
+  .from-premium-violet\/5 {
+    --tw-gradient-from: hsl(var(--premium-violet, 280 65% 45%) / 0.05);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, hsl(var(--premium-violet, 280 65% 45%) / 0));
+  }
+
+  /* Deep Gradients */
+  .bg-gradient-deep-blue-violet {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--premium-blue, 259 88% 33%)) 0%,
+      hsl(var(--premium-violet-dark, 280 28% 16%)) 100%
+    );
+  }
+
+  .bg-gradient-midnight-indigo {
+    background-image: linear-gradient(
+      to bottom right,
+      hsl(var(--premium-midnight, 248 25% 10%)) 0%,
+      hsl(var(--premium-indigo-dark, 265 25% 14%)) 100%
+    );
+  }
+
+  .bg-gradient-shadow-steel {
+    background-image: linear-gradient(
+      to top right,
+      hsl(var(--premium-shadow, 245 28% 6%)) 0%,
+      hsl(var(--premium-steel, 258 18% 18%)) 100%
+    );
+  }
+
+  .bg-gradient-void-purple {
+    background-image: linear-gradient(
+      to bottom,
+      hsl(var(--premium-void, 240 35% 3%)),
+      hsl(var(--premium-purple, 278 66% 59%) / 0.3)
+    );
+  }
+
+  .bg-gradient-cyan-indigo {
+    background-image: linear-gradient(
+      to right,
+      hsl(var(--premium-cyan, 195 94% 61%)),
+      hsl(var(--premium-indigo-dark, 265 25% 14%))
+    );
+  }
+
+  .bg-gradient-violet-cyan {
+    background-image: linear-gradient(
+      145deg,
+      hsl(var(--premium-violet-dark, 280 28% 16%)),
+      hsl(var(--premium-cyan-dark, 195 45% 9%))
+    );
+  }
+
+  .bg-gradient-blue-midnight {
+    background-image: linear-gradient(
+      160deg,
+      hsl(var(--premium-blue, 259 88% 33%)),
+      hsl(var(--premium-midnight, 248 25% 10%))
+    );
+  }
+
+  .bg-gradient-navy-shadow {
+    background-image: linear-gradient(
+      to bottom,
+      hsl(var(--premium-navy, 230 35% 12%)),
+      hsl(var(--premium-shadow, 245 28% 6%))
+    );
+  }
+
+  .bg-premium-graphite {
+    background-color: hsl(var(--premium-graphite, 240 10% 20%));
+  }
+  
+  .bg-premium-ink {
+    background-color: hsl(var(--premium-ink, 235 25% 4%));
+  }
+  
+  .bg-premium-night {
+    background-color: hsl(var(--premium-night, 238 18% 8%));
+  }
+  
+  .bg-premium-deep-indigo {
+    background-color: hsl(var(--premium-deep-indigo, 260 35% 18%));
+  }
+  
+  .bg-premium-crimson-dark {
+    background-color: hsl(var(--premium-crimson-dark, 343 35% 20%));
+  }
+  
+  .border-premium-electric-blue\/50 {
+    border-color: hsl(var(--premium-electric-blue, 210 100% 55%) / 0.5);
+  }
+  
+  .border-premium-graphite\/40 {
+    border-color: hsl(var(--premium-graphite, 240 10% 20%) / 0.4);
+  }
+  
+  .text-premium-fuchsia {
+    color: hsl(var(--premium-fuchsia, 300 75% 60%));
+  }
+  
+  .text-premium-rose {
+    color: hsl(var(--premium-rose, 340 85% 65%));
+  }
+  
+  .text-premium-teal {
+    color: hsl(var(--premium-teal, 172 80% 45%));
+  }
+
+  .from-premium-electric-blue {
+    --tw-gradient-from: hsl(var(--premium-electric-blue, 210 100% 55%));
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, hsl(var(--premium-electric-blue, 210 100% 55%) / 0));
+  }
+  
+  .from-premium-violet {
+    --tw-gradient-from: hsl(var(--premium-violet, 280 65% 45%));
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, hsl(var(--premium-violet, 280 65% 45%) / 0));
+  }
+  
+  .from-premium-teal {
+    --tw-gradient-from: hsl(var(--premium-teal, 172 80% 45%));
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, hsl(var(--premium-teal, 172 80% 45%) / 0));
+  }
+
+  .bg-premium-rose {
+    background-color: hsl(var(--premium-rose, 330 80% 60%));
+  }
+  
+  .bg-premium-magenta {
+    background-color: hsl(var(--premium-magenta, 315 70% 50%));
+  }
+  
+  .bg-premium-gold {
+    background-color: hsl(var(--premium-gold, 45 95% 55%));
+  }
+  
+  .bg-premium-amber {
+    background-color: hsl(var(--premium-amber, 40 90% 50%));
+  }
+  
+  .bg-premium-lime {
+    background-color: hsl(var(--premium-lime, 95 80% 45%));
+  }
+  
+  .bg-premium-aqua {
+    background-color: hsl(var(--premium-aqua, 180 70% 55%));
+  }
+  
+  .bg-premium-nebula {
+    background-color: hsl(var(--premium-nebula, 255 36% 8%));
+  }
+  
+  .bg-premium-oblivion {
+    background-color: hsl(var(--premium-oblivion, 235 20% 5%));
+  }
+  
+  .bg-premium-cosmic {
+    background-color: hsl(var(--premium-cosmic, 245 30% 12%));
+  }
+  
+  .bg-premium-zinc {
+    background-color: hsl(var(--premium-zinc, 220 10% 15%));
+  }
+  
+  .bg-premium-graphite {
+    background-color: hsl(var(--premium-graphite, 230 8% 18%));
+  }
+  
+  .bg-premium-sandstone {
+    background-color: hsl(var(--premium-sandstone, 38 10% 25%));
+  }
+  
+  .hover\:bg-premium-rose\/20:hover {
+    background-color: hsl(var(--premium-rose, 330 80% 60%) / 0.2);
+  }
+  
+  .text-premium-gold {
+    color: hsl(var(--premium-gold, 45 95% 55%));
+  }
+  
+  .border-premium-magenta\/40 {
+    border-color: hsl(var(--premium-magenta, 315 70% 50%) / 0.4);
+  }
+  
+  .bg-premium-indigo\/5 {
+    background-color: hsl(var(--premium-indigo-dark, 265 25% 14%) / 0.05);
+  }
+  
+  .bg-gradient-indigo-gold {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--premium-indigo-dark, 265 25% 14%)) 0%,
+      hsl(var(--premium-gold, 45 95% 55%)) 100%
+    );
+  }
+  
+  .bg-gradient-cyan-rose {
+    background-image: linear-gradient(
+      to bottom right,
+      hsl(var(--premium-cyan, 195 94% 61%)) 0%,
+      hsl(var(--premium-rose, 330 80% 60%)) 100%
+    );
+  }
+  
+  .bg-gradient-aqua-lime {
+    background-image: linear-gradient(
+      to bottom,
+      hsl(var(--premium-aqua, 180 70% 55%)) 0%,
+      hsl(var(--premium-lime, 95 80% 45%)) 100%
+    );
+  }
+  
 }
 
 /* Keyframe animations */

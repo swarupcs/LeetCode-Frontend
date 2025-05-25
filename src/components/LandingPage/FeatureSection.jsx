@@ -47,7 +47,7 @@ export function FeaturesSection() {
   return (
     <section
       id='features'
-      className='w-full py-12 md:py-24 lg:py-32 bg-premium-dark relative'
+      className='w-full py-12 md:py-24 lg:py-32 bg-premium-darker relative'
     >
       <div className='absolute inset-0 bg-gradient-to-b from-premium-blue/5 to-transparent'></div>
       <div className='container px-4 md:px-6 relative z-10'>

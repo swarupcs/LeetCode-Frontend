@@ -279,11 +279,11 @@ export default function ProblemSheet() {
   };
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen  bg-premium-darker '>
       {isSuccess ? (
         <>
           {/* Header */}
-          <header className='bg-white border-b border-gray-200 sticky top-0 z-50'>
+          <header className='bg-[hsl(var(--premium-aqua))] text-[hsl(var(--premium-rose))] p-4 rounded-lg border-b border-gray-200 sticky top-0 z-50'>
             <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
               <div className='flex justify-between items-center h-16'>
                 <div className='flex items-center space-x-4'>
@@ -367,19 +367,18 @@ export default function ProblemSheet() {
             </div>
           </header>
 
-          {/* Main Content */}
-          <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 '>
             {/* Stats Cards */}
-            <div className='grid grid-cols-1 md:grid-cols-4 gap-6 mb-8'>
-              <Card>
+            <div className='grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 '>
+              <Card className='bg-gradient-to-br from-[#1c1230] via-[#2a1843] to-[#22113a] p-4 rounded text-white'>
                 <CardContent className='p-6'>
                   <div className='flex items-center'>
                     <BookOpen className='h-8 w-8 text-blue-600' />
                     <div className='ml-4'>
-                      <p className='text-sm font-medium text-gray-600'>
+                      <p className='text-sm font-medium text-pink-500'>
                         Total Sheets
                       </p>
-                      <p className='text-2xl font-bold text-gray-900'>
+                      <p className='text-2xl font-bold text-teal-700'>
                         {sheetDetails.length}
                       </p>
                     </div>
@@ -387,15 +386,15 @@ export default function ProblemSheet() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className='bg-gradient-to-br from-[#1c1230] via-[#2a1843] to-[#22113a] p-4 rounded text-white'>
                 <CardContent className='p-6'>
                   <div className='flex items-center'>
                     <Target className='h-8 w-8 text-green-600' />
                     <div className='ml-4'>
-                      <p className='text-sm font-medium text-gray-600'>
+                      <p className='text-sm font-medium text-pink-500'>
                         Total Problems
                       </p>
-                      <p className='text-2xl font-bold text-gray-900'>
+                      <p className='text-2xl font-bold text-teal-700'>
                         {sheetDetails.reduce(
                           (total, sheet) => total + sheet.totalProblems,
                           0
@@ -406,7 +405,7 @@ export default function ProblemSheet() {
                 </CardContent>
               </Card>
 
-              <Card>
+              {/* <Card>
                 <CardContent className='p-6'>
                   <div className='flex items-center'>
                     <TrendingUp className='h-8 w-8 text-purple-600' />
@@ -434,7 +433,7 @@ export default function ProblemSheet() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
 
             {/* Search and Filters */}
@@ -479,7 +478,7 @@ export default function ProblemSheet() {
               {filteredSheets.map((sheet) => (
                 <Card
                   key={sheet.id}
-                  className='hover:shadow-lg transition-shadow cursor-pointer'
+                  className='bg-gradient-to-r from-[#1a153b] to-[#22114c] p-4 rounded text-white'
                   onClick={() => navigate(`/dsaSheet/${sheet.id}`)}
                 >
                   <CardHeader>
@@ -556,7 +555,7 @@ export default function ProblemSheet() {
                         />
                         <AvatarFallback>{sheet.user.name[0]}</AvatarFallback>
                       </Avatar>
-                      <span className='text-sm text-gray-600'>
+                      <span className='text-sm text-orange-50'>
                         {sheet.user.name}
                       </span>
                     </div>
@@ -565,15 +564,23 @@ export default function ProblemSheet() {
                   <CardContent>
                     <div className='space-y-4'>
                       {/* Progress - using totalProblems since we don't have completedProblems */}
-                      <div>
-                        <div className='flex justify-between text-sm mb-2'>
-                          <span>Total Problems</span>
-                          <span>{sheet.totalProblems}</span>
+                      <div className='space-y-4'>
+                        <div>
+                          <div className='flex justify-between text-xs text-gray-300 mb-2'>
+                            <span>Total Problems</span>
+                            <span>{sheet.totalProblems}</span>
+                          </div>
+
+                          <Progress
+                            value={sheet.totalProblems > 0 ? 50 : 0}
+                            className='h-2 rounded bg-red-200' // Light red track
+                            indicatorClassName={`${
+                              sheet.totalProblems > 0
+                                ? 'bg-purple-600'
+                                : 'bg-red-600'
+                            }`} // Purple when > 0, dark red when 0
+                          />
                         </div>
-                        <Progress
-                          value={sheet.totalProblems > 0 ? 50 : 0} // Default 50% or 0 if no problems
-                          className='h-2'
-                        />
                       </div>
 
                       {/* Tags */}

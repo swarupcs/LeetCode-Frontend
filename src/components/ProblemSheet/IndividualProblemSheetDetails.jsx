@@ -369,10 +369,16 @@ export default function IndividualProblemSheetDetails({ params }) {
 
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div
+      className='min-h-screen bg-gradient-to-br from-premium-midnight to-premium-cyan-dark
+'
+    >
       {isSuccess ? (
         <>
-          <header className='bg-white border-b border-gray-200 sticky top-0 z-50'>
+          <header
+            className='bg-gradient-to-r from-premium-shadow to-premium-purple
+ border-b border-gray-200 sticky top-0 z-50'
+          >
             <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
               <div className='flex justify-between items-center h-16'>
                 <div className='flex items-center space-x-4'>
@@ -584,10 +590,10 @@ export default function IndividualProblemSheetDetails({ params }) {
           </header>
 
           {/* Main Content */}
-          <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <main className=' max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
             {/* Sheet Header */}
             <div className='mb-8'>
-              <Card>
+              <Card className='bg-[hsl(var(--premium-rose))] border border-pink-300 text-white p-4 rounded-lg'>
                 <CardHeader>
                   <div className='flex items-start justify-between'>
                     <div className='flex-1'>
@@ -730,7 +736,7 @@ export default function IndividualProblemSheetDetails({ params }) {
 
             {/* Filters */}
             <div className='mb-6'>
-              <Card>
+              <Card className='bg-[hsl(var(--premium-rose))] text-white p-4 rounded-xl'>
                 <CardContent className='p-4'>
                   <div className='flex flex-col sm:flex-row gap-4'>
                     <div className='relative flex-1'>
@@ -792,7 +798,7 @@ export default function IndividualProblemSheetDetails({ params }) {
             </div>
 
             {/* Problems Table */}
-            <Card>
+            <Card className='bg-[hsl(var(--premium-rose))] text-white p-4 rounded-xl shadow-lg'>
               <CardHeader>
                 <CardTitle>Problems ({filteredProblems.length})</CardTitle>
               </CardHeader>

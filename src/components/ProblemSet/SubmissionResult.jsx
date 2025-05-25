@@ -81,21 +81,22 @@ export function SubmissionResult({
       if (status === 'Accepted') {
         return {
           icon: <CheckCircle2 className='h-5 w-5' />,
-          color: 'text-green-600',
-          bgColor: 'bg-green-50',
-          badgeColor: 'bg-green-100 text-green-800 hover:bg-green-100',
-          progressColor: 'bg-green-500',
+          color: 'text-green-700', // slightly deeper green for better visibility
+          bgColor: 'bg-green-100', // soft green background
+          badgeColor: 'bg-green-200 text-green-800 hover:bg-green-300', // gentle transitions
+          progressColor: 'bg-green-400', // consistent but not too bright
         };
       } else {
         return {
           icon: <XCircle className='h-5 w-5' />,
-          color: 'text-red-600',
-          bgColor: 'bg-red-50',
-          badgeColor: 'bg-red-100 text-red-800 hover:bg-red-100',
-          progressColor: 'bg-red-500',
+          color: 'text-rose-700', // using rose for a more modern red
+          bgColor: 'bg-rose-100', // soft rose background
+          badgeColor: 'bg-rose-200 text-rose-800 hover:bg-rose-300', // same approach
+          progressColor: 'bg-rose-400', // consistent
         };
       }
     };
+    
 
     statusInfo = getStatusInfo(submissionDetails?.status);
 
@@ -145,7 +146,7 @@ export function SubmissionResult({
   ];
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen bg-[hsl(var(--premium-aqua)/0.7)] text-[hsl(var(--premium-rose)/0.7)] p-4 rounded-lg'>
       {/* Main Content */}
       <main className='container mx-auto px-4 py-8 space-y-6'>
         {/* Only show these cards if we have submission details */}
@@ -176,10 +177,10 @@ export function SubmissionResult({
                       {submissionDetails?.status}
                     </h2>
                   </div>
-                  <Button variant='outline' size='sm' className='gap-1'>
+                  {/* <Button variant='outline' size='sm' className='gap-1'>
                     <Eye className='h-4 w-4' />
                     View Code
-                  </Button>
+                  </Button> */}
                 </div>
 
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
@@ -257,7 +258,7 @@ export function SubmissionResult({
             </Card>
 
             {/* Test Cases Details */}
-            <Card>
+            <Card className='bg-[hsl(var(--premium-aqua)/0.5)] text-[hsl(var(--premium-rose)/0.5)] p-4 mt-6 rounded-lg'>
               <CardHeader>
                 <CardTitle className='text-lg'>Test Results</CardTitle>
               </CardHeader>
@@ -295,7 +296,7 @@ export function SubmissionResult({
         )}
 
         {/* Always show submission history */}
-        <Card>
+        <Card className='bg-[hsl(var(--premium-aqua)/0.6)] text-[hsl(var(--premium-rose)/0.6)] p-4 rounded-lg'>
           <CardHeader className='flex flex-row items-center justify-between'>
             <CardTitle className='text-lg'>Submission History</CardTitle>
             {submissionInProgress && (
