@@ -22,6 +22,10 @@ import { useFormState } from 'react-dom';
 import { useEffect } from 'react';
 import { LucideLoader2, TriangleAlert } from 'lucide-react';
 import { FaCheck } from 'react-icons/fa';
+import { toast } from 'sonner';
+import { useDispatch } from 'react-redux';
+import { loginSuccess } from '@/features/auth/authSlice';
+import axios from 'axios';
 
 export function Signup({ className, ...props }) {
   const {
@@ -33,6 +37,8 @@ export function Signup({ className, ...props }) {
   });
 
   const navigate = useNavigate();
+
+  const dispatch = useDispatch();
 
 
   const { isPending, isSuccess, error, signupMutation } = useSignup();
@@ -55,10 +61,61 @@ export function Signup({ className, ...props }) {
   }, [isSuccess, navigate]);
 
   const handleGoogleSignup = () => {
-    // Redirect browser to backend Google OAuth endpoint
-    window.location.href = 'http://localhost:8080/api/v1/auth/google';
-  };
+    const width = 500;
+    const height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
 
+    const popup = window.open(
+      'http://localhost:8080/api/v1/auth/google',
+      'Google Sign In',
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+
+    const messageListener = async (event) => {
+      console.log('Message received:', event);
+
+      if (event.data === 'success') {
+        window.removeEventListener('message', messageListener);
+
+        try {
+          const response = await axios.get(
+            'http://localhost:8080/api/v1/auth/me',
+            {
+              withCredentials: true,
+            }
+          );
+
+          const user = response.data.user;
+          console.log('Fetched user:', user);
+
+          toast.success('Successfully signed up with Google!');
+
+          dispatch(
+            loginSuccess({
+              user: user.name,
+              role: user.role,
+            })
+          );
+
+          // ✅ Close popup first
+          if (popup) popup.close();
+
+          // ✅ THEN navigate
+          console.log('Navigating to /problem-set');
+          navigate('/problem-set');
+        } catch (error) {
+          console.error('Error fetching user details:', error);
+          toast.error('Failed to get user details. Please try again.');
+          if (popup) popup.close();
+        }
+      }
+    };
+    
+
+    window.addEventListener('message', messageListener);
+  };
+  
   return (
     <div className={cn('flex flex-col gap-2', className)} {...props}>
       <Card className='bg-premium-darker border border-premium-blue/20 text-white shadow-lg premium-border-gradient'>
