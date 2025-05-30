@@ -54,6 +54,11 @@ export function Signup({ className, ...props }) {
     }
   }, [isSuccess, navigate]);
 
+  const handleGoogleSignup = () => {
+    // Redirect browser to backend Google OAuth endpoint
+    window.location.href = 'http://localhost:8080/api/v1/auth/google';
+  };
+
   return (
     <div className={cn('flex flex-col gap-2', className)} {...props}>
       <Card className='bg-premium-darker border border-premium-blue/20 text-white shadow-lg premium-border-gradient'>
@@ -155,6 +160,7 @@ export function Signup({ className, ...props }) {
               type='button'
               variant='outline'
               className='w-full border-premium-blue/50 bg-premium-darker text-white hover:bg-premium-blue/20 hover:text-premium-cyan'
+              onClick={handleGoogleSignup}
             >
               Sign up with Google
             </Button>
