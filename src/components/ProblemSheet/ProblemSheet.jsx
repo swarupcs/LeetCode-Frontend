@@ -488,7 +488,7 @@ export default function ProblemSheet() {
                         <CardTitle className='text-lg mb-2'>
                           {sheet.name}
                         </CardTitle>
-                        <CardDescription className='text-sm text-gray-600 line-clamp-2'>
+                        <CardDescription className='text-sm text-shadow-sky-400 line-clamp-2'>
                           {sheet.description}
                         </CardDescription>
                       </div>
@@ -572,15 +572,18 @@ export default function ProblemSheet() {
                             <span>{sheet.totalProblems}</span>
                           </div>
 
-                          <Progress
-                            value={sheet.totalProblems > 0 ? 50 : 0}
-                            className='h-2 rounded bg-red-200' // Light red track
-                            indicatorClassName={`${
-                              sheet.totalProblems > 0
-                                ? 'bg-purple-600'
-                                : 'bg-red-600'
-                            }`} // Purple when > 0, dark red when 0
-                          />
+                          <div className='w-full bg-gray-700/60 rounded h-2 overflow-hidden'>
+                            <div
+                              className={`h-full transition-all duration-300 ${
+                                sheet.totalProblems > 0
+                                  ? 'bg-gradient-to-r from-emerald-400 to-cyan-400 shadow-lg shadow-emerald-400/30'
+                                  : 'bg-red-400'
+                              }`}
+                              style={{
+                                width: `${sheet.totalProblems > 0 ? 50 : 0}%`,
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -613,7 +616,9 @@ export default function ProblemSheet() {
                           </Badge>
                         ))}
                         {sheet.allDifficulties.length === 0 && (
-                          <Badge variant='outline'>No Problems</Badge>
+                          <Badge variant='outline' className='text-yellow-50'>
+                            No Problems
+                          </Badge>
                         )}
                       </div>
                     </div>
