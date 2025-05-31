@@ -33,7 +33,6 @@ import { CodeEditor } from './CodeEditor';
 import { useUserSubmissionSpecificProblem } from '@/hooks/apis/userSubmissionDetails/useUserSubmissionSpecificProblem';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
-import { is } from './../../../node_modules/date-fns/locale/is';
 import { toast } from 'sonner';
 
 export const IndividualProblem = () => {
@@ -81,6 +80,9 @@ export const IndividualProblem = () => {
     examples: [],
     codeSnippets: {},
     testcases: [],
+    companyTags: [],
+    difficulty: '',
+    tags: [],
   });
 
   const [activeTab, setActiveTab] = useState('description');
@@ -124,6 +126,9 @@ export const IndividualProblem = () => {
         examples: response.problem.examples || [],
         codeSnippets: response.problem.codeSnippets || {},
         testcases: response.problem.testCases || [],
+        difficulty: response.problem.difficulty || '',
+        companyTags: response.problem.companyTags || [],
+        tags: response.problem.tags || [],
       });
 
       // Check if there's saved code for this problem and language
