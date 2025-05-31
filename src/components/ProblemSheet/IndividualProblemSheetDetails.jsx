@@ -442,7 +442,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                                     return (
                                       <TableRow
                                         key={problem.id}
-                                        className='hover:bg-gray-50'
+                                        className=''
                                       >
                                         <TableCell className='font-medium'>
                                           {problem.problemNumber}
@@ -819,7 +819,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                       filteredProblems.map((problemItem) => (
                         <TableRow
                           key={problemItem.id}
-                          className='hover:bg-gray-50'
+                          className=''
                         >
                           <TableCell>
                             <Button
@@ -863,7 +863,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className='flex flex-wrap gap-1'>
+                            <div className='flex flex-wrap gap-1 '>
                               {problemItem.problem.tags &&
                               problemItem.problem.tags.length > 0 ? (
                                 <>
@@ -873,7 +873,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                                       <Badge
                                         key={tag}
                                         variant='outline'
-                                        className='text-xs'
+                                        className='text-xs text-gray-950 bg-blue-400'
                                       >
                                         {tag}
                                       </Badge>
@@ -895,7 +895,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Button variant='ghost' size='sm'>
+                            <Button variant='ghost' size='sm' onClick={() => navigate(`/problems/${problemItem.problem.id}`)}>
                               <ExternalLink className='h-4 w-4' />
                             </Button>
                           </TableCell>
