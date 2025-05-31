@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   ChevronLeft,
   ChevronRight,
@@ -95,6 +95,8 @@ export const IndividualProblem = () => {
   const [startY, setStartY] = useState(0);
   const [code, setCode] = useState('');
   const [submissionDetails, setSubmissionDetails] = useState(null);
+
+  const navigate = useNavigate();
 
   // Test cases state
   const [testcases, setTestcases] = useState([
@@ -287,14 +289,12 @@ export const IndividualProblem = () => {
       {/* Header */}
       <header className='flex items-center justify-between border-b border-zinc-800 px-4 py-2'>
         <div className='flex items-center gap-4'>
-          <div className='flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600 text-white'>
-            <Zap size={18} />
-          </div>
+
           <Button
             variant='ghost'
             size='sm'
             className='text-zinc-300'
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+            onClick={() => navigate('/problem-set')}
           >
             <ChevronLeft size={16} className='mr-1' /> Problem List
           </Button>
