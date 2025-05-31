@@ -251,53 +251,7 @@ export default function AllProblem() {
     {/* <Navbar/> */}
 
       <div className='flex'>
-        {/* Sidebar */}
-        <aside className='w-56 border-r border-gray-800 h-[calc(100vh-3.5rem)] p-4'>
-          <div className='space-y-4'>
-            <div className='flex items-center space-x-2 p-2 rounded hover:bg-gray-800 cursor-pointer'>
-              <span className='text-gray-300'>Library</span>
-            </div>
-            <div className='flex items-center space-x-2 p-2 rounded hover:bg-gray-800 cursor-pointer'>
-              <span className='text-gray-300'>Study Plan</span>
-            </div>
 
-            <div className='pt-4 pb-2'>
-              <div className='flex items-center justify-between'>
-                <span className='text-sm text-gray-400'>My Lists</span>
-                <button className='text-gray-400 hover:text-white'>
-                  <Plus className='h-4 w-4' />
-                </button>
-              </div>
-            </div>
-
-            <div className='space-y-1'>
-              <div className='flex items-center justify-between p-2 rounded hover:bg-gray-800 cursor-pointer'>
-                <span className='text-gray-300'>Favorite</span>
-                <span className='text-gray-500'>🔒</span>
-              </div>
-              <div className='flex items-center justify-between p-2 rounded hover:bg-gray-800 cursor-pointer'>
-                <span className='text-gray-300'>Queue</span>
-                <span className='text-gray-500'>🔒</span>
-              </div>
-              <div className='flex items-center justify-between p-2 rounded hover:bg-gray-800 cursor-pointer'>
-                <span className='text-gray-300'>Stack</span>
-                <span className='text-gray-500'>🔒</span>
-              </div>
-              <div className='flex items-center justify-between p-2 rounded hover:bg-gray-800 cursor-pointer'>
-                <span className='text-gray-300'>Binary Search</span>
-                <span className='text-gray-500'>🔒</span>
-              </div>
-              <div className='flex items-center justify-between p-2 rounded hover:bg-gray-800 cursor-pointer'>
-                <span className='text-gray-300'>LinkedList</span>
-                <span className='text-gray-500'>🔒</span>
-              </div>
-              <div className='flex items-center justify-between p-2 rounded hover:bg-gray-800 cursor-pointer'>
-                <span className='text-gray-300'>Arrays</span>
-                <span className='text-gray-500'>🔒</span>
-              </div>
-            </div>
-          </div>
-        </aside>
 
         {/* Main content */}
         <main className='flex-1 p-6'>
@@ -393,10 +347,10 @@ export default function AllProblem() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button variant='outline' className='border-gray-700'>
-              <Filter className='h-4 w-4 mr-2' />
+            {/* <Button variant='outline' className='border-gray-700'>
+              <Filter className='h-4 w-4 mr-2 ' />
               <span>1</span>
-            </Button>
+            </Button> */}
             <div className='text-sm text-gray-400'>
               {filteredProblems.length} Qs
             </div>
