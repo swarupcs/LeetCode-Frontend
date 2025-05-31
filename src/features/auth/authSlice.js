@@ -21,6 +21,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.user = null;
       state.role = null;
+      state.id = null;
     },
     setUser(state, action) {
       state.user = action.payload.user;

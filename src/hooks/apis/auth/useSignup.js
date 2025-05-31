@@ -18,8 +18,10 @@ export const useSignup = () => {
       console.log('Scuccessfully signed up', data);
       dispatch(
         loginSuccess({
-          user: data.user.name, 
+          user: data.user.name,
           role: data.user.role,
+          id: data.user.id,
+          isAuthenticated: true,
         })
       );
       toast.success('Successfully signed up.');
