@@ -64,6 +64,7 @@ import { useCreateSheet } from '@/hooks/apis/ProblemSheets/useCreateSheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { useDeleteSheet } from '@/hooks/apis/ProblemSheets/useDeleteSheet';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 // Mock data
 const sdeSheets = [
@@ -145,7 +146,7 @@ const problems = [
 ];
 
 export default function ProblemSheet() {
-  const [isAdmin, setIsAdmin] = useState(true); // Toggle for demo
+  const [isAdmin, setIsAdmin] = useState(useSelector((state) => state.auth.role)); // Toggle for demo
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSheet, setSelectedSheet] = useState(null);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
