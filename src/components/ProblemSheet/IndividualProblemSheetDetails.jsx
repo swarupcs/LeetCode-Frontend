@@ -628,7 +628,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                     </div>
 
                     {isAdmin && (
-                      <Button variant='outline' size='sm'>
+                      <Button variant='outline' size='sm' className='text-blue-600'>
                         <Edit className='h-4 w-4 mr-2' />
                         Edit Sheet
                       </Button>
