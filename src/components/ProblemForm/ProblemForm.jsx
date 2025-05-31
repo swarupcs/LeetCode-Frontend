@@ -245,7 +245,7 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
   const removeCompanyTag = (tag) => {
     updateProblem(
       'companyTags',
-      problemDetails.problem.tags.filter((t) => t !== tag)
+      problemDetails.problem.companyTags.filter((t) => t !== tag)
     );
   };
 
