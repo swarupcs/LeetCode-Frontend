@@ -449,8 +449,8 @@ export default function ProblemSheet() {
                 />
               </div>
               <div className='flex gap-2'>
-                <Button variant='outline' size='sm'>
-                  <Filter className='h-4 w-4 mr-2' />
+                <Button variant='outline' size='sm' className='text-blue-600'>
+                  <Filter className='h-4 w-4 mr-2 ' />
                   Filter
                 </Button>
                 <Select
