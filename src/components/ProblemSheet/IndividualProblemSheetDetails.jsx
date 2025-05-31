@@ -79,7 +79,7 @@ export default function IndividualProblemSheetDetails({ params }) {
   const [tagFilter, setTagFilter] = useState('all');
   const [completionFilter, setCompletionFilter] = useState('all');
   const [addProblemOpen, setAddProblemOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(true); // Toggle for demo
+  const [isAdmin, setIsAdmin] = useState(false); // Toggle for demo
   const [dialogSearchQuery, setDialogSearchQuery] = useState('');
   const [dialogDifficultyFilter, setDialogDifficultyFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -375,9 +375,9 @@ export default function IndividualProblemSheetDetails({ params }) {
     >
       {isSuccess ? (
         <>
-          <header
+          <div
             className='bg-gradient-to-r from-premium-shadow to-premium-purple
- border-b border-gray-200 sticky top-0 z-50'
+ border-b border-gray-200'
           >
             <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
               <div className='flex justify-between items-center h-16'>
@@ -587,7 +587,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                 </div>
               </div>
             </div>
-          </header>
+          </div>
 
           {/* Main Content */}
           <main className=' max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
