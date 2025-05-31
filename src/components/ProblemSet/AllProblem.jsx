@@ -248,11 +248,9 @@ export default function AllProblem() {
   return (
     <div className='min-h-screen bg-gray-950 text-gray-100'>
       {/* Navigation */}
-    {/* <Navbar/> */}
+      {/* <Navbar/> */}
 
       <div className='flex'>
-
-
         {/* Main content */}
         <main className='flex-1 p-6'>
           {/* Featured courses */}
@@ -380,14 +378,47 @@ export default function AllProblem() {
                       </Link>
                     </div>
                   </div>
-                  <div className='flex items-center space-x-6'>
-                    <span
-                      className={`${getDifficultyColor(
-                        problem.difficulty.toLowerCase()
-                      )} text-sm font-medium`}
-                    >
-                      {problem.difficulty}
-                    </span>
+                  <div>
+                    <div className='flex flex-col items-end space-y-2'>
+                      {/* Difficulty */}
+                      <div>
+                        <span
+                          className={`${getDifficultyColor(
+                            problem.difficulty.toLowerCase()
+                          )} text-sm font-medium`}
+                        >
+                          {problem.difficulty}
+                        </span>
+                      </div>
+
+                      {/* Company Tags - All displayed */}
+                      {problem?.companyTags &&
+                        problem.companyTags.length > 0 && (
+                          <div className='flex flex-wrap gap-1 justify-end max-w-xs'>
+                            {problem.companyTags.map((company) => (
+                              <Badge
+                                key={company}
+                                variant='secondary'
+                                className='text-xs bg-blue-900 text-blue-200'
+                              >
+                                {company}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                      <div className='flex flex-wrap gap-1 mb-1'>
+                        {problem.tags.map((topic) => (
+                          <Badge
+                            key={topic}
+                            variant='outline'
+                            className='text-xs border-gray-600 text-gray-300'
+                          >
+                            {topic}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                     {/* Admin actions column */}
                     {isAdmin && (
                       <div className='ml-4'>
