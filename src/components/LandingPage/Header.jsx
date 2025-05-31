@@ -76,7 +76,9 @@ export function Header() {
               <Code className='h-6 w-6 text-premium-cyan' />
               <span className='premium-text-gradient'>algodrill</span>
             </Link>
-            {isAuthenticated && <ProfileIcon />}
+            <div className='w-32 flex justify-end'>
+              {isAuthenticated ? <ProfileIcon /> : <AuthButtons />}
+            </div>
           </div>
         ) : (
           // Original header layout for homepage
@@ -86,30 +88,32 @@ export function Header() {
               <span className='premium-text-gradient'>algodrill</span>
             </div>
             <div className='flex flex-1 items-center justify-end space-x-4'>
-              <nav className='flex items-center space-x-4'>
+              <nav className='flex items-center space-x-6'>
                 <a
                   href='#features'
                   onClick={scrollToSection('features')}
-                  className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block cursor-pointer'
+                  className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block cursor-pointer relative z-10'
                 >
                   Features
                 </a>
                 <a
                   href='#how-it-works'
                   onClick={scrollToSection('how-it-works')}
-                  className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block cursor-pointer'
+                  className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block cursor-pointer relative z-10'
                 >
                   How It Works
                 </a>
                 <a
                   href='#pricing'
                   onClick={scrollToSection('pricing')}
-                  className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block cursor-pointer'
+                  className='hidden text-sm font-medium text-gray-400 transition-colors hover:text-premium-cyan sm:block cursor-pointer relative z-10'
                 >
                   Pricing
                 </a>
-                {isAuthenticated ? <ProfileIcon /> : <AuthButtons />}
               </nav>
+              <div className='w-32 flex justify-end ml-6'>
+                {isAuthenticated ? <ProfileIcon /> : <AuthButtons />}
+              </div>
             </div>
           </>
         )}
