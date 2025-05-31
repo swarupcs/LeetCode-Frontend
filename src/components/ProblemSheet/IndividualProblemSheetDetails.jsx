@@ -79,7 +79,7 @@ export default function IndividualProblemSheetDetails({ params }) {
   const [tagFilter, setTagFilter] = useState('all');
   const [completionFilter, setCompletionFilter] = useState('all');
   const [addProblemOpen, setAddProblemOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(true); // Toggle for demo
+  const [isAdmin, setIsAdmin] = useState(useSelector((state) => state.auth.role)); // Toggle for demo
   const [dialogSearchQuery, setDialogSearchQuery] = useState('');
   const [dialogDifficultyFilter, setDialogDifficultyFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -375,9 +375,9 @@ export default function IndividualProblemSheetDetails({ params }) {
     >
       {isSuccess ? (
         <>
-          <header
+          <div
             className='bg-gradient-to-r from-premium-shadow to-premium-purple
- border-b border-gray-200 sticky top-0 z-50'
+ border-b border-gray-200'
           >
             <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
               <div className='flex justify-between items-center h-16'>
@@ -442,7 +442,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                                     return (
                                       <TableRow
                                         key={problem.id}
-                                        className='hover:bg-gray-50'
+                                        className=''
                                       >
                                         <TableCell className='font-medium'>
                                           {problem.problemNumber}
@@ -587,7 +587,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                 </div>
               </div>
             </div>
-          </header>
+          </div>
 
           {/* Main Content */}
           <main className=' max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
@@ -819,7 +819,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                       filteredProblems.map((problemItem) => (
                         <TableRow
                           key={problemItem.id}
-                          className='hover:bg-gray-50'
+                          className=''
                         >
                           <TableCell>
                             <Button
@@ -863,7 +863,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className='flex flex-wrap gap-1'>
+                            <div className='flex flex-wrap gap-1 '>
                               {problemItem.problem.tags &&
                               problemItem.problem.tags.length > 0 ? (
                                 <>
@@ -873,7 +873,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                                       <Badge
                                         key={tag}
                                         variant='outline'
-                                        className='text-xs'
+                                        className='text-xs text-gray-950 bg-blue-400'
                                       >
                                         {tag}
                                       </Badge>
@@ -895,7 +895,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Button variant='ghost' size='sm'>
+                            <Button variant='ghost' size='sm' onClick={() => navigate(`/problems/${problemItem.problem.id}`)}>
                               <ExternalLink className='h-4 w-4' />
                             </Button>
                           </TableCell>

@@ -64,6 +64,7 @@ import { useCreateSheet } from '@/hooks/apis/ProblemSheets/useCreateSheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { useDeleteSheet } from '@/hooks/apis/ProblemSheets/useDeleteSheet';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 // Mock data
 const sdeSheets = [
@@ -145,7 +146,7 @@ const problems = [
 ];
 
 export default function ProblemSheet() {
-  const [isAdmin, setIsAdmin] = useState(true); // Toggle for demo
+  const [isAdmin, setIsAdmin] = useState(useSelector((state) => state.auth.role)); // Toggle for demo
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSheet, setSelectedSheet] = useState(null);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
@@ -283,11 +284,11 @@ export default function ProblemSheet() {
       {isSuccess ? (
         <>
           {/* Header */}
-          <header className='bg-[hsl(var(--premium-aqua))] text-[hsl(var(--premium-rose))] p-4 rounded-lg border-b border-gray-200 sticky top-0 z-50'>
-            <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-              <div className='flex justify-between items-center h-16'>
-                <div className='flex items-center space-x-4'>
-                  {isAdmin && (
+          {isAdmin && (
+            <header className='bg-[hsl(var(--premium-aqua))] text-[hsl(var(--premium-rose))] p-4 rounded-lg border-b border-gray-200 sticky top-0 z-50'>
+              <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+                <div className='flex justify-between items-center h-16'>
+                  <div className='flex items-center space-x-4'>
                     <Dialog
                       open={createSheetOpen}
                       onOpenChange={setCreateSheetOpen}
@@ -361,11 +362,11 @@ export default function ProblemSheet() {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                  )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </header>
+            </header>
+          )}
 
           <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 '>
             {/* Stats Cards */}
@@ -448,8 +449,8 @@ export default function ProblemSheet() {
                 />
               </div>
               <div className='flex gap-2'>
-                <Button variant='outline' size='sm'>
-                  <Filter className='h-4 w-4 mr-2' />
+                <Button variant='outline' size='sm' className='text-blue-600'>
+                  <Filter className='h-4 w-4 mr-2 ' />
                   Filter
                 </Button>
                 <Select
@@ -487,7 +488,7 @@ export default function ProblemSheet() {
                         <CardTitle className='text-lg mb-2'>
                           {sheet.name}
                         </CardTitle>
-                        <CardDescription className='text-sm text-gray-600 line-clamp-2'>
+                        <CardDescription className='text-sm text-shadow-sky-400 line-clamp-2'>
                           {sheet.description}
                         </CardDescription>
                       </div>
@@ -571,15 +572,18 @@ export default function ProblemSheet() {
                             <span>{sheet.totalProblems}</span>
                           </div>
 
-                          <Progress
-                            value={sheet.totalProblems > 0 ? 50 : 0}
-                            className='h-2 rounded bg-red-200' // Light red track
-                            indicatorClassName={`${
-                              sheet.totalProblems > 0
-                                ? 'bg-purple-600'
-                                : 'bg-red-600'
-                            }`} // Purple when > 0, dark red when 0
-                          />
+                          <div className='w-full bg-gray-700/60 rounded h-2 overflow-hidden'>
+                            <div
+                              className={`h-full transition-all duration-300 ${
+                                sheet.totalProblems > 0
+                                  ? 'bg-gradient-to-r from-emerald-400 to-cyan-400 shadow-lg shadow-emerald-400/30'
+                                  : 'bg-red-400'
+                              }`}
+                              style={{
+                                width: `${sheet.totalProblems > 0 ? 50 : 0}%`,
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -612,7 +616,9 @@ export default function ProblemSheet() {
                           </Badge>
                         ))}
                         {sheet.allDifficulties.length === 0 && (
-                          <Badge variant='outline'>No Problems</Badge>
+                          <Badge variant='outline' className='text-yellow-50'>
+                            No Problems
+                          </Badge>
                         )}
                       </div>
                     </div>

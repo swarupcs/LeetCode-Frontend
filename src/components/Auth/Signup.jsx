@@ -95,6 +95,8 @@ export function Signup({ className, ...props }) {
             loginSuccess({
               user: user.name,
               role: user.role,
+              id: user.id,
+              isAuthenticated: true,
             })
           );
 
