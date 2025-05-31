@@ -10,15 +10,43 @@ export default function ProblemDescription({ problemDetails }) {
 
       <div className='mt-4 flex flex-wrap gap-2'>
         <div className='rounded-full bg-emerald-900/30 px-3 py-1 text-sm font-medium text-emerald-400'>
-          Medium
+          {problemDetails.difficulty}
         </div>
-        <button className='flex items-center gap-1 rounded-full bg-zinc-800 px-3 py-1 text-sm font-medium text-zinc-300 hover:bg-zinc-700'>
-          <span>Topics</span>
-        </button>
-        <button className='flex items-center gap-1 rounded-full bg-zinc-800 px-3 py-1 text-sm font-medium text-zinc-300 hover:bg-zinc-700'>
-          <span>Companies</span>
-        </button>
       </div>
+
+      {/* Problem Tags Section */}
+      {problemDetails.tags && problemDetails.tags.length > 0 && (
+        <div className='mt-4'>
+          <h3 className='text-sm font-medium text-zinc-400 mb-2'>Topics:</h3>
+          <div className='flex flex-wrap gap-2'>
+            {problemDetails.tags.map((tag, index) => (
+              <span
+                key={index}
+                className='inline-flex items-center rounded-md bg-emerald-900/30 px-2.5 py-0.5 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-400/20'
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {problemDetails.companyTags && problemDetails.companyTags.length > 0 && (
+        <div className='mt-4'>
+          <h3 className='text-sm font-medium text-zinc-400 mb-2'>
+            Asked by Companies:
+          </h3>
+          <div className='flex flex-wrap gap-2'>
+            {problemDetails.companyTags.map((company, index) => (
+              <span
+                key={index}
+                className='inline-flex items-center rounded-md bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-400/20'
+              >
+                {company}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className='mt-6 space-y-4 text-zinc-300'>
         <p>{problemDetails.description}</p>

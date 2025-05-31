@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   ChevronLeft,
   ChevronRight,
@@ -33,7 +33,6 @@ import { CodeEditor } from './CodeEditor';
 import { useUserSubmissionSpecificProblem } from '@/hooks/apis/userSubmissionDetails/useUserSubmissionSpecificProblem';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
-import { is } from './../../../node_modules/date-fns/locale/is';
 import { toast } from 'sonner';
 
 export const IndividualProblem = () => {
@@ -81,6 +80,9 @@ export const IndividualProblem = () => {
     examples: [],
     codeSnippets: {},
     testcases: [],
+    companyTags: [],
+    difficulty: '',
+    tags: [],
   });
 
   const [activeTab, setActiveTab] = useState('description');
@@ -93,6 +95,8 @@ export const IndividualProblem = () => {
   const [startY, setStartY] = useState(0);
   const [code, setCode] = useState('');
   const [submissionDetails, setSubmissionDetails] = useState(null);
+
+  const navigate = useNavigate();
 
   // Test cases state
   const [testcases, setTestcases] = useState([
@@ -124,6 +128,9 @@ export const IndividualProblem = () => {
         examples: response.problem.examples || [],
         codeSnippets: response.problem.codeSnippets || {},
         testcases: response.problem.testCases || [],
+        difficulty: response.problem.difficulty || '',
+        companyTags: response.problem.companyTags || [],
+        tags: response.problem.tags || [],
       });
 
       // Check if there's saved code for this problem and language
@@ -282,18 +289,16 @@ export const IndividualProblem = () => {
       {/* Header */}
       <header className='flex items-center justify-between border-b border-zinc-800 px-4 py-2'>
         <div className='flex items-center gap-4'>
-          <div className='flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600 text-white'>
-            <Zap size={18} />
-          </div>
+
           <Button
             variant='ghost'
             size='sm'
             className='text-zinc-300'
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+            onClick={() => navigate('/problem-set')}
           >
             <ChevronLeft size={16} className='mr-1' /> Problem List
           </Button>
-          <div className='flex gap-1 text-zinc-500'>
+          {/* <div className='flex gap-1 text-zinc-500'>
             <Button variant='ghost' size='icon' className='h-7 w-7'>
               <ChevronLeft size={16} />
             </Button>
@@ -303,7 +308,7 @@ export const IndividualProblem = () => {
             <Button variant='ghost' size='icon' className='h-7 w-7'>
               <ExternalLink size={14} />
             </Button>
-          </div>
+          </div> */}
         </div>
 
         <div className='flex items-center gap-2'>

@@ -33,18 +33,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useDeleteProblem } from '@/hooks/apis/deleteProblem/useDeleteProblem';
 import Navbar from './NavBar';
+import { set } from 'date-fns';
 // Mock data for demonstration
-const problemCategories = [
-  { name: 'Array', count: 1906 },
-  { name: 'String', count: 787 },
-  { name: 'Hash Table', count: 692 },
-  { name: 'Dynamic Programming', count: 584 },
-  { name: 'Math', count: 578 },
-  { name: 'Sorting', count: 449 },
-  { name: 'Greedy', count: 411 },
-  { name: 'Depth-First Search', count: 318 },
-  { name: 'Binary Search', count: 302 },
-];
+
 
 const topics = [
   { name: 'All Topics', icon: null },
@@ -107,37 +98,6 @@ const topics = [
 //   },
 // ];
 
-const featuredCourses = [
-  {
-    title: "LeetCode's Interview Crash Course:",
-    subtitle: 'System Design for Interviews and Beyond',
-    buttonText: 'Start Learning',
-    color: 'bg-emerald-700',
-    dotColor: 'bg-emerald-400',
-  },
-  {
-    title: "LeetCode's Interview Crash Course:",
-    subtitle: 'Data Structures and Algorithms',
-    buttonText: 'Start Learning',
-    color: 'bg-violet-600',
-    dotColor: 'bg-violet-300',
-  },
-  {
-    title: 'New & Trending Company Qs',
-    subtitle: 'Latest Qs From Big Tech',
-    buttonText: 'Claim Now',
-    color: 'bg-amber-500',
-    dotColor: 'bg-amber-300',
-    badge: 'New',
-  },
-  {
-    title: 'Top Interview Questions',
-    subtitle: '',
-    buttonText: 'Get Started',
-    color: 'bg-blue-500',
-    dotColor: 'bg-blue-300',
-  },
-];
 
 export default function AllProblem() {
   const [problems, setProblems] = useState([]);
@@ -147,6 +107,8 @@ export default function AllProblem() {
   const [selectedTopic, setSelectedTopic] = useState('All Topics');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [problemToDelete, setProblemToDelete] = useState(null);
+  const [problemTopics, setProblemTopics] = useState([]);
+  const [problemCategories, setProblemCategories] = useState([])
 
   // Add this somewhere to verify data is persisted
   const authUser = useSelector((state) => state.auth);
@@ -174,8 +136,10 @@ export default function AllProblem() {
       const userId = authUser?.id || null;
       const data = await getAllProblemsMutation(userId);
       console.log('Fetched all problems:', data);
-      setProblems(data.problems);
-      setFilteredProblems(data.problems);
+      setProblems(data?.problems);
+      setFilteredProblems(data?.problems);
+      setProblemTopics(data?.problems?.tags || []);
+      // setProblemCategories(data?.problems?.tags || [])
     } catch (error) {
       console.error('Error fetching problems:', error);
     }
@@ -248,11 +212,9 @@ export default function AllProblem() {
   return (
     <div className='min-h-screen bg-gray-950 text-gray-100'>
       {/* Navigation */}
-    {/* <Navbar/> */}
+      {/* <Navbar/> */}
 
       <div className='flex'>
-
-
         {/* Main content */}
         <main className='flex-1 p-6'>
           {/* Featured courses */}
@@ -291,22 +253,23 @@ export default function AllProblem() {
           </div> */}
 
           {/* Problem categories */}
-          <div className='flex flex-wrap gap-4 mb-6'>
+          {/* <div className='flex flex-wrap gap-4 mb-6'>
             {problemCategories.map((category, index) => (
               <div
                 key={index}
                 className='flex items-center space-x-2 bg-gray-900 px-3 py-1 rounded-full'
               >
+                {console.log("category", category)}
                 <span className='text-white'>{category.name}</span>
                 <span className='text-gray-400 text-sm'>{category.count}</span>
               </div>
             ))}
-          </div>
+          </div> */}
 
           {/* Topic filters */}
           <div className='mb-6'>
             <div className='flex flex-wrap gap-2'>
-              {topics.map((topic, index) => (
+              {problemTopics.map((topic, index) => (
                 <Button
                   key={index}
                   variant={selectedTopic === topic.name ? 'default' : 'outline'}
@@ -380,14 +343,47 @@ export default function AllProblem() {
                       </Link>
                     </div>
                   </div>
-                  <div className='flex items-center space-x-6'>
-                    <span
-                      className={`${getDifficultyColor(
-                        problem.difficulty.toLowerCase()
-                      )} text-sm font-medium`}
-                    >
-                      {problem.difficulty}
-                    </span>
+                  <div>
+                    <div className='flex flex-col items-end space-y-2'>
+                      {/* Difficulty */}
+                      <div>
+                        <span
+                          className={`${getDifficultyColor(
+                            problem.difficulty.toLowerCase()
+                          )} text-sm font-medium`}
+                        >
+                          {problem.difficulty}
+                        </span>
+                      </div>
+
+                      {/* Company Tags - All displayed */}
+                      {problem?.companyTags &&
+                        problem.companyTags.length > 0 && (
+                          <div className='flex flex-wrap gap-1 justify-end max-w-xs'>
+                            {problem.companyTags.map((company) => (
+                              <Badge
+                                key={company}
+                                variant='secondary'
+                                className='text-xs bg-blue-900 text-blue-200'
+                              >
+                                {company}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                      <div className='flex flex-wrap gap-1 mb-1'>
+                        {problem.tags.map((topic) => (
+                          <Badge
+                            key={topic}
+                            variant='outline'
+                            className='text-xs border-gray-600 text-gray-300'
+                          >
+                            {topic}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                     {/* Admin actions column */}
                     {isAdmin && (
                       <div className='ml-4'>
