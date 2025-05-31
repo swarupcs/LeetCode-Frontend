@@ -141,7 +141,6 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
 
   console.log('problemInfo', problemInfo);
 
-  debugger;
 
   console.log('isSuccessProblemInfo', isSuccessProblemInfo);
 
@@ -152,6 +151,7 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
       description: problemInfo?.description || '',
       difficulty: problemInfo?.difficulty || 'EASY',
       tags: problemInfo?.tags || [],
+      companyTags: problemInfo?.companyTags || [],
       examples: problemInfo?.examples?.map((example) => ({
         input: example.input || '',
         output: example.output || '',
@@ -189,9 +189,12 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
       },
     ],
   });
+
+  console.log("problemDetails", problemDetails);
   const examplesArray = problemDetails.problem.examples || [];
 
   const [newTag, setNewTag] = useState('');
+  const [companyNewTags, setCompanyNewTags] = useState(''); // For company tags
   // const { theme } = useTheme()
 
   const [exampleCount, setExampleCount] = useState(1);
@@ -221,6 +224,16 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
     }
   };
 
+  const addCompanyTag = () => {
+    if (companyNewTags && !problemDetails.problem.companyTags.includes(companyNewTags)) {
+      updateProblem('companyTags', [
+        ...problemDetails.problem.companyTags,
+        companyNewTags,
+      ]);
+      setCompanyNewTags('');
+    }
+  };
+
   // Remove a tag
   const removeTag = (tag) => {
     updateProblem(
@@ -228,6 +241,14 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
       problemDetails.problem.tags.filter((t) => t !== tag)
     );
   };
+
+  const removeCompanyTag = (tag) => {
+    updateProblem(
+      'companyTags',
+      problemDetails.problem.tags.filter((t) => t !== tag)
+    );
+  };
+
 
   // Add a new test case
   const addTestCase = () => {
@@ -483,6 +504,46 @@ export default function ProblemForm({ mode, problemInfo, isSuccessProblemInfo })
                       </Badge>
                     ))}
                   </div>
+                </div>
+              </div>
+              <div>
+                <label className='block text-sm font-medium mb-1'>
+                  Company Tags
+                </label>
+                <div className='flex gap-2'>
+                  <Input
+                    value={companyNewTags}
+                    onChange={(e) => setCompanyNewTags(e.target.value)}
+                    placeholder='Add a tag'
+                    className='flex-1'
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCompanyTag();
+                      }
+                    }}
+                  />
+                  <Button type='button' onClick={addCompanyTag} size='sm'>
+                    Add
+                  </Button>
+                </div>
+                <div className='flex flex-wrap gap-2 mt-2'>
+                  {problemDetails.problem.companyTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant='secondary'
+                      className='flex items-center gap-1'
+                    >
+                      {tag}
+                      <button
+                        type='button'
+                        onClick={() => removeCompanyTag(tag)}
+                        className='text-xs hover:text-destructive'
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </Badge>
+                  ))}
                 </div>
               </div>
 
