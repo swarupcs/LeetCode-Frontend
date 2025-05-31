@@ -298,7 +298,7 @@ export const IndividualProblem = () => {
           >
             <ChevronLeft size={16} className='mr-1' /> Problem List
           </Button>
-          <div className='flex gap-1 text-zinc-500'>
+          {/* <div className='flex gap-1 text-zinc-500'>
             <Button variant='ghost' size='icon' className='h-7 w-7'>
               <ChevronLeft size={16} />
             </Button>
@@ -308,7 +308,7 @@ export const IndividualProblem = () => {
             <Button variant='ghost' size='icon' className='h-7 w-7'>
               <ExternalLink size={14} />
             </Button>
-          </div>
+          </div> */}
         </div>
 
         <div className='flex items-center gap-2'>
