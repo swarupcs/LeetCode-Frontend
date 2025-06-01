@@ -14,6 +14,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSignin } from '@/hooks/apis/auth/useSignin';
 import { FaCheck } from 'react-icons/fa';
 import { LucideLoader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import axios from '@/config/axiosConfig';
+import { useDispatch } from 'react-redux';
+import { loginSuccess } from '@/features/auth/authSlice';
+
 
 export function Login({ className, ...props }) {
 
@@ -29,6 +34,12 @@ export function Login({ className, ...props }) {
 
   const handleEmailChange = (e) => setLoginData({...loginData, email: e.target.value});
   const handlePasswordChange = (e) => setLoginData({...loginData, password: e.target.value});
+
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api/v1';
+
+    const dispatch = useDispatch();
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,7 +58,61 @@ export function Login({ className, ...props }) {
       }
     }, [isSuccess, navigate]);
 
-  console.log("loginData", loginData);
+  const handleGoogleSignin = async () => {
+    const width = 500;
+    const height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    const popup = window.open(
+      `${backendUrl}/auth/google`,
+      'Google Sign In',
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+
+    const messageListener = async (event) => {
+      console.log('Message received:', event);
+
+      if (event.data === 'success') {
+        window.removeEventListener('message', messageListener);
+
+        try {
+          const response = await axios.get(`${backendUrl}/auth/me`, {
+            withCredentials: true,
+          });
+
+          const user = response.data.user;
+          console.log('Fetched user:', user);
+
+          toast.success('Successfully signed in with Google!');
+
+          dispatch(
+            loginSuccess({
+              user: user.name,
+              role: user.role,
+              id: user.id,
+              isAuthenticated: true,
+            })
+          );
+
+          // ✅ Close popup first
+          if (popup) popup.close();
+
+          // ✅ THEN navigate
+          console.log('Navigating to /problem-set');
+          navigate('/problem-set');
+        } catch (error) {
+          console.error('Error fetching user details:', error);
+          toast.error('Failed to get user details. Please try again.');
+          if (popup) popup.close();
+        }
+      }
+    };
+
+    window.addEventListener('message', messageListener);
+  }
+
+  // console.log("loginData", loginData);
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
@@ -119,6 +184,7 @@ export function Login({ className, ...props }) {
                   type='button'
                   variant='outline'
                   className='w-full border-premium-blue/50 bg-premium-darker text-white hover:bg-premium-blue/20 hover:text-premium-cyan transition-colors'
+                  onClick={handleGoogleSignin}
                 >
                   Login with Google
                 </Button>
