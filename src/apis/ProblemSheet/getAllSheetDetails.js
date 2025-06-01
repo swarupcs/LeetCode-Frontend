@@ -8,4 +8,4 @@ export const getAllSheetDetailsRequest = async () => {
     console.error(error);
     throw error.response.data;
   }
-}
+};

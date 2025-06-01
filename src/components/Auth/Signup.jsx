@@ -25,7 +25,7 @@ import { FaCheck } from 'react-icons/fa';
 import { toast } from 'sonner';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '@/features/auth/authSlice';
-import axios from 'axios';
+import axios from '@/config/axiosConfig';
 
 export function Signup({ className, ...props }) {
   const {
@@ -39,6 +39,8 @@ export function Signup({ className, ...props }) {
   const navigate = useNavigate();
 
   const dispatch = useDispatch();
+
+  const backendUrl = import.meta.env.VITE_BACKEND_API_URL;
 
 
   const { isPending, isSuccess, error, signupMutation } = useSignup();
@@ -67,7 +69,7 @@ export function Signup({ className, ...props }) {
     const top = window.screenY + (window.outerHeight - height) / 2;
 
     const popup = window.open(
-      'http://localhost:8080/api/v1/auth/google',
+      `${backendUrl}/auth/google`,
       'Google Sign In',
       `width=${width},height=${height},left=${left},top=${top}`
     );
@@ -80,7 +82,7 @@ export function Signup({ className, ...props }) {
 
         try {
           const response = await axios.get(
-            'http://localhost:8080/api/v1/auth/me',
+            `${backendUrl}/auth/me`,
             {
               withCredentials: true,
             }

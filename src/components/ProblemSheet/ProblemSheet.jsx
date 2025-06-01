@@ -61,92 +61,22 @@ import { useGetAllSheetDetails } from '@/hooks/apis/ProblemSheets/useGetAllSheet
 import { set } from 'date-fns';
 import { SkeletonCard } from '@/Pages/SkeletonPage/SkeletonCard';
 import { useCreateSheet } from '@/hooks/apis/ProblemSheets/useCreateSheet';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import { useDeleteSheet } from '@/hooks/apis/ProblemSheets/useDeleteSheet';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-// Mock data
-const sdeSheets = [
-  {
-    id: 1,
-    title: 'Microsoft SDE Sheet',
-    description:
-      'Complete preparation guide for Software Development Engineer interviews covering all important topics',
-    author: 'Microsoft SDE',
-    authorAvatar: '/placeholder.svg?height=40&width=40',
-    totalProblems: 191,
-    completedProblems: 45,
-    difficulty: 'Mixed',
-    tags: ['Arrays', 'Strings', 'Trees', 'Graphs', 'DP'],
-    createdAt: '2024-01-15',
-    isPublic: true,
-    likes: 1250,
-    views: 15420,
-  },
-  {
-    id: 2,
-    title: 'Google Interview Prep',
-    description:
-      'Curated list of problems frequently asked in Google interviews',
-    author: 'Tech Interviewer',
-    authorAvatar: '/placeholder.svg?height=40&width=40',
-    totalProblems: 150,
-    completedProblems: 23,
-    difficulty: 'Hard',
-    tags: ['System Design', 'Algorithms', 'Data Structures'],
-    createdAt: '2024-02-01',
-    isPublic: true,
-    likes: 890,
-    views: 8750,
-  },
-  {
-    id: 3,
-    title: 'Beginner Friendly DSA',
-    description:
-      'Perfect starting point for beginners to learn Data Structures and Algorithms',
-    author: 'Code Mentor',
-    authorAvatar: '/placeholder.svg?height=40&width=40',
-    totalProblems: 75,
-    completedProblems: 75,
-    difficulty: 'Easy',
-    tags: ['Basics', 'Arrays', 'Strings', 'Sorting'],
-    createdAt: '2024-01-20',
-    isPublic: true,
-    likes: 2100,
-    views: 25600,
-  },
-];
-
-const problems = [
-  {
-    id: 1,
-    title: 'Two Sum',
-    difficulty: 'Easy',
-    category: 'Arrays',
-    completed: true,
-    sheetId: 1,
-  },
-  {
-    id: 2,
-    title: 'Longest Substring Without Repeating Characters',
-    difficulty: 'Medium',
-    category: 'Strings',
-    completed: false,
-    sheetId: 1,
-  },
-  {
-    id: 3,
-    title: 'Median of Two Sorted Arrays',
-    difficulty: 'Hard',
-    category: 'Arrays',
-    completed: false,
-    sheetId: 1,
-  },
-];
-
 export default function ProblemSheet() {
-  const [isAdmin, setIsAdmin] = useState(useSelector((state) => state.auth.role)); // Toggle for demo
+  const [isAdmin, setIsAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSheet, setSelectedSheet] = useState(null);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
@@ -168,6 +98,11 @@ export default function ProblemSheet() {
 
   const navigate = useNavigate();
 
+  const authUser = useSelector((state) => state.auth);
+
+  console.log('isAdmin:', isAdmin);
+  console.log('authUser:', authUser);
+
   const handleInputChange = (field, value) => {
     setSheetData((prev) => ({
       ...prev,
@@ -178,17 +113,25 @@ export default function ProblemSheet() {
   const { isLoading, isSuccess, error, getAllSheetDetailsMutation } =
     useGetAllSheetDetails();
 
-  const { isPending, isSuccess: createSheetSuccess, error: createSheetError, createSheetMutation } = useCreateSheet();
+  const {
+    isPending,
+    isSuccess: createSheetSuccess,
+    error: createSheetError,
+    createSheetMutation,
+  } = useCreateSheet();
 
-  const { isLoading: deleteSheetLoading,
+  const {
+    isLoading: deleteSheetLoading,
     isSucess: deleteSheetSuccess,
     error: deleteSheetError,
-    deleteSheetMutation} = useDeleteSheet();
+    deleteSheetMutation,
+  } = useDeleteSheet();
 
   const fetchSheetDetails = async () => {
     try {
+      const userId = authUser?.id || null;
       const data = await getAllSheetDetailsMutation();
-      console.log('Fetched sheet details:', data.sdeSheets);
+      console.log('Fetched sheet details:', data);
       setSheetDetails(data.sdeSheets || []);
     } catch (error) {
       console.error('Error fetching sheet details:', error);
@@ -196,6 +139,9 @@ export default function ProblemSheet() {
   };
 
   useEffect(() => {
+    if (authUser?.role === 'ADMIN') {
+      setIsAdmin(true);
+    }
     fetchSheetDetails();
   }, []);
 
@@ -211,7 +157,7 @@ export default function ProblemSheet() {
     }
   };
 
-  const handleDeleteSheet = async (sheetId) => { 
+  const handleDeleteSheet = async (sheetId) => {
     try {
       console.log('sheetId:', sheetId);
       await deleteSheetMutation(sheetId);
@@ -220,10 +166,8 @@ export default function ProblemSheet() {
     } catch (error) {
       console.error('Error deleting sheet:', error);
       return;
-      
     }
-    
-  }
+  };
 
   console.log('createSheetSuccess', createSheetSuccess);
 
@@ -258,8 +202,6 @@ export default function ProblemSheet() {
       );
     });
   }, [sheetDetails, searchQuery]);
-
-
 
   console.log('Filtered Sheets:', filteredSheets);
 
