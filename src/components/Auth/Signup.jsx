@@ -42,11 +42,9 @@ export function Signup({ className, ...props }) {
 
   const backendUrl = import.meta.env.VITE_BACKEND_API_URL;
 
-
   const { isPending, isSuccess, error, signupMutation } = useSignup();
 
   const onSubmit = async (data) => {
-    
     await signupMutation({
       name: data.fullName,
       email: data.email,
@@ -70,26 +68,51 @@ export function Signup({ className, ...props }) {
 
     const popup = window.open(
       `${backendUrl}/auth/google`,
-      'Google Sign In',
-      `width=${width},height=${height},left=${left},top=${top}`
+      'google-auth',
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
     );
 
-    const messageListener = async (event) => {
-      console.log('Message received:', event);
+    let messageReceived = false;
+    let authTimeout;
 
-      if (event.data === 'success') {
-        window.removeEventListener('message', messageListener);
+    const messageListener = (event) => {
+      console.log('Message received from origin:', event.origin);
+      console.log('Message data:', event.data);
+      console.log('Current window origin:', window.location.origin);
 
-        try {
-          const response = await axios.get(
-            `${backendUrl}/auth/me`,
-            {
-              withCredentials: true,
-            }
-          );
+      // More flexible origin checking - include your backend URL
+      const allowedOrigins = [
+        window.location.origin, // Current origin
+        backendUrl, // Backend origin
+        // Add any other trusted origins if needed
+      ];
 
-          const user = response.data.user;
-          console.log('Fetched user:', user);
+      // Check if the origin matches any allowed origin
+      const isAllowedOrigin = allowedOrigins.some(
+        (origin) =>
+          event.origin === origin ||
+          event.origin.startsWith(origin.split('://')[0] + '://')
+      );
+
+      if (!isAllowedOrigin) {
+        console.warn('Ignoring message from unexpected origin:', event.origin);
+        return;
+      }
+
+      messageReceived = true;
+
+      // Clear the timeout since we got a message
+      if (authTimeout) {
+        clearTimeout(authTimeout);
+      }
+
+      window.removeEventListener('message', messageListener);
+
+      // Handle structured response
+      if (event.data && typeof event.data === 'object' && event.data.type) {
+        if (event.data.type === 'auth_success') {
+          const user = event.data.user;
+          console.log('Authentication successful, user:', user);
 
           toast.success('Successfully signed up with Google!');
 
@@ -102,24 +125,162 @@ export function Signup({ className, ...props }) {
             })
           );
 
-          // ✅ Close popup first
-          if (popup) popup.close();
+          // Only close popup on successful authentication
+          safeClosePopup(popup);
 
-          // ✅ THEN navigate
-          console.log('Navigating to /problem-set');
-          navigate('/problem-set');
-        } catch (error) {
-          console.error('Error fetching user details:', error);
-          toast.error('Failed to get user details. Please try again.');
-          if (popup) popup.close();
+          // Navigate after a short delay to ensure state updates
+          setTimeout(() => {
+            console.log('Navigating to /problem-set');
+            navigate('/problem-set');
+          }, 100);
+        } else if (event.data.type === 'auth_error') {
+          console.error('Authentication error:', event.data.message);
+          toast.error(event.data.message || 'Authentication failed');
+          // Close popup on error
+          safeClosePopup(popup);
+        } else if (event.data.type === 'auth_cancelled') {
+          console.log('Authentication cancelled by user');
+          // Close popup if user cancelled
+          safeClosePopup(popup);
+          // Don't show error toast for user cancellation
         }
       }
+      // Handle simple string response (backward compatibility)
+      else if (event.data === 'success') {
+        console.log('Received success message, fetching user data...');
+        // Fallback to API call
+        fetchUserAfterAuth();
+      } else if (event.data === 'error') {
+        toast.error('Authentication failed. Please try again.');
+        safeClosePopup(popup);
+      }
     };
-    
 
+    // Safe popup closing function
+    const safeClosePopup = (popupWindow) => {
+      try {
+        if (popupWindow && !popupWindow.closed) {
+          popupWindow.close();
+        }
+      } catch (error) {
+        console.log('Could not close popup due to COOP policy:', error.message);
+        // This is expected with COOP, popup will close itself
+      }
+    };
+
+    // Fallback function for API-based user fetching
+    const fetchUserAfterAuth = async () => {
+      try {
+        const response = await axios.get(`${backendUrl}/auth/me`, {
+          withCredentials: true,
+        });
+
+        const user = response.data.user;
+        console.log('Fetched user:', user);
+
+        toast.success('Successfully signed up with Google!');
+
+        dispatch(
+          loginSuccess({
+            user: user.name,
+            role: user.role,
+            id: user.id,
+            isAuthenticated: true,
+          })
+        );
+
+        // Close popup after successful authentication
+        safeClosePopup(popup);
+
+        setTimeout(() => {
+          navigate('/problem-set');
+        }, 100);
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+        toast.error('Failed to get user details. Please try again.');
+        safeClosePopup(popup);
+      }
+    };
+
+    // Start message listening
     window.addEventListener('message', messageListener);
+
+    // Set up timeout for authentication (5 minutes) - but don't auto-close
+    authTimeout = setTimeout(() => {
+      if (!messageReceived) {
+        console.log('Authentication timeout - no response received');
+        window.removeEventListener('message', messageListener);
+
+        // Try one last check to see if auth was successful
+        setTimeout(async () => {
+          try {
+            const response = await axios.get(`${backendUrl}/auth/me`, {
+              withCredentials: true,
+            });
+
+            if (response.data.user) {
+              console.log('Authentication was successful (timeout fallback)');
+              const user = response.data.user;
+
+              toast.success('Successfully signed up with Google!');
+
+              dispatch(
+                loginSuccess({
+                  user: user.name,
+                  role: user.role,
+                  id: user.id,
+                  isAuthenticated: true,
+                })
+              );
+
+              // Close popup after successful authentication
+              safeClosePopup(popup);
+              navigate('/problem-set');
+            } else {
+              // No successful auth found
+              toast.error('Authentication timed out. Please try again.');
+              safeClosePopup(popup);
+            }
+          } catch (error) {
+            console.log(
+              'Timeout check - user not authenticated:',
+              error.message
+            );
+            toast.error('Authentication timed out. Please try again.');
+            safeClosePopup(popup);
+          }
+        }, 1000);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    // Handle popup blocked scenario
+    if (!popup) {
+      toast.error('Popup blocked. Please allow popups for this site.');
+      if (authTimeout) {
+        clearTimeout(authTimeout);
+      }
+      window.removeEventListener('message', messageListener);
+    }
+
+    // Optional: Add a manual cleanup method you can call if needed
+    // This could be useful if you want to provide a "Cancel" button in your UI
+    window.cancelGoogleAuth = () => {
+      console.log('Manually cancelling Google authentication');
+      messageReceived = true; // Prevent timeout actions
+
+      if (authTimeout) {
+        clearTimeout(authTimeout);
+      }
+
+      window.removeEventListener('message', messageListener);
+      safeClosePopup(popup);
+
+      // Clean up the global function
+      delete window.cancelGoogleAuth;
+    };
   };
-  
+
+  console.log('window.location.origin:', window.location.origin);
   return (
     <div className={cn('flex flex-col gap-2', className)} {...props}>
       <Card className='bg-premium-darker border border-premium-blue/20 text-white shadow-lg premium-border-gradient'>
