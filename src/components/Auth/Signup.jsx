@@ -40,7 +40,7 @@ export function Signup({ className, ...props }) {
 
   const dispatch = useDispatch();
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api/v1';
+  const backendUrl = import.meta.env.VITE_BACKEND_API_URL;
 
 
   const { isPending, isSuccess, error, signupMutation } = useSignup();

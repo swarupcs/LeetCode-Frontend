@@ -61,16 +61,22 @@ import { useGetAllSheetDetails } from '@/hooks/apis/ProblemSheets/useGetAllSheet
 import { set } from 'date-fns';
 import { SkeletonCard } from '@/Pages/SkeletonPage/SkeletonCard';
 import { useCreateSheet } from '@/hooks/apis/ProblemSheets/useCreateSheet';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import { useDeleteSheet } from '@/hooks/apis/ProblemSheets/useDeleteSheet';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-
-
-
 export default function ProblemSheet() {
-  const [isAdmin, setIsAdmin] = useState(useSelector((state) => state.auth.role)); // Toggle for demo
+  const [isAdmin, setIsAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSheet, setSelectedSheet] = useState(null);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
@@ -94,6 +100,8 @@ export default function ProblemSheet() {
 
   const authUser = useSelector((state) => state.auth);
 
+  console.log('isAdmin:', isAdmin);
+  console.log('authUser:', authUser);
 
   const handleInputChange = (field, value) => {
     setSheetData((prev) => ({
@@ -105,18 +113,25 @@ export default function ProblemSheet() {
   const { isLoading, isSuccess, error, getAllSheetDetailsMutation } =
     useGetAllSheetDetails();
 
-  const { isPending, isSuccess: createSheetSuccess, error: createSheetError, createSheetMutation } = useCreateSheet();
+  const {
+    isPending,
+    isSuccess: createSheetSuccess,
+    error: createSheetError,
+    createSheetMutation,
+  } = useCreateSheet();
 
-  const { isLoading: deleteSheetLoading,
+  const {
+    isLoading: deleteSheetLoading,
     isSucess: deleteSheetSuccess,
     error: deleteSheetError,
-    deleteSheetMutation} = useDeleteSheet();
+    deleteSheetMutation,
+  } = useDeleteSheet();
 
   const fetchSheetDetails = async () => {
     try {
       const userId = authUser?.id || null;
-      const data = await getAllSheetDetailsMutation(userId);
-      console.log('Fetched sheet details:', data.sdeSheets);
+      const data = await getAllSheetDetailsMutation();
+      console.log('Fetched sheet details:', data);
       setSheetDetails(data.sdeSheets || []);
     } catch (error) {
       console.error('Error fetching sheet details:', error);
@@ -124,6 +139,9 @@ export default function ProblemSheet() {
   };
 
   useEffect(() => {
+    if (authUser?.role === 'ADMIN') {
+      setIsAdmin(true);
+    }
     fetchSheetDetails();
   }, []);
 
@@ -139,7 +157,7 @@ export default function ProblemSheet() {
     }
   };
 
-  const handleDeleteSheet = async (sheetId) => { 
+  const handleDeleteSheet = async (sheetId) => {
     try {
       console.log('sheetId:', sheetId);
       await deleteSheetMutation(sheetId);
@@ -148,10 +166,8 @@ export default function ProblemSheet() {
     } catch (error) {
       console.error('Error deleting sheet:', error);
       return;
-      
     }
-    
-  }
+  };
 
   console.log('createSheetSuccess', createSheetSuccess);
 
@@ -186,8 +202,6 @@ export default function ProblemSheet() {
       );
     });
   }, [sheetDetails, searchQuery]);
-
-
 
   console.log('Filtered Sheets:', filteredSheets);
 

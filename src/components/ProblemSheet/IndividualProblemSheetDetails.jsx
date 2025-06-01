@@ -79,7 +79,7 @@ export default function IndividualProblemSheetDetails({ params }) {
   const [tagFilter, setTagFilter] = useState('all');
   const [completionFilter, setCompletionFilter] = useState('all');
   const [addProblemOpen, setAddProblemOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(useSelector((state) => state.auth.role)); // Toggle for demo
+  const [isAdmin, setIsAdmin] = useState(false); // Toggle for demo
   const [dialogSearchQuery, setDialogSearchQuery] = useState('');
   const [dialogDifficultyFilter, setDialogDifficultyFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -120,6 +120,8 @@ export default function IndividualProblemSheetDetails({ params }) {
     error: updateError,
     updateProblemsInSheetMutation,
   } = useUpdateProblemsInSheet();
+
+
 
   console.log('isSuccess', isSuccess);
 
@@ -164,6 +166,9 @@ export default function IndividualProblemSheetDetails({ params }) {
   console.log('problems', problems);
 
   useEffect(() => {
+    if (authUser?.role === 'ADMIN') {
+      setIsAdmin(true);
+    }
     getAllProblems();
     if (isSuccess) {
       console.log('Successfully fetched all problems');

@@ -36,7 +36,7 @@ export function Login({ className, ...props }) {
   const handlePasswordChange = (e) => setLoginData({...loginData, password: e.target.value});
 
   const backendUrl =
-    import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api/v1';
+    import.meta.env.VITE_BACKEND_API_URL;
 
     const dispatch = useDispatch();
 

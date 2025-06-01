@@ -10,7 +10,7 @@ export const useGetAllSheetDetails = () => {
       error,
       mutateAsync: getAllSheetDetailsMutation,
     } = useMutation({
-      mutationFn: (userId) => getAllSheetDetailsRequest(userId),
+      mutationFn: () => getAllSheetDetailsRequest(),
       onSuccess: (data) => {
         console.log('Successfully fetched all sheet details', data);
       },
