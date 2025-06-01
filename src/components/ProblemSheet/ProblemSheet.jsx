@@ -66,84 +66,8 @@ import { useDeleteSheet } from '@/hooks/apis/ProblemSheets/useDeleteSheet';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-// Mock data
-const sdeSheets = [
-  {
-    id: 1,
-    title: 'Microsoft SDE Sheet',
-    description:
-      'Complete preparation guide for Software Development Engineer interviews covering all important topics',
-    author: 'Microsoft SDE',
-    authorAvatar: '/placeholder.svg?height=40&width=40',
-    totalProblems: 191,
-    completedProblems: 45,
-    difficulty: 'Mixed',
-    tags: ['Arrays', 'Strings', 'Trees', 'Graphs', 'DP'],
-    createdAt: '2024-01-15',
-    isPublic: true,
-    likes: 1250,
-    views: 15420,
-  },
-  {
-    id: 2,
-    title: 'Google Interview Prep',
-    description:
-      'Curated list of problems frequently asked in Google interviews',
-    author: 'Tech Interviewer',
-    authorAvatar: '/placeholder.svg?height=40&width=40',
-    totalProblems: 150,
-    completedProblems: 23,
-    difficulty: 'Hard',
-    tags: ['System Design', 'Algorithms', 'Data Structures'],
-    createdAt: '2024-02-01',
-    isPublic: true,
-    likes: 890,
-    views: 8750,
-  },
-  {
-    id: 3,
-    title: 'Beginner Friendly DSA',
-    description:
-      'Perfect starting point for beginners to learn Data Structures and Algorithms',
-    author: 'Code Mentor',
-    authorAvatar: '/placeholder.svg?height=40&width=40',
-    totalProblems: 75,
-    completedProblems: 75,
-    difficulty: 'Easy',
-    tags: ['Basics', 'Arrays', 'Strings', 'Sorting'],
-    createdAt: '2024-01-20',
-    isPublic: true,
-    likes: 2100,
-    views: 25600,
-  },
-];
 
-const problems = [
-  {
-    id: 1,
-    title: 'Two Sum',
-    difficulty: 'Easy',
-    category: 'Arrays',
-    completed: true,
-    sheetId: 1,
-  },
-  {
-    id: 2,
-    title: 'Longest Substring Without Repeating Characters',
-    difficulty: 'Medium',
-    category: 'Strings',
-    completed: false,
-    sheetId: 1,
-  },
-  {
-    id: 3,
-    title: 'Median of Two Sorted Arrays',
-    difficulty: 'Hard',
-    category: 'Arrays',
-    completed: false,
-    sheetId: 1,
-  },
-];
+
 
 export default function ProblemSheet() {
   const [isAdmin, setIsAdmin] = useState(useSelector((state) => state.auth.role)); // Toggle for demo
@@ -168,6 +92,9 @@ export default function ProblemSheet() {
 
   const navigate = useNavigate();
 
+  const authUser = useSelector((state) => state.auth);
+
+
   const handleInputChange = (field, value) => {
     setSheetData((prev) => ({
       ...prev,
@@ -187,7 +114,8 @@ export default function ProblemSheet() {
 
   const fetchSheetDetails = async () => {
     try {
-      const data = await getAllSheetDetailsMutation();
+      const userId = authUser?.id || null;
+      const data = await getAllSheetDetailsMutation(userId);
       console.log('Fetched sheet details:', data.sdeSheets);
       setSheetDetails(data.sdeSheets || []);
     } catch (error) {
