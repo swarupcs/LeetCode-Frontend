@@ -59,6 +59,7 @@ export function Signup({ className, ...props }) {
       }, 2000);
     }
   }, [isSuccess, navigate]);
+  
 
   const handleGoogleSignup = () => {
     // Redirect the user to the backend route that starts Google OAuth flow
