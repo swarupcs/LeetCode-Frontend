@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { User, LogOut, UserCircle } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { logout } from '@/features/auth/authSlice';
@@ -10,12 +10,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import axios from '@/config/axiosConfig';
+import { toast } from 'sonner';
 
 const ProfileIcon = () => {
   const dispatch = useDispatch();
 
+  const navigate = useNavigate();
+
   const handleLogout = () => {
-    dispatch(logout());
+    try {
+      axios
+        .post('/auth/logout')
+        .then(() => {
+          console.log('Successfully logged out');
+          dispatch(logout());
+          navigate('/', { replace: true });
+          toast.success('Successfully logged out');
+          
+        })
+        .catch((error) => {
+          console.error('Logout failed:', error);
+        });
+    } catch (error) {
+      console.log("error", error);
+      toast.error('Logout failed. Please try again later.');
+      // Handle error if the logout request fails
+      throw new Error('Logout failed. Please try again later.');
+    }
   };
 
   return (
