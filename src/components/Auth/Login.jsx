@@ -58,59 +58,12 @@ export function Login({ className, ...props }) {
       }
     }, [isSuccess, navigate]);
 
-  const handleGoogleSignin = async () => {
-    const width = 500;
-    const height = 600;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
 
-    const popup = window.open(
-      `${backendUrl}/auth/google`,
-      'Google Sign In',
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
-
-    const messageListener = async (event) => {
-      console.log('Message received:', event);
-
-      if (event.data === 'success') {
-        window.removeEventListener('message', messageListener);
-
-        try {
-          const response = await axios.get(`${backendUrl}/auth/me`, {
-            withCredentials: true,
-          });
-
-          const user = response.data.user;
-          console.log('Fetched user:', user);
-
-          toast.success('Successfully signed in with Google!');
-
-          dispatch(
-            loginSuccess({
-              user: user.name,
-              role: user.role,
-              id: user.id,
-              isAuthenticated: true,
-            })
-          );
-
-          // ✅ Close popup first
-          if (popup) popup.close();
-
-          // ✅ THEN navigate
-          console.log('Navigating to /problem-set');
-          navigate('/problem-set');
-        } catch (error) {
-          console.error('Error fetching user details:', error);
-          toast.error('Failed to get user details. Please try again.');
-          if (popup) popup.close();
-        }
-      }
+    const handleGoogleSignin = () => {
+      window.location.href = `${
+        import.meta.env.VITE_BACKEND_API_URL
+      }/auth/google`;
     };
-
-    window.addEventListener('message', messageListener);
-  }
 
   // console.log("loginData", loginData);
 

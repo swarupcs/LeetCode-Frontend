@@ -42,11 +42,9 @@ export function Signup({ className, ...props }) {
 
   const backendUrl = import.meta.env.VITE_BACKEND_API_URL;
 
-
   const { isPending, isSuccess, error, signupMutation } = useSignup();
 
   const onSubmit = async (data) => {
-    
     await signupMutation({
       name: data.fullName,
       email: data.email,
@@ -61,65 +59,14 @@ export function Signup({ className, ...props }) {
       }, 2000);
     }
   }, [isSuccess, navigate]);
+  
 
   const handleGoogleSignup = () => {
-    const width = 500;
-    const height = 600;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-
-    const popup = window.open(
-      `${backendUrl}/auth/google`,
-      'Google Sign In',
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
-
-    const messageListener = async (event) => {
-      console.log('Message received:', event);
-
-      if (event.data === 'success') {
-        window.removeEventListener('message', messageListener);
-
-        try {
-          const response = await axios.get(
-            `${backendUrl}/auth/me`,
-            {
-              withCredentials: true,
-            }
-          );
-
-          const user = response.data.user;
-          console.log('Fetched user:', user);
-
-          toast.success('Successfully signed up with Google!');
-
-          dispatch(
-            loginSuccess({
-              user: user.name,
-              role: user.role,
-              id: user.id,
-              isAuthenticated: true,
-            })
-          );
-
-          // ✅ Close popup first
-          if (popup) popup.close();
-
-          // ✅ THEN navigate
-          console.log('Navigating to /problem-set');
-          navigate('/problem-set');
-        } catch (error) {
-          console.error('Error fetching user details:', error);
-          toast.error('Failed to get user details. Please try again.');
-          if (popup) popup.close();
-        }
-      }
-    };
-    
-
-    window.addEventListener('message', messageListener);
+    // Redirect the user to the backend route that starts Google OAuth flow
+    window.location.href = `${import.meta.env.VITE_BACKEND_API_URL}/auth/google`;
   };
-  
+
+  console.log('window.location.origin:', window.location.origin);
   return (
     <div className={cn('flex flex-col gap-2', className)} {...props}>
       <Card className='bg-premium-darker border border-premium-blue/20 text-white shadow-lg premium-border-gradient'>
