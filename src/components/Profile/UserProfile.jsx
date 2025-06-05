@@ -15,17 +15,17 @@ export function UserProfile({ userSubmissionDetails, usersDetails }) {
       className='w-full'
       onValueChange={setActiveTab}
     >
-      <TabsList className='grid w-full grid-cols-2'>
+      <TabsList className='grid w-full grid-cols-3'>
         <TabsTrigger value='details'>Profile Details</TabsTrigger>
-        {/* <TabsTrigger value='stats'>Stats & Progress</TabsTrigger> */}
+        <TabsTrigger value='stats'>Stats & Progress</TabsTrigger>
         <TabsTrigger value='problems'>Solved Problems</TabsTrigger>
       </TabsList>
       <TabsContent value='details' className='mt-6'>
         <UserDetails usersDetails={usersDetails} />
       </TabsContent>
-      {/* <TabsContent value='stats' className='mt-6'>
+      <TabsContent value='stats' className='mt-6'>
         <UserStats />
-      </TabsContent> */}
+      </TabsContent>
       <TabsContent value='problems' className='mt-6'>
         <SolvedProblems userSubmissions={userSubmissionDetails} />
       </TabsContent>

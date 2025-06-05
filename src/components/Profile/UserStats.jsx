@@ -8,6 +8,12 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+import CalendarHeatmap from 'react-calendar-heatmap';
+import 'react-calendar-heatmap/dist/styles.css';
+import { subDays, format } from 'date-fns';
+
+import { Tooltip } from 'react-tooltip';
+
 // Mock data - in a real app, this would come from your backend
 const dailyProgress = [
   { day: 'Mon', problems: 5, hours: 2.5 },
@@ -30,7 +36,31 @@ const weeklyStats = {
 
 export function UserStats() {
   // Calculate the maximum value for scaling the chart
+
+  function generateHeatmapValues() {
+    const today = new Date();
+    const data = [];
+
+    for (let i = 0; i < 365; i++) {
+      const date = subDays(today, i);
+      // Generate mock count (e.g., between 0–6 problems)
+      const count = Math.random() < 0.6 ? Math.floor(Math.random() * 7) : 0;
+
+      data.push({
+        date: format(date, 'yyyy-MM-dd'),
+        count,
+      });
+    }
+
+    return data;
+  }
+
+
+  
+
+  const heatmapData = generateHeatmapValues();
   const maxProblems = Math.max(...dailyProgress.map((day) => day.problems));
+  
 
   return (
     <div className='grid gap-6'>
@@ -184,6 +214,37 @@ export function UserStats() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Contribution Heatmap</CardTitle>
+          <CardDescription>Daily activity (past 1 year)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CalendarHeatmap
+            startDate={subDays(new Date(), 364)}
+            endDate={new Date()}
+            values={heatmapData}
+            classForValue={(value) => {
+              if (!value || value.count === 0) return 'color-empty';
+              if (value.count >= 5) return 'color-github-4';
+              if (value.count >= 3) return 'color-github-3';
+              if (value.count >= 2) return 'color-github-2';
+              return 'color-github-1';
+            }}
+            tooltipDataAttrs={(value) =>
+              value.date
+                ? {
+                    'data-tooltip-id': 'heatmap-tooltip',
+                    'data-tooltip-content': `${value.date}: ${value.count} problems`,
+                  }
+                : {}
+            }
+            showWeekdayLabels
+          />
+          <Tooltip id='heatmap-tooltip' />
+        </CardContent>
+      </Card>
     </div>
   );
 }
