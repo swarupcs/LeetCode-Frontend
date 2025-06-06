@@ -6,7 +6,11 @@ import { UserStats } from './UserStats';
 import { SolvedProblems } from './SolvedProblems';
 
 
-export function UserProfile({ userSubmissionDetails, usersDetails }) {
+export function UserProfile({
+  userSubmissionDetails,
+  usersDetails,
+  userProblemStats,
+}) {
   const [activeTab, setActiveTab] = useState('details');
 
   return (
@@ -24,7 +28,7 @@ export function UserProfile({ userSubmissionDetails, usersDetails }) {
         <UserDetails usersDetails={usersDetails} />
       </TabsContent>
       <TabsContent value='stats' className='mt-6'>
-        <UserStats />
+        <UserStats userProblemStats={userProblemStats} />
       </TabsContent>
       <TabsContent value='problems' className='mt-6'>
         <SolvedProblems userSubmissions={userSubmissionDetails} />

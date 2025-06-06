@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
 import { subDays, format, set } from 'date-fns';
+import { CheckCircle, Flame, Clock } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -36,14 +37,7 @@ const dailyProgress = [
   { day: 'Sun', problems: 8, hours: 4.5 },
 ];
 
-const weeklyStats = {
-  totalProblems: 35,
-  totalHours: 17.5,
-  averageProblemsPerDay: 5,
-  averageHoursPerDay: 2.5,
-  streak: 7,
-  mostProductiveDay: 'Wednesday',
-};
+
 
 // Generate mock data for different time periods
 function generateWeeklyData(weekOffset = 0) {
@@ -93,7 +87,7 @@ function generateMonthlyData(monthOffset = 0) {
   return monthData;
 }
 
-export function UserStats() {
+export function UserStats({ userProblemStats }) {
   // Calculate the maximum value for scaling the chart
 
   const [heatMapData, setHeatMapData] = useState([]);
@@ -103,6 +97,12 @@ export function UserStats() {
   const [selectedPeriod, setSelectedPeriod] = useState(0); // 0 = current, 1 = previous, etc.
 
   const [userProgressDetails, setUserProgressDetails] = useState([]);
+
+
+  const { totalProblemsAvailable, solvedProblemCount} = userProblemStats;
+
+  // console.log("totalProblemsAvailable", totalProblemsAvailable);
+  // console.log("solvedProblemCount", solvedProblemCount);
 
   // const maxProblems = Math.max(...dailyProgress.map((day) => day.problems));
   // const currentData =
@@ -162,7 +162,6 @@ export function UserStats() {
   const endIndex = startIndex + daysPerPage;
   const currentData = userProgressDetails.slice(startIndex, endIndex);
 
-
   // Stats
   const totalProblems = currentData.reduce((acc, d) => acc + d.problems, 0);
   const avgProblems =
@@ -170,8 +169,27 @@ export function UserStats() {
   const maxProblems = Math.max(...currentData.map((d) => d.problems), 0);
   const activeDays = currentData.filter((d) => d.problems > 0).length;
 
+  // Step 1: Create a Set of active days
+  const activeDaysSet = new Set(
+    currentData.filter((d) => d.problems > 0).map((d) => d.date)
+  );
 
-  console.log("isProgressPending", isProgressPending);
+  // Step 2: Calculate max consecutive streak
+  let maxStreak = 0;
+
+  let currentStreak = 0;
+
+  for (const day of currentData) {
+    if (day.problems > 0) {
+      currentStreak += 1;
+    } else {
+      break; // streak breaks at first zero
+    }
+  }
+
+  // Step 1: Sort descending (latest first)
+
+  console.log('isProgressPending', isProgressPending);
 
   const getPeriodLabel = () => {
     const baseDate = new Date();
@@ -302,7 +320,7 @@ export function UserStats() {
                 <div className='mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t'>
                   <div className='text-center'>
                     <div className='text-2xl font-bold text-primary'>
-                      {totalProblems}
+                      {solvedProblemCount}
                     </div>
                     <div className='text-sm text-muted-foreground'>
                       Total Problems
@@ -357,7 +375,7 @@ export function UserStats() {
                 <dt className='font-medium text-muted-foreground'>
                   Total Problems
                 </dt>
-                <dd className='text-2xl font-bold'>{totalProblems}</dd>
+                <dd className='text-2xl font-bold'>{solvedProblemCount}</dd>
               </div>
               {/* <div>
                 <dt className='font-medium text-muted-foreground'>
@@ -385,25 +403,36 @@ export function UserStats() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Achievement Progress</CardTitle>
-            <CardDescription>Your journey to mastery</CardDescription>
+            <CardTitle>🏆 Achievement Progress</CardTitle>
+            <CardDescription>Track your learning journey</CardDescription>
           </CardHeader>
           <CardContent>
             <div className='space-y-4'>
               <div>
                 <div className='flex justify-between text-sm mb-1'>
-                  <span className='font-medium'>
-                    Problem Solver ({totalProblems}/50)
+                  <span className='font-medium flex items-center gap-1'>
+                    <CheckCircle className='h-4 w-4 text-blue-500' />
+                    Problems Solved ({solvedProblemCount}/
+                    {totalProblemsAvailable})
                   </span>
                   <span className='text-muted-foreground'>
-                    {Math.min(100, Math.round((totalProblems / 50) * 100))}%
+                    {Math.min(
+                      100,
+                      Math.round(
+                        (solvedProblemCount / totalProblemsAvailable) * 100
+                      )
+                    )}
+                    %
                   </span>
                 </div>
-                <div className='h-2 bg-muted rounded-full overflow-hidden'>
+                <div className='relative h-2 bg-muted rounded-full overflow-hidden'>
                   <div
-                    className='bg-primary h-full rounded-full'
+                    className='bg-primary h-full rounded-full transition-all duration-300'
                     style={{
-                      width: `${Math.min(100, (totalProblems / 50) * 100)}%`,
+                      width: `${Math.min(
+                        100,
+                        (solvedProblemCount / totalProblemsAvailable) * 100
+                      )}%`,
                     }}
                   ></div>
                 </div>
@@ -429,29 +458,15 @@ export function UserStats() {
               <div>
                 <div className='flex justify-between text-sm mb-1'>
                   <span className='font-medium'>
-                    Consistency (
-                    {currentData.filter((d) => d.problems > 0).length}/
-                    {currentData.length})
-                  </span>
-                  <span className='text-muted-foreground'>
-                    {Math.round(
-                      (currentData.filter((d) => d.problems > 0).length /
-                        currentData.length) *
-                        100
-                    )}
-                    %
+                    Current Streak ({currentStreak} days)
                   </span>
                 </div>
                 <div className='h-2 bg-muted rounded-full overflow-hidden'>
                   <div
-                    className='bg-primary h-full rounded-full'
+                    className='bg-yellow-500 h-full rounded-full'
                     style={{
-                      width: `${
-                        (currentData.filter((d) => d.problems > 0).length /
-                          currentData.length) *
-                        100
-                      }%`,
-                    }}
+                      width: `${(Math.min(currentStreak, 30) * 100) / 30}%`,
+                    }} // assuming 30-day goal
                   ></div>
                 </div>
               </div>
