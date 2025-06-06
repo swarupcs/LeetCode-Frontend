@@ -26,6 +26,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProblemProgressChart } from './ProblemProgressChart';
 import { useGetUserProgressData } from '@/hooks/apis/userStats/useGetUserSubmissionProgress';
 import { useGetUserSolvedStats } from '@/hooks/apis/userStats/useGetUserSolvedStats';
+import { SkeletonCard } from '@/Pages/SkeletonPage/SkeletonCard';
 
 // Mock data - in a real app, this would come from your backend
 const dailyProgress = [
@@ -99,10 +100,12 @@ export function UserStats({ userProblemStats }) {
 
   const [userSolvedStatsDetails, setUserSolvedStatsDetails] = useState({});
 
+  console.log("userProblemStats", userProblemStats);
+
   const { totalProblemsAvailable, solvedProblemCount } = userProblemStats;
 
-  // console.log("totalProblemsAvailable", totalProblemsAvailable);
-  // console.log("solvedProblemCount", solvedProblemCount);
+  console.log("totalProblemsAvailable", totalProblemsAvailable);
+  console.log("solvedProblemCount", solvedProblemCount);
 
   // const maxProblems = Math.max(...dailyProgress.map((day) => day.problems));
   // const currentData =
@@ -295,7 +298,7 @@ export function UserStats({ userProblemStats }) {
     : [];
 
   if (isPending || isProgressPending || isSolvedStatsPending)
-    return <div>Loading...</div>;
+    return <div><SkeletonCard/></div>;
 
   return (
     <div className='grid gap-6'>
@@ -435,7 +438,9 @@ export function UserStats({ userProblemStats }) {
           </CardContent>
         </Card>
       ) : (
-        <div>Loading user progress...</div>
+        <div>
+          <SkeletonCard />
+        </div>
       )}
 
       <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6'>
@@ -586,7 +591,9 @@ export function UserStats({ userProblemStats }) {
                     stroke='currentColor'
                     strokeWidth='12'
                     fill='transparent'
-                    strokeDasharray={`${(247 / 3571) * 377} 377`}
+                    strokeDasharray={`${
+                      (solvedProblemCount / totalProblemsAvailable) * 377
+                    } 377`}
                     className='text-primary transition-all duration-1000'
                   />
                 </svg>

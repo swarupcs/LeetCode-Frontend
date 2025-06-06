@@ -11,6 +11,8 @@ export function UserProfile({
 }) {
   const [activeTab, setActiveTab] = useState('details');
 
+  // console.log("userProblemStats", userProblemStats);
+
   return (
     <Tabs
       defaultValue='details'
