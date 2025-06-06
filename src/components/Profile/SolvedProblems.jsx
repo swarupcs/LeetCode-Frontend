@@ -84,7 +84,7 @@ export function SolvedProblems({ userSubmissions }) {
   };
 
   return (
-    <Card>
+    <Card className='bg-cyan-50'>
       <CardHeader>
         <CardTitle>Solved Problems</CardTitle>
         <CardDescription>Track your problem-solving journey</CardDescription>
@@ -194,11 +194,11 @@ export function SolvedProblems({ userSubmissions }) {
           )}
         </div>
 
-        {filteredSubmissions?.length > 0 && (
+        {/* {filteredSubmissions?.length > 0 && (
           <div className='flex justify-center mt-6'>
             <Button variant='outline'>Load More</Button>
           </div>
-        )}
+        )} */}
       </CardContent>
     </Card>
   );

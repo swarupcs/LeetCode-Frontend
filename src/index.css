@@ -218,6 +218,69 @@
 /* Utilities layer */
 @layer utilities {
   /* Existing colors */
+
+  .color-empty {
+    fill: #ebedf0;
+  }
+
+  .color-github-1 {
+    fill: #c6e48b;
+  }
+
+  .color-github-2 {
+    fill: #7bc96f;
+  }
+
+  .color-github-3 {
+    fill: #239a3b;
+  }
+
+  .color-github-4 {
+    fill: #196127;
+  }
+
+   /* Tooltip base */
+   [data-tooltip] {
+    @apply relative cursor-pointer;
+  }
+
+  /* Tooltip content */
+  [data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: -1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    z-index: 50;
+  }
+
+  .react-calendar-heatmap text {
+    fill: #000 !important;
+  }
+  
+
+  /* In your CSS file */
+.custom-active-tab {
+  background-color: #3b2ad3 !important; /* emerald-600 */
+  color: white !important;
+}
+  
+
+  /* Show tooltip on hover */
+  [data-tooltip]:hover::after {
+    opacity: 1;
+  }
+
+  
   .bg-premium-darker {
     background-color: hsl(var(--premium-darker, 240 25% 5%));
   }

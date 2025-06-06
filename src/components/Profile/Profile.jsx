@@ -12,6 +12,8 @@ export const Profile = () => {
 
     const [userSubmissionDetails, setUserSubmissionDetails] = useState({});
 
+    const [userProblemStats, setUserProblemStats] = useState({});
+
     const { isLoading, isSuccess, error, getUserAllSubmissionsMutation } = useGetUsersAllSubmissions();
 
     const {
@@ -25,7 +27,8 @@ export const Profile = () => {
       try {
         const response = await getUserAllSubmissionsMutation();
         console.log('User Submissions:', response);
-        setUserSubmissionDetails(response.submissions);
+        setUserSubmissionDetails(response?.submissions);
+        setUserProblemStats(response?.stats);
       } catch (error) {
         console.log("error while fetching user submissions", error);
       }
@@ -53,6 +56,7 @@ export const Profile = () => {
       <UserProfile
         userSubmissionDetails={userSubmissionDetails}
         usersDetails={usersDetails}
+        userProblemStats={userProblemStats}
       />
     </div>
   );
