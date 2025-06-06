@@ -263,6 +263,18 @@
     z-index: 50;
   }
 
+  .react-calendar-heatmap text {
+    fill: #000 !important;
+  }
+  
+
+  /* In your CSS file */
+.custom-active-tab {
+  background-color: #3b2ad3 !important; /* emerald-600 */
+  color: white !important;
+}
+  
+
   /* Show tooltip on hover */
   [data-tooltip]:hover::after {
     opacity: 1;

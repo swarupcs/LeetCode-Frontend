@@ -3,8 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 
 export const useGetUserHeatMapData = () => {
-    const queryClient = useQueryClient();
-
     const { data, error, isPending, isSuccess, refetch } = useQuery({
       queryKey: ['userHeatMapData'],
       queryFn: () => getUserHeatMapDataRequest(),

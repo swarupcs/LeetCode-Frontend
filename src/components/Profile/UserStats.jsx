@@ -25,6 +25,7 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProblemProgressChart } from './ProblemProgressChart';
 import { useGetUserProgressData } from '@/hooks/apis/userStats/useGetUserSubmissionProgress';
+import { useGetUserSolvedStats } from '@/hooks/apis/userStats/useGetUserSolvedStats';
 
 // Mock data - in a real app, this would come from your backend
 const dailyProgress = [
@@ -36,8 +37,6 @@ const dailyProgress = [
   { day: 'Sat', problems: 4, hours: 2.0 },
   { day: 'Sun', problems: 8, hours: 4.5 },
 ];
-
-
 
 // Generate mock data for different time periods
 function generateWeeklyData(weekOffset = 0) {
@@ -98,8 +97,9 @@ export function UserStats({ userProblemStats }) {
 
   const [userProgressDetails, setUserProgressDetails] = useState([]);
 
+  const [userSolvedStatsDetails, setUserSolvedStatsDetails] = useState({});
 
-  const { totalProblemsAvailable, solvedProblemCount} = userProblemStats;
+  const { totalProblemsAvailable, solvedProblemCount } = userProblemStats;
 
   // console.log("totalProblemsAvailable", totalProblemsAvailable);
   // console.log("solvedProblemCount", solvedProblemCount);
@@ -121,6 +121,20 @@ export function UserStats({ userProblemStats }) {
     error: progressError,
     refetch: refetchProgress,
   } = useGetUserProgressData();
+
+  const {
+    data: userSolvedStatsData,
+    isPending: isSolvedStatsPending,
+    isSuccess: isSolvedStatsSuccess,
+    error: solvedStatsError,
+    refetch: refetchSolvedStats,
+  } = useGetUserSolvedStats();
+
+  useEffect(() => {
+    if (userSolvedStatsData) {
+      setUserSolvedStatsDetails(userSolvedStatsData?.data);
+    }
+  }, [userSolvedStatsData]);
 
   // console.log("data", heatmapData);
 
@@ -189,7 +203,7 @@ export function UserStats({ userProblemStats }) {
 
   // Step 1: Sort descending (latest first)
 
-  console.log('isProgressPending', isProgressPending);
+  // console.log('isProgressPending', isProgressPending);
 
   const getPeriodLabel = () => {
     const baseDate = new Date();
@@ -216,12 +230,77 @@ export function UserStats({ userProblemStats }) {
     }
   };
 
-  if (isPending || isProgressPending) return <div>Loading...</div>;
+  // Example data object (replace with your dynamic data)
+  const stats = userSolvedStatsDetails;
+
+  // Difficulty data prepared for JSX
+  const difficultyLevels = ['EASY', 'MEDIUM', 'HARD'];
+  const difficultyColors = {
+    EASY: { bg: 'bg-green-500', text: 'text-green-600' },
+    MEDIUM: { bg: 'bg-yellow-500', text: 'text-yellow-600' },
+    HARD: { bg: 'bg-red-500', text: 'text-red-600' },
+  };
+
+  const difficultyData =
+    stats && stats.difficultyStats && stats.totalDifficultyCounts
+      ? difficultyLevels.map((level) => {
+          const solved = stats.difficultyStats[level] ?? 0;
+          const total = stats.totalDifficultyCounts[level] ?? 1; // avoid div by zero
+          const percentage = ((solved / total) * 100).toFixed(1);
+
+          return {
+            level,
+            solved,
+            total,
+            percentage,
+            bgColor: difficultyColors[level].bg,
+            textColor: difficultyColors[level].text,
+            label: level.charAt(0) + level.slice(1).toLowerCase(),
+          };
+        })
+      : [];
+
+  // Tag colors for consistent color assignment
+  const tagColors = [
+    'bg-blue-500',
+    'bg-purple-500',
+    'bg-indigo-500',
+    'bg-green-500',
+    'bg-orange-500',
+    'bg-pink-500',
+    'bg-teal-500',
+    'bg-yellow-400',
+  ];
+
+  // Only build tagData if stats.totalTagCounts exists; otherwise, return an empty array.
+  const tagData = stats?.totalTagCounts
+    ? Object.entries(stats.totalTagCounts)
+        .map(([tag, total]) => {
+          const solved = stats.tagStats?.[tag] || 0;
+          // If total is 0 (or undefined), we use '0.0' as the percentage.
+          const percentage = total
+            ? ((solved / total) * 100).toFixed(1)
+            : '0.0';
+
+          // Deterministic color based on tag string char codes
+          const colorIndex =
+            tag.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) %
+            tagColors.length;
+          const color = tagColors[colorIndex];
+
+          return { tag, solved, total, percentage, color };
+        })
+        .sort((a, b) => b.solved - a.solved)
+        .slice(0, 10)
+    : [];
+
+  if (isPending || isProgressPending || isSolvedStatsPending)
+    return <div>Loading...</div>;
 
   return (
     <div className='grid gap-6'>
       {!isProgressPending ? (
-        <Card>
+        <Card className='bg-gradient-to-r from-[#dfe2fe] via-[#b1cbfa] to-[#8e98f5]'>
           <CardHeader>
             <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-4'>
               <div>
@@ -359,8 +438,8 @@ export function UserStats({ userProblemStats }) {
         <div>Loading user progress...</div>
       )}
 
-      <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'>
-        <Card>
+      <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6'>
+        <Card className='bg-gradient-to-r from-[#dfe2fe] via-[#b1cbfa] to-[#8e98f5]'>
           <CardHeader>
             <CardTitle>
               {viewType === 'week' ? 'Weekly' : 'Monthly'} Summary
@@ -401,7 +480,7 @@ export function UserStats({ userProblemStats }) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className='bg-gradient-to-r from-[#dfe2fe] via-[#b1cbfa] to-[#8e98f5]'>
           <CardHeader>
             <CardTitle>🏆 Achievement Progress</CardTitle>
             <CardDescription>Track your learning journey</CardDescription>
@@ -473,179 +552,132 @@ export function UserStats({ userProblemStats }) {
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Problem Solving Overview</CardTitle>
-            <CardDescription>
-              Your progress across all problems, categories, and difficulties
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              {/* Overall Progress Donut Chart */}
-              <div className='flex flex-col items-center'>
-                <div className='relative w-40 h-40 mb-4'>
-                  <svg
-                    className='w-40 h-40 transform -rotate-90'
-                    viewBox='0 0 160 160'
-                  >
-                    <circle
-                      cx='80'
-                      cy='80'
-                      r='60'
-                      stroke='currentColor'
-                      strokeWidth='12'
-                      fill='transparent'
-                      className='text-muted'
-                    />
-                    <circle
-                      cx='80'
-                      cy='80'
-                      r='60'
-                      stroke='currentColor'
-                      strokeWidth='12'
-                      fill='transparent'
-                      strokeDasharray={`${(247 / 3571) * 377} 377`}
-                      className='text-primary transition-all duration-1000'
-                    />
-                  </svg>
-                  <div className='absolute inset-0 flex flex-col items-center justify-center'>
-                    <span className='text-3xl font-bold'>
-                      {solvedProblemCount}
-                    </span>
-                    <span className='text-sm text-muted-foreground'>
-                      /{totalProblemsAvailable}
-                    </span>
-                    <span className='text-xs text-muted-foreground'>
-                      Solved
-                    </span>
-                  </div>
-                </div>
-                <div className='text-center'>
-                  <div className='text-2xl font-bold text-primary'>
-                    {(
-                      (solvedProblemCount / totalProblemsAvailable) *
-                      100
-                    ).toFixed(1)}
-                    %
-                  </div>
-                  <div className='text-sm text-muted-foreground'>
-                    Overall Progress
-                  </div>
+      <Card className='bg-gradient-to-r from-[#dfe2fe] via-[#b1cbfa] to-[#8e98f5]'>
+        <CardHeader>
+          <CardTitle>Problem Solving Overview</CardTitle>
+          <CardDescription>
+            Your progress across all problems, categories, and difficulties
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+            {/* Overall Progress Donut Chart */}
+            <div className='flex flex-col items-center'>
+              <div className='relative w-40 h-40 mb-4'>
+                <svg
+                  className='w-40 h-40 transform -rotate-90'
+                  viewBox='0 0 160 160'
+                >
+                  <circle
+                    cx='80'
+                    cy='80'
+                    r='60'
+                    stroke='currentColor'
+                    strokeWidth='12'
+                    fill='transparent'
+                    className='text-muted'
+                  />
+                  <circle
+                    cx='80'
+                    cy='80'
+                    r='60'
+                    stroke='currentColor'
+                    strokeWidth='12'
+                    fill='transparent'
+                    strokeDasharray={`${(247 / 3571) * 377} 377`}
+                    className='text-primary transition-all duration-1000'
+                  />
+                </svg>
+                <div className='absolute inset-0 flex flex-col items-center justify-center'>
+                  <span className='text-3xl font-bold'>
+                    {solvedProblemCount}
+                  </span>
+                  <span className='text-sm text-muted-foreground'>
+                    /{totalProblemsAvailable}
+                  </span>
+                  <span className='text-xs text-muted-foreground'>Solved</span>
                 </div>
               </div>
-
-              {/* Category and Difficulty Stats */}
-              <div className='space-y-4'>
-                <div>
-                  <h4 className='font-semibold mb-3'>By Difficulty</h4>
-                  <div className='space-y-3'>
-                    <div>
-                      <div className='flex justify-between text-sm mb-1'>
-                        <span className='text-green-600'>Easy</span>
-                        <span className='font-medium'>89/880</span>
-                      </div>
-                      <div className='h-2 bg-muted rounded-full overflow-hidden'>
-                        <div
-                          className='bg-green-500 h-full rounded-full'
-                          style={{ width: `${(89 / 880) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className='flex justify-between text-sm mb-1'>
-                        <span className='text-yellow-600'>Medium</span>
-                        <span className='font-medium'>127/1852</span>
-                      </div>
-                      <div className='h-2 bg-muted rounded-full overflow-hidden'>
-                        <div
-                          className='bg-yellow-500 h-full rounded-full'
-                          style={{ width: `${(127 / 1852) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className='flex justify-between text-sm mb-1'>
-                        <span className='text-red-600'>Hard</span>
-                        <span className='font-medium'>31/839</span>
-                      </div>
-                      <div className='h-2 bg-muted rounded-full overflow-hidden'>
-                        <div
-                          className='bg-red-500 h-full rounded-full'
-                          style={{ width: `${(31 / 839) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
+              <div className='text-center'>
+                <div className='text-2xl font-bold text-primary'>
+                  {(
+                    (solvedProblemCount / totalProblemsAvailable) *
+                    100
+                  ).toFixed(1)}
+                  %
                 </div>
-
-                <div>
-                  <h4 className='font-semibold mb-3'>Top Categories</h4>
-                  <div className='space-y-2'>
-                    {[
-                      {
-                        name: 'Array',
-                        solved: 45,
-                        total: 60,
-                        color: 'bg-blue-500',
-                      },
-                      {
-                        name: 'String',
-                        solved: 32,
-                        total: 45,
-                        color: 'bg-purple-500',
-                      },
-                      {
-                        name: 'Hash Table',
-                        solved: 28,
-                        total: 35,
-                        color: 'bg-indigo-500',
-                      },
-                      {
-                        name: 'Tree',
-                        solved: 25,
-                        total: 35,
-                        color: 'bg-green-500',
-                      },
-                      {
-                        name: 'Dynamic Programming',
-                        solved: 18,
-                        total: 40,
-                        color: 'bg-orange-500',
-                      },
-                    ].map((category) => (
-                      <div
-                        key={category.name}
-                        className='flex items-center gap-3'
-                      >
-                        <div className='w-16 text-xs font-medium truncate'>
-                          {category.name}
-                        </div>
-                        <div className='flex-1 h-4 bg-muted rounded-full overflow-hidden'>
-                          <div
-                            className={`${category.color} h-full rounded-full transition-all duration-500`}
-                            style={{
-                              width: `${
-                                (category.solved / category.total) * 100
-                              }%`,
-                            }}
-                          ></div>
-                        </div>
-                        <div className='text-xs font-medium w-12 text-right'>
-                          {category.solved}/{category.total}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className='text-sm text-muted-foreground'>
+                  Overall Progress
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Difficulty Section */}
+            <div>
+              <h4 className='font-semibold mb-3'>By Difficulty</h4>
+              <div className='space-y-3'>
+                {difficultyData.map(
+                  ({
+                    level,
+                    solved,
+                    total,
+                    percentage,
+                    bgColor,
+                    textColor,
+                    label,
+                  }) => (
+                    <div key={level}>
+                      <div className={`flex justify-between text-sm mb-1`}>
+                        <span className={`${textColor} font-semibold`}>
+                          {label}
+                        </span>
+                        <span className='font-medium'>
+                          {solved}/{total}
+                        </span>
+                      </div>
+                      <div className='h-2 bg-muted rounded-full overflow-hidden'>
+                        <div
+                          className={`${bgColor} h-full rounded-full`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+          {/* Category and Difficulty Stats */}
+          <div className='space-y-4'>
+            {/* Tags Section */}
+            <div>
+              <h4 className='font-semibold mb-3'>Top Categories</h4>
+              <div className='space-y-2'>
+                {tagData.map(({ tag, solved, total, percentage, color }) => (
+                  <div key={tag} className='flex items-center gap-3'>
+                    <div className='w-16 text-xs font-medium truncate'>
+                      {tag}
+                    </div>
+                    <div className='flex-1 h-4 bg-muted rounded-full overflow-hidden'>
+                      <div
+                        className={`${color} h-full rounded-full transition-all duration-500`}
+                        style={{ width: `${percentage}%` }}
+                        title={`${solved} solved out of ${total}`}
+                      ></div>
+                    </div>
+                    <div className='text-xs font-medium w-12 text-right'>
+                      {solved}/{total}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Card>
+      <Card className='bg-gradient-to-r from-[#dfe2fe] via-[#b1cbfa] to-[#8e98f5]'>
         <CardHeader>
           <CardTitle>Contribution Heatmap</CardTitle>
           <CardDescription>Daily activity (past 1 year)</CardDescription>
@@ -671,12 +703,13 @@ export function UserStats({ userProblemStats }) {
                 : {}
             }
             showWeekdayLabels
+            className='text-black'
           />
           <Tooltip id='heatmap-tooltip' />
         </CardContent>
       </Card>
 
-      <ProblemProgressChart />
+      {/* <ProblemProgressChart /> */}
     </div>
   );
 }

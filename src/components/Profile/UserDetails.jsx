@@ -89,7 +89,7 @@ export function UserDetails({ usersDetails }) {
   if (!user) return null;
 
   return (
-    <Card>
+    <Card className='bg-gradient-to-r from-[#fef08a] via-[#84cc16] to-[#16a34a]'>
       <CardHeader>
         <div className='flex flex-col md:flex-row gap-4 items-start md:items-center justify-between'>
           <div className='flex items-center gap-4'>
@@ -112,7 +112,7 @@ export function UserDetails({ usersDetails }) {
             </div>
           </div>
           <div className='flex flex-col items-end'>
-            <div className='text-sm text-muted-foreground'>
+            <div className='text-sm  text-shadow-cyan-800'>
               Member since {user.joinDate}
             </div>
             <div className='mt-1'>
@@ -203,12 +203,12 @@ export function UserDetails({ usersDetails }) {
           <div className='space-y-4'>
             <div>
               <h3 className='text-sm font-medium'>Email</h3>
-              <p className='text-sm text-muted-foreground mt-1'>{user.email}</p>
+              <p className='text-sm text-blue-950 mt-1'>{user.email}</p>
             </div>
             {user.bio && (
               <div>
                 <h3 className='text-sm font-medium'>Bio</h3>
-                <p className='text-sm text-muted-foreground mt-1'>{user.bio}</p>
+                <p className='text-sm text-orange-600 mt-1'>{user.bio}</p>
               </div>
             )}
             {/* <div className='flex justify-end'>
