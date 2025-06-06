@@ -229,7 +229,7 @@ export function UserStats() {
           <Tabs defaultValue='problems'>
             <TabsList className='mb-4'>
               <TabsTrigger value='problems'>Problems Solved</TabsTrigger>
-              <TabsTrigger value='hours'>Hours Spent</TabsTrigger>
+              {/* <TabsTrigger value='hours'>Hours Spent</TabsTrigger> */}
             </TabsList>
 
             <TabsContent value='problems'>
