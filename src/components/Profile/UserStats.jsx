@@ -511,8 +511,12 @@ export function UserStats({ userProblemStats }) {
                     />
                   </svg>
                   <div className='absolute inset-0 flex flex-col items-center justify-center'>
-                    <span className='text-3xl font-bold'>247</span>
-                    <span className='text-sm text-muted-foreground'>/3571</span>
+                    <span className='text-3xl font-bold'>
+                      {solvedProblemCount}
+                    </span>
+                    <span className='text-sm text-muted-foreground'>
+                      /{totalProblemsAvailable}
+                    </span>
                     <span className='text-xs text-muted-foreground'>
                       Solved
                     </span>
@@ -520,7 +524,11 @@ export function UserStats({ userProblemStats }) {
                 </div>
                 <div className='text-center'>
                   <div className='text-2xl font-bold text-primary'>
-                    {((247 / 3571) * 100).toFixed(1)}%
+                    {(
+                      (solvedProblemCount / totalProblemsAvailable) *
+                      100
+                    ).toFixed(1)}
+                    %
                   </div>
                   <div className='text-sm text-muted-foreground'>
                     Overall Progress
