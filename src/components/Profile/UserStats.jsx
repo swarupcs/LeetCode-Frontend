@@ -286,7 +286,13 @@ export function UserStats() {
                         title={`${day.problems} problems on ${day.date}`}
                       ></div>
                       <div className='text-xs font-medium text-center'>
-                        {viewType === 'week' ? day.day : day.date}
+                        {viewType === 'week'
+                          ? day.day
+                          : new Date(day.date).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
                       </div>
                     </div>
                   ))}
