@@ -1,4 +1,3 @@
-
 import {
   Card,
   CardContent,
@@ -24,6 +23,7 @@ import { useGetUserHeatMapData } from '@/hooks/apis/userStats/useGetUSerHeatMapD
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProblemProgressChart } from './ProblemProgressChart';
+import { useGetUserProgressData } from '@/hooks/apis/userStats/useGetUserSubmissionProgress';
 
 // Mock data - in a real app, this would come from your backend
 const dailyProgress = [
@@ -47,25 +47,25 @@ const weeklyStats = {
 
 // Generate mock data for different time periods
 function generateWeeklyData(weekOffset = 0) {
-  const baseDate = new Date()
-  baseDate.setDate(baseDate.getDate() - weekOffset * 7)
+  const baseDate = new Date();
+  baseDate.setDate(baseDate.getDate() - weekOffset * 7);
 
-  const weekData = []
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  const weekData = [];
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   for (let i = 0; i < 7; i++) {
-    const date = new Date(baseDate)
-    date.setDate(date.getDate() - (6 - i))
+    const date = new Date(baseDate);
+    date.setDate(date.getDate() - (6 - i));
 
     weekData.push({
       day: days[i],
-      date: date.toISOString().split("T")[0],
+      date: date.toISOString().split('T')[0],
       problems: Math.floor(Math.random() * 10) + 1,
       hours: Number.parseFloat((Math.random() * 4 + 0.5).toFixed(1)),
-    })
+    });
   }
 
-  return weekData
+  return weekData;
 }
 
 function generateMonthlyData(monthOffset = 0) {
@@ -93,9 +93,6 @@ function generateMonthlyData(monthOffset = 0) {
   return monthData;
 }
 
-
-
-
 export function UserStats() {
   // Calculate the maximum value for scaling the chart
 
@@ -105,15 +102,25 @@ export function UserStats() {
 
   const [selectedPeriod, setSelectedPeriod] = useState(0); // 0 = current, 1 = previous, etc.
 
-  const maxProblems = Math.max(...dailyProgress.map((day) => day.problems));
-  const currentData =
-    viewType === 'week'
-      ? generateWeeklyData(selectedPeriod)
-      : generateMonthlyData(selectedPeriod);
-  const maxHours = Math.max(...currentData.map((day) => day.hours));
+  const [userProgressDetails, setUserProgressDetails] = useState([]);
+
+  // const maxProblems = Math.max(...dailyProgress.map((day) => day.problems));
+  // const currentData =
+  //   viewType === 'week'
+  //     ? generateWeeklyData(selectedPeriod)
+  //     : generateMonthlyData(selectedPeriod);
+  // const maxHours = Math.max(...currentData.map((day) => day.hours));
 
   const { data, isPending, isSuccess, error, refetch } =
     useGetUserHeatMapData();
+
+  const {
+    data: userProgressData,
+    isPending: isProgressPending,
+    isSuccess: isProgressSuccess,
+    error: progressError,
+    refetch: refetchProgress,
+  } = useGetUserProgressData();
 
   // console.log("data", heatmapData);
 
@@ -123,6 +130,12 @@ export function UserStats() {
     }
   }, [data]);
 
+  useEffect(() => {
+    if (userProgressData) {
+      setUserProgressDetails(userProgressData.data);
+    }
+  }, [userProgressData]);
+
   // console.log("isPending", isPending);
   // console.log("isSuccess", isSuccess);
   // console.log("error", error);
@@ -131,15 +144,34 @@ export function UserStats() {
   // const heatmapData = generateHeatmapValues();
 
   // Calculate stats for current period
-  const totalProblems = currentData.reduce((sum, day) => sum + day.problems, 0);
-  const totalHours = Number.parseFloat(
-    currentData.reduce((sum, day) => sum + day.hours, 0).toFixed(1)
-  );
+  // const totalProblems = currentData.reduce((sum, day) => sum + day.problems, 0);
+  // const totalHours = Number.parseFloat(
+  //   currentData.reduce((sum, day) => sum + day.hours, 0).toFixed(1)
+  // );
+  // const avgProblems =
+  //   Math.round((totalProblems / currentData.length) * 10) / 10;
+  // const avgHours = Number.parseFloat(
+  //   (totalHours / currentData.length).toFixed(1)
+  // );
+
+  // debugger;
+
+  console.log('userProgressDetails', userProgressDetails);
+  const daysPerPage = viewType === 'week' ? 7 : 30;
+  const startIndex = selectedPeriod * daysPerPage;
+  const endIndex = startIndex + daysPerPage;
+  const currentData = userProgressDetails.slice(startIndex, endIndex);
+
+
+  // Stats
+  const totalProblems = currentData.reduce((acc, d) => acc + d.problems, 0);
   const avgProblems =
-    Math.round((totalProblems / currentData.length) * 10) / 10;
-  const avgHours = Number.parseFloat(
-    (totalHours / currentData.length).toFixed(1)
-  );
+    currentData.length > 0 ? Math.round(totalProblems / currentData.length) : 0;
+  const maxProblems = Math.max(...currentData.map((d) => d.problems), 0);
+  const activeDays = currentData.filter((d) => d.problems > 0).length;
+
+
+  console.log("isProgressPending", isProgressPending);
 
   const getPeriodLabel = () => {
     const baseDate = new Date();
@@ -166,194 +198,142 @@ export function UserStats() {
     }
   };
 
-  if (isPending) return <div>Loading...</div>;
+  if (isPending || isProgressPending) return <div>Loading...</div>;
 
   return (
     <div className='grid gap-6'>
-      <Card>
-        <CardHeader>
-          <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-4'>
-            <div>
-              <CardTitle>Daily Progress</CardTitle>
-              <CardDescription>
-                Your problem-solving activity over time
-              </CardDescription>
-            </div>
+      {!isProgressPending ? (
+        <Card>
+          <CardHeader>
+            <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-4'>
+              <div>
+                <CardTitle>Daily Progress</CardTitle>
+                <CardDescription>
+                  Your problem-solving activity over time
+                </CardDescription>
+              </div>
 
-            {/* Period Selection Controls */}
-            <div className='flex items-center gap-2'>
-              <Select
-                value={viewType}
-                onValueChange={(value) => {
-                  setViewType(value);
-                  setSelectedPeriod(0);
-                }}
-              >
-                <SelectTrigger className='w-[100px]'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='week'>Week</SelectItem>
-                  <SelectItem value='month'>Month</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className='flex items-center gap-1'>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => setSelectedPeriod((prev) => prev + 1)}
+              {/* Period Selection Controls */}
+              <div className='flex items-center gap-2'>
+                <Select
+                  value={viewType}
+                  onValueChange={(value) => {
+                    setViewType(value);
+                    setSelectedPeriod(0);
+                  }}
                 >
-                  <ChevronLeft className='h-4 w-4' />
-                </Button>
+                  <SelectTrigger className='w-[100px]'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='week'>Week</SelectItem>
+                    <SelectItem value='month'>Month</SelectItem>
+                  </SelectContent>
+                </Select>
 
-                <div className='px-3 py-1 text-sm font-medium min-w-[140px] text-center'>
-                  {getPeriodLabel()}
+                <div className='flex items-center gap-1'>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => setSelectedPeriod((prev) => prev + 1)}
+                  >
+                    <ChevronLeft className='h-4 w-4' />
+                  </Button>
+
+                  <div className='px-3 py-1 text-sm font-medium min-w-[140px] text-center'>
+                    {getPeriodLabel()}
+                  </div>
+
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() =>
+                      setSelectedPeriod((prev) => Math.max(0, prev - 1))
+                    }
+                    disabled={selectedPeriod === 0}
+                  >
+                    <ChevronRight className='h-4 w-4' />
+                  </Button>
                 </div>
-
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() =>
-                    setSelectedPeriod((prev) => Math.max(0, prev - 1))
-                  }
-                  disabled={selectedPeriod === 0}
-                >
-                  <ChevronRight className='h-4 w-4' />
-                </Button>
               </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue='problems'>
-            <TabsList className='mb-4'>
-              <TabsTrigger value='problems'>Problems Solved</TabsTrigger>
-              {/* <TabsTrigger value='hours'>Hours Spent</TabsTrigger> */}
-            </TabsList>
-
-            <TabsContent value='problems'>
-              <div className='h-[250px] flex items-end justify-between gap-1'>
-                {currentData.map((day, index) => (
-                  <div
-                    key={index}
-                    className='flex flex-col items-center gap-2 flex-1 min-w-0'
-                  >
-                    <div className='text-xs font-medium text-center'>
-                      {day.problems}
-                    </div>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue='problems'>
+              <TabsList className='mb-4'>
+                <TabsTrigger value='problems'>Problems Solved</TabsTrigger>
+                {/* <TabsTrigger value='hours'>Hours Spent</TabsTrigger> */}
+              </TabsList>
+              <TabsContent value='problems'>
+                <div className='h-[250px] flex items-end justify-between gap-1'>
+                  {[...currentData].reverse().map((day, index) => (
                     <div
-                      className='bg-primary/90 w-full max-w-[40px] rounded-t-md transition-all duration-500 ease-in-out hover:bg-primary cursor-pointer'
-                      style={{
-                        height: `${(day.problems / maxProblems) * 180}px`,
-                      }}
-                      title={`${day.problems} problems on ${day.date}`}
-                    ></div>
-                    <div className='text-xs font-medium text-center'>
-                      {viewType === 'week' ? day.day : day.day}
+                      key={index}
+                      className='flex flex-col items-center gap-2 flex-1 min-w-0'
+                    >
+                      <div className='text-xs font-medium text-center'>
+                        {day.problems}
+                      </div>
+                      <div
+                        className='bg-primary/90 w-full max-w-[40px] rounded-t-md transition-all duration-500 ease-in-out hover:bg-primary cursor-pointer'
+                        style={{
+                          height: `${
+                            maxProblems === 0
+                              ? 0
+                              : (day.problems / maxProblems) * 180
+                          }px`,
+                        }}
+                        title={`${day.problems} problems on ${day.date}`}
+                      ></div>
+                      <div className='text-xs font-medium text-center'>
+                        {viewType === 'week' ? day.day : day.date}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Problems Stats */}
+                <div className='mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t'>
+                  <div className='text-center'>
+                    <div className='text-2xl font-bold text-primary'>
+                      {totalProblems}
+                    </div>
+                    <div className='text-sm text-muted-foreground'>
+                      Total Problems
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Problems Stats */}
-              <div className='mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t'>
-                <div className='text-center'>
-                  <div className='text-2xl font-bold text-primary'>
-                    {totalProblems}
-                  </div>
-                  <div className='text-sm text-muted-foreground'>
-                    Total Problems
-                  </div>
-                </div>
-                <div className='text-center'>
-                  <div className='text-2xl font-bold text-green-600'>
-                    {avgProblems}
-                  </div>
-                  <div className='text-sm text-muted-foreground'>
-                    Daily Average
-                  </div>
-                </div>
-                <div className='text-center'>
-                  <div className='text-2xl font-bold text-blue-600'>
-                    {Math.max(...currentData.map((d) => d.problems))}
-                  </div>
-                  <div className='text-sm text-muted-foreground'>Best Day</div>
-                </div>
-                <div className='text-center'>
-                  <div className='text-2xl font-bold text-purple-600'>
-                    {currentData.filter((d) => d.problems > 0).length}
-                  </div>
-                  <div className='text-sm text-muted-foreground'>
-                    Active Days
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value='hours'>
-              <div className='h-[250px] flex items-end justify-between gap-1'>
-                {currentData.map((day, index) => (
-                  <div
-                    key={index}
-                    className='flex flex-col items-center gap-2 flex-1 min-w-0'
-                  >
-                    <div className='text-xs font-medium text-center'>
-                      {day.hours}h
+                  <div className='text-center'>
+                    <div className='text-2xl font-bold text-green-600'>
+                      {avgProblems}
                     </div>
-                    <div
-                      className='bg-secondary/90 w-full max-w-[40px] rounded-t-md transition-all duration-500 ease-in-out hover:bg-secondary cursor-pointer'
-                      style={{
-                        height: `${(day.hours / maxHours) * 180}px`,
-                      }}
-                      title={`${day.hours.toFixed(1)} hours on ${day.date}`}
-                    ></div>
-                    <div className='text-xs font-medium text-center'>
-                      {viewType === 'week' ? day.day : day.day}
+                    <div className='text-sm text-muted-foreground'>
+                      Daily Average
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Hours Stats */}
-              <div className='mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t'>
-                <div className='text-center'>
-                  <div className='text-2xl font-bold text-secondary'>
-                    {totalHours.toFixed(1)}h
+                  <div className='text-center'>
+                    <div className='text-2xl font-bold text-blue-600'>
+                      {maxProblems}
+                    </div>
+                    <div className='text-sm text-muted-foreground'>
+                      Best Day
+                    </div>
                   </div>
-                  <div className='text-sm text-muted-foreground'>
-                    Total Hours
-                  </div>
-                </div>
-                <div className='text-center'>
-                  <div className='text-2xl font-bold text-green-600'>
-                    {avgHours.toFixed(1)}h
-                  </div>
-                  <div className='text-sm text-muted-foreground'>
-                    Daily Average
+                  <div className='text-center'>
+                    <div className='text-2xl font-bold text-purple-600'>
+                      {activeDays}
+                    </div>
+                    <div className='text-sm text-muted-foreground'>
+                      Active Days
+                    </div>
                   </div>
                 </div>
-                <div className='text-center'>
-                  <div className='text-2xl font-bold text-blue-600'>
-                    {Math.max(...currentData.map((d) => d.hours)).toFixed(1)}h
-                  </div>
-                  <div className='text-sm text-muted-foreground'>
-                    Longest Session
-                  </div>
-                </div>
-                <div className='text-center'>
-                  <div className='text-2xl font-bold text-purple-600'>
-                    {(totalHours / totalProblems).toFixed(1)}h
-                  </div>
-                  <div className='text-sm text-muted-foreground'>
-                    Avg per Problem
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      ) : (
+        <div>Loading user progress...</div>
+      )}
 
       <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'>
         <Card>
@@ -373,26 +353,26 @@ export function UserStats() {
                 </dt>
                 <dd className='text-2xl font-bold'>{totalProblems}</dd>
               </div>
-              <div>
+              {/* <div>
                 <dt className='font-medium text-muted-foreground'>
                   Total Hours
                 </dt>
                 <dd className='text-2xl font-bold'>{totalHours.toFixed(1)}h</dd>
-              </div>
+              </div> */}
               <div>
                 <dt className='font-medium text-muted-foreground'>
                   Daily Average
                 </dt>
                 <dd className='text-2xl font-bold'>{avgProblems}</dd>
               </div>
-              <div>
+              {/* <div>
                 <dt className='font-medium text-muted-foreground'>
                   Efficiency
                 </dt>
                 <dd className='text-2xl font-bold'>
                   {(totalProblems / totalHours).toFixed(1)}
                 </dd>
-              </div>
+              </div> */}
             </dl>
           </CardContent>
         </Card>
@@ -423,22 +403,22 @@ export function UserStats() {
                 </div>
               </div>
               <div>
-                <div className='flex justify-between text-sm mb-1'>
+                {/* <div className='flex justify-between text-sm mb-1'>
                   <span className='font-medium'>
                     Time Master ({totalHours}h/100h)
                   </span>
                   <span className='text-muted-foreground'>
                     {Math.min(100, Math.round((totalHours / 100) * 100))}%
                   </span>
-                </div>
-                <div className='h-2 bg-muted rounded-full overflow-hidden'>
+                </div> */}
+                {/* <div className='h-2 bg-muted rounded-full overflow-hidden'>
                   <div
                     className='bg-primary h-full rounded-full'
                     style={{
                       width: `${Math.min(100, (totalHours / 100) * 100)}%`,
                     }}
                   ></div>
-                </div>
+                </div> */}
               </div>
               <div>
                 <div className='flex justify-between text-sm mb-1'>

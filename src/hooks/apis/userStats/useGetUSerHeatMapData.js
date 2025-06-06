@@ -8,7 +8,9 @@ export const useGetUserHeatMapData = () => {
     const { data, error, isPending, isSuccess, refetch } = useQuery({
       queryKey: ['userHeatMapData'],
       queryFn: () => getUserHeatMapDataRequest(),
-      staleTime: Infinity, // cache forever until invalidated
+      //enabled: false, // Don't fetch on mount
+      cacheTime: 0, // No cache
+      staleTime: 0, // Always stale
       onSuccess: (data) => {
         console.log('Successfully fetched user heatmap data', data);
         // toast.success('Successfully fetched user heatmap data.');
