@@ -10,9 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
-import { subDays, format } from 'date-fns';
+import { subDays, format, set } from 'date-fns';
 
 import { Tooltip } from 'react-tooltip';
+import { useGetUserHeatMapData } from '@/hooks/apis/userStats/useGetUSerHeatMapData';
+import { useEffect, useState } from 'react';
 
 // Mock data - in a real app, this would come from your backend
 const dailyProgress = [
@@ -37,30 +39,40 @@ const weeklyStats = {
 export function UserStats() {
   // Calculate the maximum value for scaling the chart
 
-  function generateHeatmapValues() {
-    const today = new Date();
-    const data = [];
+  const [heatMapData, setHeatMapData] = useState([]);
 
-    for (let i = 0; i < 365; i++) {
-      const date = subDays(today, i);
-      // Generate mock count (e.g., between 0–6 problems)
-      const count = Math.random() < 0.6 ? Math.floor(Math.random() * 7) : 0;
+  const {
+    data,
+    isPending,
+    isSuccess,
+    error,
+    refetch,
+  } = useGetUserHeatMapData();
 
-      data.push({
-        date: format(date, 'yyyy-MM-dd'),
-        count,
-      });
+  // console.log("data", heatmapData);
+
+  useEffect(() => {
+    if (data) {
+      setHeatMapData(data.heatmap);
     }
-
-    return data;
-  }
-
+  }, [data]);
 
   
 
-  const heatmapData = generateHeatmapValues();
+  // console.log("isPending", isPending);
+  // console.log("isSuccess", isSuccess);
+  // console.log("error", error);
+  // console.log("refetch", refetch);
+
+
+
+
+
+
+  // const heatmapData = generateHeatmapValues();
   const maxProblems = Math.max(...dailyProgress.map((day) => day.problems));
   
+  if (isPending) return <div>Loading...</div>;
 
   return (
     <div className='grid gap-6'>
@@ -224,7 +236,7 @@ export function UserStats() {
           <CalendarHeatmap
             startDate={subDays(new Date(), 364)}
             endDate={new Date()}
-            values={heatmapData}
+            values={heatMapData}
             classForValue={(value) => {
               if (!value || value.count === 0) return 'color-empty';
               if (value.count >= 5) return 'color-github-4';
