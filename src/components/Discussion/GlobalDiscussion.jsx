@@ -53,6 +53,9 @@ import { DiscussionComments } from './DiscussionThread';
 import { RichTextEditor } from './RichTextEditor';
 import { useGetAllDiscussions } from '@/hooks/apis/discussions/useGetAllDiscussions';
 import { SkeletonCard } from '@/Pages/SkeletonPage/SkeletonCard';
+import { useCreateDiscussion } from '@/hooks/apis/discussions/useCreateDiscussions';
+import { EditorTabs } from './EditorTabs';
+import { toast } from 'sonner';
 
 // Discussion categories
 const categories = [
@@ -335,6 +338,8 @@ export default function GlobalDiscussion() {
     tags: [],
   });
 
+  console.log("newPost", newPost);
+
   const {
     data: discussionData,
     isPending: discussionPending,
@@ -343,16 +348,32 @@ export default function GlobalDiscussion() {
     refetch: discussionRefetch,
   } = useGetAllDiscussions();
 
+  const {
+    isPending: createDiscussionPending,
+    isSuccess: createDiscussionSuccess,
+    error: createDiscussionError,
+    createDiscussionMutation,
+  } = useCreateDiscussion();
+
   useEffect(() => {
     console.log('discussionData', discussionData);
-    setDiscussions(discussionData?.data)
+    setDiscussions(discussionData?.data);
   }, [discussionData]);
 
+  console.log('discussion Pending', discussionPending);
 
-  console.log("discussion Pending", discussionPending);
+  const handleCreateDiscussion = async (post) => {
+    try {
+      console.log("post", post);
+      const data = await createDiscussionMutation(post);
+      console.log('successfully created discussion', data);
+      toast.success('Discussion created successfully.');
+      await discussionRefetch();
+    } catch (error) {
+      console.log("error while creating discussion", error);
+    }
 
-
-
+  }
 
   const handleVote = (discussionId, voteType) => {
     setDiscussions((prev) =>
@@ -613,45 +634,18 @@ export default function GlobalDiscussion() {
 
     // Validate content based on selected type
     if (newPost.contentType === 'text' && !newPost.content.trim()) {
-      alert('Please add some content to your post');
+      toast.warning
+      toast.warning('Please add some content to your post');
       return;
     }
 
     if (newPost.contentType === 'code' && !newPost.codeContent.trim()) {
-      alert('Please add some code to your solution');
+      toast.warning('Please add some code to your solution');
       return;
     }
 
-    const selectedProblem = newPost.problemId
-      ? sampleProblems.find((p) => p.id === newPost.problemId)
-      : null;
+    handleCreateDiscussion(newPost);
 
-    const post = {
-      id: Date.now(),
-      title: newPost.title,
-      content: newPost.content,
-      contentType: newPost.contentType,
-      codeContent: newPost.codeContent,
-      codeLanguage: newPost.codeLanguage,
-      category: newPost.category,
-      problemId: newPost.problemId,
-      problemTitle: selectedProblem?.title,
-      problemDifficulty: selectedProblem?.difficulty,
-      company: newPost.company,
-      position: newPost.position,
-      author: 'currentUser',
-      authorAvatar: '/placeholder.svg?height=32&width=32',
-      createdAt: new Date().toISOString(),
-      upvotes: 0,
-      downvotes: 0,
-      userVote: 0,
-      commentCount: 0,
-      tags: newPost.tags,
-      isBookmarked: false,
-      comments: [],
-    };
-
-    setDiscussions((prev) => [post, ...prev]);
     setNewPost({
       title: '',
       content: '',
@@ -1240,7 +1234,7 @@ export default function GlobalDiscussion() {
                               }
                             />
                             <AvatarFallback>
-                              {discussion.author?.username.toUpperCase()}
+                              {discussion.author?.username[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <span>{discussion?.author?.username}</span>
