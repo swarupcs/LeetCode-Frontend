@@ -148,7 +148,7 @@ export function CodeEditor({ value, onChange, language, onLanguageChange }) {
       sql: "sql",
     }
 
-    const extension = extensions[language as keyof typeof extensions] || "txt"
+    const extension = extensions[language] || "txt"
     const blob = new Blob([value], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -289,7 +289,7 @@ export function CodeEditor({ value, onChange, language, onLanguageChange }) {
                 size="sm"
                 onClick={() => {
                   onLanguageChange(lang)
-                  onChange(languageTemplates[lang as keyof typeof languageTemplates])
+                  onChange(languageTemplates[lang])
                 }}
               >
                 {programmingLanguages.find((l) => l.value === lang)?.label || lang}

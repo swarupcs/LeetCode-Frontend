@@ -1,11 +1,10 @@
-"use client"
 
 import { useState } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { RichTextEditor } from "./rich-text-editor"
-import { CodeEditor } from "./code-editor"
 import { FileText, Code2 } from "lucide-react"
 import { Label } from "@/components/ui/label"
+import { RichTextEditor } from "./RichTextEditor"
+import { CodeEditor } from "./CodeEditor"
 
 
 
