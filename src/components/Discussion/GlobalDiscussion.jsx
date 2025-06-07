@@ -342,6 +342,8 @@ export default function GlobalDiscussion() {
     tags: [],
   });
 
+  
+
   const authUser = useSelector((state) => state.auth);
 
   const [openDropdownId, setOpenDropdownId] = useState(null);
