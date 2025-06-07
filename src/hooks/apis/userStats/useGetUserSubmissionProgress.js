@@ -1,8 +1,6 @@
 import { getUserProgressDataRequest } from "@/apis/userStats/getUserProgressData";
 import { useQuery } from "@tanstack/react-query";
 
-
-
 export const useGetUserProgressData = () => {
 
 
