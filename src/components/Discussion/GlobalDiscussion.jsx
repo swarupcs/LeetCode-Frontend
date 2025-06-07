@@ -56,6 +56,10 @@ import { SkeletonCard } from '@/Pages/SkeletonPage/SkeletonCard';
 import { useCreateDiscussion } from '@/hooks/apis/discussions/useCreateDiscussions';
 import { EditorTabs } from './EditorTabs';
 import { toast } from 'sonner';
+import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
+import { useDeleteDiscussion } from '@/hooks/apis/discussions/useDeleteDiscussion';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { useSelector } from 'react-redux';
 
 // Discussion categories
 const categories = [
@@ -338,7 +342,13 @@ export default function GlobalDiscussion() {
     tags: [],
   });
 
-  console.log("newPost", newPost);
+  const authUser = useSelector((state) => state.auth);
+
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  console.log('newPost', newPost);
 
   const {
     data: discussionData,
@@ -355,6 +365,13 @@ export default function GlobalDiscussion() {
     createDiscussionMutation,
   } = useCreateDiscussion();
 
+  const {
+    isPending: deleteDiscussionPending,
+    isSuccess: deleteDiscussionSuccess,
+    error: deleteDiscussionError,
+    deleteDiscussionMutation,
+  } = useDeleteDiscussion();
+
   useEffect(() => {
     console.log('discussionData', discussionData);
     setDiscussions(discussionData?.data);
@@ -364,16 +381,15 @@ export default function GlobalDiscussion() {
 
   const handleCreateDiscussion = async (post) => {
     try {
-      console.log("post", post);
+      console.log('post', post);
       const data = await createDiscussionMutation(post);
       console.log('successfully created discussion', data);
       toast.success('Discussion created successfully.');
       await discussionRefetch();
     } catch (error) {
-      console.log("error while creating discussion", error);
+      console.log('error while creating discussion', error);
     }
-
-  }
+  };
 
   const handleVote = (discussionId, voteType) => {
     setDiscussions((prev) =>
@@ -634,7 +650,7 @@ export default function GlobalDiscussion() {
 
     // Validate content based on selected type
     if (newPost.contentType === 'text' && !newPost.content.trim()) {
-      toast.warning
+      toast.warning;
       toast.warning('Please add some content to your post');
       return;
     }
@@ -659,6 +675,106 @@ export default function GlobalDiscussion() {
       tags: [],
     });
     setNewPostOpen(false);
+  };
+
+  const [discussionToDelete, setDiscussionToDelete] = useState(null);
+  const [discussionConfirmOpen, setDiscussionConfirmOpen] = useState(false);
+
+  const handleDeleteDiscussion = (discussionId) => {
+    console.log('discussionId', discussionId);
+    const discussion = discussions.find((d) => d.id === discussionId);
+    if (discussion) {
+      const totalReplies = discussion?.comments?.reduce((count, comment) => {
+        const getReplyCount = (c) => {
+          return c.replies.reduce(
+            (total, reply) => total + 1 + getReplyCount(reply),
+            0
+          );
+        };
+        return count + getReplyCount(comment);
+      }, 0);
+
+      setDeleteTarget({
+        type: 'discussion',
+        id: discussionId,
+        title: discussion.title,
+        author: discussion.author,
+        commentCount: discussion.commentCount,
+        replyCount: totalReplies,
+      });
+      setDeleteDialogOpen(true);
+    }
+  };
+
+  const handleDelDiscussion = async (discussionId) => {
+    // const discussion = discussions.find((d) => d.id === discussionId);
+    // setDiscussionToDelete(discussion);
+    try {
+      console.log('discussionId', discussionId);
+      await deleteDiscussionMutation(discussionId);
+      toast.success('Discussion deleted successfully.');
+      setDiscussionToDelete(null);
+      await discussionRefetch();
+      setDiscussionConfirmOpen(false);
+    } catch (error) {
+      console.error('Error deleting discussion:', error);
+      toast.error('Failed to delete discussion. Please try again.');
+      return;
+    }
+  };
+
+
+
+  const confirmDelete = async() => {
+    try {
+      console.log("discussionToDelete", discussionToDelete);
+      // deleteDiscussionMutation(discussionToDelete?.id);
+      toast.success('Discussion deleted successfully.');
+      // await discussionRefetch(); 
+      setDiscussionConfirmOpen(false);
+    } catch (error) {
+      console.error('Error deleting discussion:', error);
+      toast.error('Failed to delete discussion. Please try again.');
+    }
+  };
+
+
+  const confirmDeleteDiscussion = () => {
+    if (deleteTarget && deleteTarget.type === 'discussion') {
+      setDiscussions((prev) =>
+        prev.filter((discussion) => discussion.id !== deleteTarget.id)
+      );
+    }
+  };
+
+  const confirmDeleteComment = () => {
+    if (
+      deleteTarget &&
+      deleteTarget.type === 'comment' &&
+      deleteTarget.discussionId
+    ) {
+      setDiscussions((prev) =>
+        prev.map((discussion) => {
+          if (discussion.id === deleteTarget.discussionId) {
+            const deleteComment = (comments) => {
+              return comments
+                .filter((comment) => comment.id !== deleteTarget.id)
+                .map((comment) => ({
+                  ...comment,
+                  replies: deleteComment(comment.replies),
+                }));
+            };
+
+            return {
+              ...discussion,
+              comments: deleteComment(discussion.comments),
+              commentCount: discussion.commentCount - 1,
+            };
+          }
+          return discussion;
+        })
+      );
+    }
   };
 
   const formatTimeAgo = (dateString) => {
@@ -724,6 +840,10 @@ export default function GlobalDiscussion() {
       )
       .replace(/\n/g, '<br>');
   };
+
+
+  console.log('authUser', authUser);
+  console.log('discussions', discussions);
 
   return (
     <>
@@ -1198,31 +1318,53 @@ export default function GlobalDiscussion() {
                                 }`}
                               />
                             </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  className='h-8 w-8 p-0'
-                                >
-                                  <MoreHorizontal className='w-4 h-4' />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align='end'>
-                                <DropdownMenuItem>
-                                  <Edit className='w-4 h-4 mr-2' />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <Trash2 className='w-4 h-4 mr-2' />
-                                  Delete
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
+                            {discussion.author?.id === authUser?.id && (
+                              <DropdownMenu
+                                open={openDropdownId === discussion.id}
+                                onOpenChange={(open) => {
+                                  if (open) {
+                                    setOpenDropdownId(discussion.id);
+                                  } else {
+                                    setOpenDropdownId(null);
+                                  }
+                                }}
+                              >
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='h-8 w-8 p-0'
+                                  >
+                                    <MoreHorizontal className='w-4 h-4' />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align='end'>
+                                  <DropdownMenuItem>
+                                    <Edit className='w-4 h-4 mr-2' />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    // onClick={() =>
+                                    //   handleDeleteDiscussion(discussion.id)
+                                    // }
+
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDiscussionToDelete(discussion);
+                                      setDiscussionConfirmOpen(true);
+                                      setOpenDropdownId(null);
+                                    }}
+                                  >
+                                    <Trash2 className='w-4 h-4 mr-2' />
+                                    Delete
+                                  </DropdownMenuItem>
+                                  {/* <DropdownMenuItem>
                                   <Flag className='w-4 h-4 mr-2' />
                                   Report
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                </DropdownMenuItem> */}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </div>
                         </div>
 
@@ -1371,6 +1513,65 @@ export default function GlobalDiscussion() {
               </Button>
             </div>
           )}
+
+          <DeleteConfirmationDialog
+            isOpen={deleteDialogOpen}
+            onClose={() => {
+              setDeleteDialogOpen(false);
+              setDeleteTarget(null);
+            }}
+            onConfirm={
+              deleteTarget?.type === 'discussion'
+                ? confirmDeleteDiscussion
+                : confirmDeleteComment
+            }
+            type={deleteTarget?.type || 'discussion'}
+            title={deleteTarget?.title}
+            author={deleteTarget?.author}
+            commentCount={deleteTarget?.commentCount}
+            replyCount={deleteTarget?.replyCount}
+            requireConfirmation={
+              deleteTarget?.type === 'discussion'
+                ? (deleteTarget.commentCount || 0) > 0 ||
+                  (deleteTarget.replyCount || 0) > 0
+                : (deleteTarget?.replyCount || 0) > 0
+            }
+          />
+
+          <AlertDialog
+            open={discussionConfirmOpen}
+            onOpenChange={setDiscussionConfirmOpen}
+          >
+            <AlertDialogContent className='bg-gray-900 border-gray-700 text-white'>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription className='text-gray-400'>
+                  This will permanently delete the problem "{discussionToDelete?.title}
+                  ". This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  className='bg-gray-800 text-white hover:bg-gray-700'
+                  onClick={() => setDiscussionToDelete(null)}
+                >
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className='bg-red-600 hover:bg-red-700 text-white'
+                  onClick={()=> {
+                    if(discussionToDelete) {
+                      handleDelDiscussion(discussionToDelete.id);
+                      setDiscussionToDelete(null);
+                      setDiscussionConfirmOpen(false);
+                    }
+                  }}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       )}
     </>

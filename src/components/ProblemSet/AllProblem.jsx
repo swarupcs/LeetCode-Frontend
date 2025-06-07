@@ -200,7 +200,7 @@ export default function AllProblem() {
       await getAllProblems();
 
       // Close the dialog
-      setDeleteConfirmOpen(false);
+      // setDeleteConfirmOpen(false);
       setProblemToDelete(null);
     } catch (error) {
       console.error('Error deleting problem:', error);
