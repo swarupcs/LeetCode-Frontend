@@ -15,6 +15,7 @@ const Navbar = () => {
     // { path: '/discuss', label: 'Discuss' },
     { path: '/dsaSheet', label: 'DSA Sheet' },
     { path: '/discussion', label: 'Discussion' },
+    { path: '/leaderboard', label: 'Leaderboard' },
   ];
 
   return (

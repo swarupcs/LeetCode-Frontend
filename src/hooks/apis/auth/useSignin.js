@@ -24,6 +24,8 @@ export const useSignin = () => {
           user: data.user.name, 
           role: data.user.role,
           id: data.user.id,
+          username: data.user.username,
+          email: data.user.email,
           isAuthenticated: true,
         })
       );

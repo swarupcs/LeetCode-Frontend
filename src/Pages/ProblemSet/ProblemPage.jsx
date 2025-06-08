@@ -31,6 +31,8 @@ export const ProblemPage = () => {
           user: response.data.name,
           role: response.data.role,
           id: response.data.id,
+          username: response.data.username,
+          email: response.data.email,
           isAuthenticated: true,
         })
       );
