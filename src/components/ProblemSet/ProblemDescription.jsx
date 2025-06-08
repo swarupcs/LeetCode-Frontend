@@ -48,7 +48,7 @@ export default function ProblemDescription({ problemDetails }) {
         </div>
       )}
 
-      <div className='mt-6 space-y-4 text-zinc-300'>
+      {/* <div className='mt-6 space-y-4 text-zinc-300'>
         <p>{problemDetails.description}</p>
 
         <p>
@@ -70,7 +70,7 @@ export default function ProblemDescription({ problemDetails }) {
           </code>{' '}
           space.
         </p>
-      </div>
+      </div> */}
 
       <div className='mt-8'>
         {problemDetails.examples && problemDetails.examples.length > 0 ? (

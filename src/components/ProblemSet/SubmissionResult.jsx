@@ -227,9 +227,9 @@ export function SubmissionResult({
                         <span className='text-2xl font-bold'>
                           {submissionDetails?.performance?.totalTime}
                         </span>
-                        <span className='text-sm text-gray-500'>
+                        {/* <span className='text-sm text-gray-500'>
                           Faster than 85% of submissions
-                        </span>
+                        </span> */}
                       </div>
                     </CardContent>
                   </Card>
@@ -247,9 +247,9 @@ export function SubmissionResult({
                         <span className='text-2xl font-bold'>
                           {submissionDetails?.performance?.totalMemory}
                         </span>
-                        <span className='text-sm text-gray-500'>
+                        {/* <span className='text-sm text-gray-500'>
                           Better than 72% of submissions
-                        </span>
+                        </span> */}
                       </div>
                     </CardContent>
                   </Card>
