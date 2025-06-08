@@ -17,6 +17,7 @@ import { ProblemFormPage } from './Pages/ProblemForm/ProblemFormPage';
 import { ProblemSheetPage } from './Pages/ProblemSheet/ProblemSheetPage';
 import Navbar from './components/ProblemSet/NavBar';
 import IndividualProblemSheetDetails from './components/ProblemSheet/IndividualProblemSheetDetails';
+import { DiscussionPage } from './Pages/Discussion/DiscussionPage';
 // Layout component that includes the Header for all pages
 const Layout = ({ children }) => {
   return (
@@ -86,6 +87,16 @@ export const AppRoutes = () => {
           <Layout>
             <NavLayout>
               <ProblemSheetPage />
+            </NavLayout>
+          </Layout>
+        }
+      />
+      <Route
+        path='/discussion'
+        element={
+          <Layout>
+            <NavLayout>
+              <DiscussionPage />
             </NavLayout>
           </Layout>
         }
