@@ -277,7 +277,7 @@ export default function IndividualProblemSheetDetails({ params }) {
       console.log(`Added problem "${problem.title}" to sheet`);
     } catch (error) {
       console.error('Error adding problem to sheet:', error);
-      alert('Failed to add problem to sheet. Please try again.');
+      // alert('Failed to add problem to sheet. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -415,7 +415,7 @@ export default function IndividualProblemSheetDetails({ params }) {
                           Add Problem
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className='sm:max-w-[525px] max-h-[calc(100vh-4rem)] overflow-y-auto'>
+                      <DialogContent className='w-full sm:max-w-3xl max-h-[calc(100vh-4rem)] overflow-y-auto px-6 py-8'>
                         <DialogHeader>
                           <DialogTitle>Add New Problem</DialogTitle>
                           <DialogDescription>
@@ -632,12 +632,12 @@ export default function IndividualProblemSheetDetails({ params }) {
                       </div>
                     </div>
 
-                    {isAdmin && (
+                    {/* {isAdmin && (
                       <Button variant='outline' size='sm' className='text-blue-600'>
                         <Edit className='h-4 w-4 mr-2' />
                         Edit Sheet
                       </Button>
-                    )}
+                    )} */}
                   </div>
                 </CardHeader>
 
