@@ -60,6 +60,7 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { useDeleteDiscussion } from '@/hooks/apis/discussions/useDeleteDiscussion';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { useSelector } from 'react-redux';
+import { useGetAllComments } from '@/hooks/apis/discussions/useGetAllComments';
 
 // Discussion categories
 const categories = [
@@ -342,7 +343,7 @@ export default function GlobalDiscussion() {
     tags: [],
   });
 
-  
+
 
   const authUser = useSelector((state) => state.auth);
 
@@ -373,6 +374,8 @@ export default function GlobalDiscussion() {
     error: deleteDiscussionError,
     deleteDiscussionMutation,
   } = useDeleteDiscussion();
+
+  const { data: allCommentsData, isPending: allCommentsPending, refetch: allCommentsRefetch } = useGetAllComments();
 
   useEffect(() => {
     console.log('discussionData', discussionData);
@@ -467,6 +470,7 @@ export default function GlobalDiscussion() {
   };
 
   const handleAddComment = (discussionId, content) => {
+    console.log("content", content);
     const newComment = {
       id: Date.now(),
       content,
@@ -884,7 +888,7 @@ export default function GlobalDiscussion() {
                         setNewPost((prev) => ({ ...prev, contentType: value }))
                       }
                     >
-                      <TabsList className='grid w-full grid-cols-2'>
+                      <TabsList className='grid w-full grid-cols-1'>
                         <TabsTrigger
                           value='text'
                           className='flex items-center gap-2'
@@ -892,13 +896,13 @@ export default function GlobalDiscussion() {
                           <FileText className='w-4 h-4' />
                           Text Discussion
                         </TabsTrigger>
-                        <TabsTrigger
+                        {/* <TabsTrigger
                           value='code'
                           className='flex items-center gap-2'
                         >
                           <Code2 className='w-4 h-4' />
                           Code Solution
-                        </TabsTrigger>
+                        </TabsTrigger> */}
                       </TabsList>
                     </Tabs>
                   </div>
@@ -932,7 +936,7 @@ export default function GlobalDiscussion() {
                       </Select>
                     </div>
 
-                    {newPost.category === 'problem' && (
+                    {/* {newPost.category === 'problem' && (
                       <div>
                         <Label htmlFor='problem'>
                           Related Problem (Optional)
@@ -981,7 +985,7 @@ export default function GlobalDiscussion() {
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
+                    )} */}
                   </div>
 
                   {newPost.category === 'interview' && (
@@ -1210,7 +1214,7 @@ export default function GlobalDiscussion() {
                   <CardHeader className='pb-3'>
                     <div className='flex items-start gap-3'>
                       <div className='flex flex-col items-center gap-1 min-w-[60px]'>
-                        <Button
+                        {/* <Button
                           variant='ghost'
                           size='sm'
                           className={`p-1 h-8 w-8 ${
@@ -1232,7 +1236,7 @@ export default function GlobalDiscussion() {
                           onClick={() => handleVote(discussion.id, 'down')}
                         >
                           <ChevronDown className='w-4 h-4' />
-                        </Button>
+                        </Button> */}
                       </div>
 
                       <div className='flex-1 min-w-0'>
@@ -1306,7 +1310,7 @@ export default function GlobalDiscussion() {
                           </div>
 
                           <div className='flex items-center gap-1'>
-                            <Button
+                            {/* <Button
                               variant='ghost'
                               size='sm'
                               className={`h-8 w-8 p-0 ${
@@ -1319,7 +1323,7 @@ export default function GlobalDiscussion() {
                                   discussion.isBookmarked ? 'fill-current' : ''
                                 }`}
                               />
-                            </Button>
+                            </Button> */}
                             {discussion.author?.id === authUser?.id && (
                               <DropdownMenu
                                 open={openDropdownId === discussion.id}
@@ -1341,10 +1345,10 @@ export default function GlobalDiscussion() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align='end'>
-                                  <DropdownMenuItem>
+                                  {/* <DropdownMenuItem>
                                     <Edit className='w-4 h-4 mr-2' />
                                     Edit
-                                  </DropdownMenuItem>
+                                  </DropdownMenuItem> */}
                                   <DropdownMenuItem
                                     // onClick={() =>
                                     //   handleDeleteDiscussion(discussion.id)
@@ -1439,7 +1443,7 @@ export default function GlobalDiscussion() {
                           </div>
                         )}
 
-                      <div className='flex items-center gap-4 text-sm text-muted-foreground'>
+                      {/* <div className='flex items-center gap-4 text-sm text-muted-foreground'>
                         <Button
                           variant='ghost'
                           size='sm'
@@ -1453,7 +1457,7 @@ export default function GlobalDiscussion() {
                           <Reply className='w-4 h-4 mr-1' />
                           Reply
                         </Button>
-                      </div>
+                      </div> */}
                     </div>
                   </CardContent>
 

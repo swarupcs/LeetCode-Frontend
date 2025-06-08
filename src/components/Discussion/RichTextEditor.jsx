@@ -119,7 +119,7 @@ export function RichTextEditor({ value, onChange, placeholder }) {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        {/* <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="write" className="flex items-center gap-2">
             <Heading1 className="w-4 h-4" />
             Write
@@ -128,13 +128,13 @@ export function RichTextEditor({ value, onChange, placeholder }) {
             <ImageIcon className="w-4 h-4" />
             Preview
           </TabsTrigger>
-        </TabsList>
+        </TabsList> */}
 
         <TabsContent value="write" className="space-y-3">
           {/* Formatting Toolbar */}
           <div className="flex flex-wrap gap-1 p-2 border rounded-md bg-muted/50">
             {/* Text Formatting */}
-            <div className="flex gap-1 border-r pr-2 mr-2">
+            {/* <div className="flex gap-1 border-r pr-2 mr-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -165,7 +165,7 @@ export function RichTextEditor({ value, onChange, placeholder }) {
               >
                 <Heading3 className="w-4 h-4" />
               </Button>
-            </div>
+            </div> */}
 
             <div className="flex gap-1 border-r pr-2 mr-2">
               <Button
@@ -235,7 +235,7 @@ export function RichTextEditor({ value, onChange, placeholder }) {
             </div>
 
             {/* Code */}
-            <div className="flex gap-1 border-r pr-2 mr-2">
+            {/* <div className="flex gap-1 border-r pr-2 mr-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -268,10 +268,10 @@ export function RichTextEditor({ value, onChange, placeholder }) {
               >
                 Code Block
               </Button>
-            </div>
+            </div> */}
 
             {/* Links and Images */}
-            <div className="flex gap-1">
+            {/* <div className="flex gap-1">
               <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={insertLink} title="Link">
                 <Link className="w-4 h-4" />
               </Button>
@@ -285,7 +285,7 @@ export function RichTextEditor({ value, onChange, placeholder }) {
               >
                 <ImageIcon className="w-4 h-4" />
               </Button>
-            </div>
+            </div> */}
           </div>
 
           {/* Text Area */}

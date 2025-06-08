@@ -5,7 +5,7 @@ import { use } from 'react';
 export const useGetAllComments = () => {
   const { data, error, isPending, isSuccess, refetch } = useQuery({
     queryKey: ['allComments'],
-    queryFn: () => getAllCommentsRequest(),
+    queryFn: () => getAllCommentsRequest,
     cacheTime: 0, // No cache
     staleTime: 0, // Always stale
     onSuccess: (data) => {

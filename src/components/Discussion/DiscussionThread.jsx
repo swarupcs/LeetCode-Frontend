@@ -50,6 +50,9 @@ export function DiscussionComments({
     }
   })
 
+
+
+
   return (
     <div className="space-y-6">
       {/* Comments Header */}
@@ -82,7 +85,7 @@ export function DiscussionComments({
           <Button
             variant="outline"
             className="w-full justify-start text-muted-foreground"
-            onClick={() => setShowCommentEditor(true)}
+            onClick={() => {setShowCommentEditor(true)}}
           >
             <MessageSquare className="w-4 h-4 mr-2" />
             Add a comment...
