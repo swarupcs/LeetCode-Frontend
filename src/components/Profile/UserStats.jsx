@@ -361,7 +361,7 @@ export function UserStats({ userProblemStats }) {
           <CardContent>
             <Tabs defaultValue='problems'>
               <TabsList className='mb-4'>
-                <TabsTrigger value='problems'>Problems Solved</TabsTrigger>
+                <TabsTrigger value='problems'>Total Submissions</TabsTrigger>
                 {/* <TabsTrigger value='hours'>Hours Spent</TabsTrigger> */}
               </TabsList>
               <TabsContent value='problems'>
