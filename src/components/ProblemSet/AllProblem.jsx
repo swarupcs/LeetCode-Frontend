@@ -184,28 +184,40 @@ export default function AllProblem() {
     }
   };
 
-  const handleDeleteProblem = (problem) => {
-    setProblemToDelete(problem);
-    setDeleteConfirmOpen(true);
-  };
+  const [openDropdownId, setSetOpenDropdownId] = useState(null);
 
-  const confirmDelete = async () => {
+
+  const handleDeleteProblem = async (problemId) => {
     try {
-      // Add your delete API call here
-      console.log('Deleting problem:', problemToDelete);
+      await deleteProblemMutation(problemId);
 
-      await deleteProblemMutation(problemToDelete.id);
+      setProblemToDelete(null);
 
       // After successful deletion, refresh the problems list
       await getAllProblems();
-
-      // Close the dialog
-      // setDeleteConfirmOpen(false);
-      setProblemToDelete(null);
+      
     } catch (error) {
-      console.error('Error deleting problem:', error);
+      console.error('Error handling delete problem:', error);
     }
   };
+
+  // const confirmDelete = async () => {
+  //   try {
+  //     // Add your delete API call here
+  //     console.log('Deleting problem:', problemToDelete);
+
+  //     await deleteProblemMutation(problemToDelete.id);
+
+  //     // After successful deletion, refresh the problems list
+  //     await getAllProblems();
+
+  //     // Close the dialog
+  //     // setDeleteConfirmOpen(false);
+  //     setProblemToDelete(null);
+  //   } catch (error) {
+  //     console.error('Error deleting problem:', error);
+  //   }
+  // };
 
 
 
@@ -327,102 +339,121 @@ export default function AllProblem() {
                   key={index}
                   className='flex items-center p-4 hover:bg-gray-800'
                 >
+                  {/* Solved Status */}
                   <div className='w-6 mr-4 text-green-500'>
                     {problem.isSolved ? '✓' : ' '}
                   </div>
-                  <div className='flex-1'>
+
+                  {/* Problem Title */}
+                  <div className='flex-1 min-w-0'>
                     <div className='flex items-center'>
                       <span className='mr-2 text-gray-400'>
                         {problem.problemNumber}.
                       </span>
                       <Link
                         to={`/problems/${problem.id}`}
-                        className='text-white hover:text-blue-400'
+                        className='text-white hover:text-blue-400 truncate'
                       >
                         {problem.title}
                       </Link>
                     </div>
                   </div>
-                  <div>
-                    <div className='flex flex-col items-end space-y-2'>
-                      {/* Difficulty */}
-                      <div>
-                        <span
-                          className={`${getDifficultyColor(
-                            problem.difficulty.toLowerCase()
-                          )} text-sm font-medium`}
-                        >
-                          {problem.difficulty}
-                        </span>
-                      </div>
 
-                      {/* Company Tags - All displayed */}
-                      {problem?.companyTags &&
-                        problem.companyTags.length > 0 && (
-                          <div className='flex flex-wrap gap-1 justify-end max-w-xs'>
-                            {problem.companyTags.map((company) => (
-                              <Badge
-                                key={company}
-                                variant='secondary'
-                                className='text-xs bg-blue-900 text-blue-200'
-                              >
-                                {company}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                  {/* Difficulty Column */}
+                  <div className='w-20 mr-4 text-center'>
+                    <span
+                      className={`${getDifficultyColor(
+                        problem.difficulty.toLowerCase()
+                      )} text-sm font-medium`}
+                    >
+                      {problem.difficulty}
+                    </span>
+                  </div>
 
-                      <div className='flex flex-wrap gap-1 mb-1'>
-                        {problem.tags.map((topic) => (
+                  {/* Company Tags Column */}
+                  <div className='w-48 mr-4 h-12 overflow-hidden'>
+                    {problem?.companyTags && problem.companyTags.length > 0 && (
+                      <div className='flex flex-wrap gap-1 justify-end h-full content-start'>
+                        {problem.companyTags.map((company) => (
                           <Badge
-                            key={topic}
+                            key={company}
                             variant='outline'
-                            className='text-xs border-gray-600 text-gray-300'
+                            className={`h-5 ${
+                              company === 'Demo'
+                                ? 'text-sm font-bold border-2 border-orange-400 text-orange-200 bg-gradient-to-r from-orange-600 to-red-500 shadow-lg shadow-orange-500/30 animate-pulse px-3 py-1'
+                                : 'text-xs border-gray-600 text-gray-300'
+                            }`}
                           >
-                            {topic}
+                            {company}
                           </Badge>
                         ))}
                       </div>
-                    </div>
-                    {/* Admin actions column */}
-                    {isAdmin && (
-                      <div className='ml-4'>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='h-8 w-8 text-gray-400 hover:text-white'
-                            >
-                              <MoreVertical className='h-4 w-4' />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align='end'
-                            className='bg-gray-800 border-gray-700 text-white'
-                          >
-                            <DropdownMenuItem asChild>
-                              <Link
-                                to={`/edit-problem/${problem.id}`}
-                                state={{ mode: 'update' }}
-                                className='cursor-pointer hover:bg-gray-700 focus:bg-gray-700 flex items-center'
-                              >
-                                <Pencil className='mr-2 h-4 w-4' />
-                                Update problem
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className='cursor-pointer text-red-500 hover:bg-gray-700 focus:bg-gray-700'
-                              onClick={() => handleDeleteProblem(problem)}
-                            >
-                              <Trash2 className='mr-2 h-4 w-4' />
-                              Delete problem
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
                     )}
                   </div>
+
+                  {/* Category Tags Column */}
+                  <div className='w-56 mr-4 h-12 overflow-hidden'>
+                    <div className='flex flex-wrap gap-1 justify-end h-full content-start'>
+                      {problem.tags.map((topic) => (
+                        <Badge
+                          key={topic}
+                          variant='outline'
+                          className='text-xs border-gray-600 text-gray-300 h-5'
+                        >
+                          {topic}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Admin Actions Column */}
+                  {isAdmin && (
+                    <div className='w-10 flex justify-center'>
+                      <DropdownMenu
+                        open={openDropdownId === problem.id}
+                        onOpenChange={(open) => {
+                          setSetOpenDropdownId(open ? problem.id : null);
+                        }}
+                      >
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            className='h-8 w-8 text-gray-400 hover:text-white'
+                          >
+                            <MoreVertical className='h-4 w-4' />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align='end'
+                          className='bg-gray-800 border-gray-700 text-white'
+                        >
+                          <DropdownMenuItem asChild>
+                            <Link
+                              to={`/edit-problem/${problem.id}`}
+                              state={{ mode: 'update' }}
+                              className='cursor-pointer hover:bg-gray-700 focus:bg-gray-700 flex items-center'
+                            >
+                              <Pencil className='mr-2 h-4 w-4' />
+                              Update problem
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className='cursor-pointer text-red-500 hover:bg-gray-700 focus:bg-gray-700'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProblemToDelete(problem);
+                              setDeleteConfirmOpen(true);
+                              setSetOpenDropdownId(null);
+                            }}
+                          >
+                            <Trash2 className='mr-2 h-4 w-4' />
+                            Delete problem
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -440,12 +471,21 @@ export default function AllProblem() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className='bg-gray-800 text-white hover:bg-gray-700'>
+            <AlertDialogCancel
+              className='bg-gray-800 text-white hover:bg-gray-700'
+              onClick={() => setProblemToDelete(null)}
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               className='bg-red-600 hover:bg-red-700 text-white'
-              onClick={confirmDelete}
+              onClick={() => {
+                if (problemToDelete) {
+                  handleDeleteProblem(problemToDelete.id);
+                  setProblemToDelete(null);
+                  setDeleteConfirmOpen(false);
+                }
+              }}
             >
               Delete
             </AlertDialogAction>
