@@ -58,7 +58,7 @@ export function UserDetails({ usersDetails }) {
         avatarUrl: usersDetails.image || '/placeholder.svg',
         level: usersDetails.role || 'Member',
         joinDate: isValidDate ? `${day} ${month} ${year}` : 'Unknown', // "17 May 2025"
-        badges: ['Active Member', 'Contributor'],
+        badges: ['Active Member'],
         createdDay: day,
         createdMonth: month,
         createdYear: year,
