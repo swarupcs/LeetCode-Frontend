@@ -514,7 +514,7 @@ export default function ProblemSheet() {
                             <span>{sheet.totalProblems}</span>
                           </div>
 
-                          <div className='w-full bg-gray-700/60 rounded h-2 overflow-hidden'>
+                          {/* <div className='w-full bg-gray-700/60 rounded h-2 overflow-hidden'>
                             <div
                               className={`h-full transition-all duration-300 ${
                                 sheet.totalProblems > 0
@@ -525,7 +525,7 @@ export default function ProblemSheet() {
                                 width: `${sheet.totalProblems > 0 ? 50 : 0}%`,
                               }}
                             />
-                          </div>
+                          </div> */}
                         </div>
                       </div>
 
