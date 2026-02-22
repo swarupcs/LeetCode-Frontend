@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Code2, Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { useSignup } from '@/hooks/auth/useSignup';
+import { Loader2 } from 'lucide-react';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -14,8 +16,26 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+const { signupMutation, isPending, isSuccess, isError, data, error } =
+  useSignup();
+
+  const navigate = useNavigate();
+
+  const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
+
+    try {
+      await signupMutation({
+        name,
+        email,
+        password,
+      });
+
+      navigate('/dashboard');
+      
+    } catch (error) {
+      console.error('Signup failed', error);
+    }
   };
 
   return (
@@ -128,10 +148,26 @@ export default function SignupPage() {
 
               <Button
                 type='submit'
+                disabled={
+                  isPending ||
+                  !name ||
+                  !email ||
+                  !password ||
+                  password !== confirmPassword
+                }
                 className='w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold mt-2'
               >
-                Create Account
-                <ArrowRight className='ml-2 h-4 w-4' />
+                {isPending ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Creating Account...
+                  </>
+                ) : (
+                  <>
+                    Create Account
+                    <ArrowRight className='ml-2 h-4 w-4' />
+                  </>
+                )}
               </Button>
 
               <div className='relative my-4'>

@@ -12,15 +12,37 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Code2, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { useSignin } from '@/hooks/auth/useSignin';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const navigate = useNavigate();
+
+  const { signinMutation, isPending, isSuccess, isError, data, error } =
+    useSignin();
+
+    // console.log({ isPending, isSuccess, isError, data, error });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Login logic here
+
+    try {
+      await signinMutation({
+        email,
+        password,
+      });
+
+      console.log({ isPending, isSuccess, isError, data, error });
+
+      navigate('/dashboard');
+    } catch (error) {
+      // no need to toast here
+      // your hook already handles toast in onError
+      console.error('Login failed', error);
+    }
   };
 
   return (
