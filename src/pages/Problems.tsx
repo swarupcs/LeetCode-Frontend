@@ -20,13 +20,14 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { Search, Check, ChevronRight, Code2 } from 'lucide-react';
-import { problems as mockProblems } from '@/data/problems';
 import { usePagination } from '@/hooks/use-pagination';
+import { useSelector } from 'react-redux';
+import { useProblems } from '@/hooks/problems/useGetAllProblems';
 
 const difficultyConfig = {
-  Easy: { class: 'difficulty-easy', count: 0 },
-  Medium: { class: 'difficulty-medium', count: 0 },
-  Hard: { class: 'difficulty-hard', count: 0 },
+  EASY: { class: 'difficulty-easy', label: 'Easy' },
+  MEDIUM: { class: 'difficulty-medium', label: 'Medium' },
+  HARD: { class: 'difficulty-hard', label: 'Hard' },
 };
 
 export default function ProblemsPage() {
@@ -34,23 +35,26 @@ export default function ProblemsPage() {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const publishedProblems = useMemo(
-    () => mockProblems.filter((p) => p.isPublished),
-    [],
-  );
+  const user = useSelector((state) => state.auth);
+
+  const { problems, isPending, isError } = useProblems(user?.id);
+
+  // Use problems from the hook as the source of truth
+  const publishedProblems = useMemo(() => problems ?? [], [problems]);
 
   const filteredProblems = useMemo(() => {
     return publishedProblems.filter((p) => {
       const matchesSearch =
         p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.number.toString().includes(searchQuery) ||
+        p.problemNumber.toString().includes(searchQuery) ||
         p.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesDifficulty =
-        difficultyFilter === 'all' || p.difficulty === difficultyFilter;
+        difficultyFilter === 'all' ||
+        p.difficulty === difficultyFilter.toUpperCase();
       const matchesStatus =
         statusFilter === 'all' ||
-        (statusFilter === 'solved' && p.solved) ||
-        (statusFilter === 'unsolved' && !p.solved);
+        (statusFilter === 'solved' && p.isSolved) ||
+        (statusFilter === 'unsolved' && !p.isSolved);
       return matchesSearch && matchesDifficulty && matchesStatus;
     });
   }, [searchQuery, difficultyFilter, statusFilter, publishedProblems]);
@@ -73,16 +77,34 @@ export default function ProblemsPage() {
     [filteredProblems, startIndex, endIndex],
   );
 
-  const solvedCount = publishedProblems.filter((p) => p.solved).length;
+  const solvedCount = publishedProblems.filter((p) => p.isSolved).length;
   const easyCount = publishedProblems.filter(
-    (p) => p.difficulty === 'Easy',
+    (p) => p.difficulty === 'EASY',
   ).length;
   const medCount = publishedProblems.filter(
-    (p) => p.difficulty === 'Medium',
+    (p) => p.difficulty === 'MEDIUM',
   ).length;
   const hardCount = publishedProblems.filter(
-    (p) => p.difficulty === 'Hard',
+    (p) => p.difficulty === 'HARD',
   ).length;
+
+  if (isPending) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <p className='text-muted-foreground'>Loading problems...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <p className='text-destructive'>
+          Failed to load problems. Please try again.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen'>
@@ -202,7 +224,7 @@ export default function ProblemsPage() {
                 >
                   {/* Status */}
                   <div className='hidden sm:flex items-center justify-center'>
-                    {problem.solved ? (
+                    {problem.isSolved ? (
                       <div className='flex h-5 w-5 items-center justify-center rounded-full bg-primary/20'>
                         <Check className='h-3 w-3 text-primary' />
                       </div>
@@ -214,7 +236,7 @@ export default function ProblemsPage() {
                   {/* Title & Tags */}
                   <div className='flex items-start gap-3'>
                     <span className='text-muted-foreground text-sm font-mono w-8 shrink-0'>
-                      {problem.number}.
+                      {problem.problemNumber}.
                     </span>
                     <div className='min-w-0'>
                       <div className='text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate'>
@@ -237,15 +259,18 @@ export default function ProblemsPage() {
                   <div>
                     <Badge
                       variant='outline'
-                      className={`text-xs font-medium border ${difficultyConfig[problem.difficulty].class}`}
+                      className={`text-xs font-medium border ${difficultyConfig[problem.difficulty]?.class}`}
                     >
-                      {problem.difficulty}
+                      {difficultyConfig[problem.difficulty]?.label ??
+                        problem.difficulty}
                     </Badge>
                   </div>
 
                   {/* Acceptance */}
                   <div className='text-sm text-muted-foreground'>
-                    {problem.acceptance}%
+                    {problem.acceptance != null
+                      ? `${problem.acceptance}%`
+                      : '—'}
                   </div>
 
                   {/* Arrow */}
