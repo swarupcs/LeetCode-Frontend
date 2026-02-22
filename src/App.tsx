@@ -96,7 +96,6 @@ const App = () => (
         <ThemeProvider defaultTheme='dark'>
           <TooltipProvider>
             <Toaster />
-            <Sonner />
             <BrowserRouter>
               <AppLayout />
             </BrowserRouter>
