@@ -46,3 +46,18 @@ export interface ApiErrorResponse {
   message: string;
   success?: boolean;
 }
+
+export interface SubmissionDetails {
+  id: string;
+  status: string;
+  language: string;
+  runtime?: number;
+  memory?: number;
+  createdAt: string;
+}
+
+export interface GetSubmissionResponse {
+  success: boolean;
+  message: string;
+  submissions: SubmissionDetails[];
+}

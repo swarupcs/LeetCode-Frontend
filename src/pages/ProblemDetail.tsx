@@ -48,6 +48,7 @@ import { useProblem } from '@/hooks/problems/useGetIndividualProblemDetails';
 import { useExecuteProblem } from '@/hooks/problems/useRunProblem';
 import { useSubmitCode } from '@/hooks/problems/useSubmitProblem';
 import type { SubmitCodeResponse } from '@/types/code.types';
+import { useUserSubmissionSpecificProblem } from '@/hooks/problems/useUserSubmissionSpecificProblem';
 
 // ─── Constants ────────────────────────────────────────────────────
 
@@ -82,36 +83,6 @@ interface Submission {
   testCasesPassed: number;
   totalTestCases: number;
   timestamp: Date;
-}
-
-function buildSeedSubmissions(solved: boolean): Submission[] {
-  if (!solved) return [];
-  return [
-    {
-      id: 'seed-2',
-      status: 'Wrong Answer',
-      language: 'Python',
-      runtime: '12 ms',
-      runtimePercentile: '62.3%',
-      memory: '16.8 MB',
-      memoryPercentile: '58.1%',
-      testCasesPassed: 14,
-      totalTestCases: 20,
-      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 'seed-1',
-      status: 'Accepted',
-      language: 'Python',
-      runtime: '4 ms',
-      runtimePercentile: '95.2%',
-      memory: '15.2 MB',
-      memoryPercentile: '87.6%',
-      testCasesPassed: 20,
-      totalTestCases: 20,
-      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    },
-  ];
 }
 
 function formatTimeAgo(date: Date): string {
@@ -265,11 +236,29 @@ export default function ProblemDetailPage() {
   const [activeCase, setActiveCase] = useState(0);
 
   // Seed submissions once problem loads
-  useEffect(() => {
-    if (problem) {
-      setSubmissions(buildSeedSubmissions(problem.isSolved ?? false));
-    }
-  }, [problem?.id]);
+
+  const problemId = problem?.id;
+
+  const { submissions: fetchedSubmissions, isPending: isLoadingSubmissions } =
+    useUserSubmissionSpecificProblem(problemId ?? '', true);
+
+useEffect(() => {
+  if (fetchedSubmissions.length > 0) {
+    const mapped: Submission[] = fetchedSubmissions.map((s: any) => ({
+      id: s.id,
+      status: s.status as Submission['status'],
+      language: s.language,
+      runtime: s.runtime ?? '—',
+      runtimePercentile: '—',
+      memory: s.memory ?? '—',
+      memoryPercentile: '—',
+      testCasesPassed: 0,
+      totalTestCases: 0,
+      timestamp: new Date(s.date),
+    }));
+    setSubmissions(mapped);
+  }
+}, [fetchedSubmissions]);
 
   // Reset all editor state when navigating to a different problem
   useEffect(() => {
@@ -281,6 +270,7 @@ export default function ProblemDetailPage() {
     setSubmitResult(null);
     setActiveSubmission(null);
     setActiveCase(0);
+    setSubmissions([]); // clear while new problem's submissions load
   }, [id]);
 
   const currentCode = useMemo(() => {
@@ -306,8 +296,6 @@ export default function ProblemDetailPage() {
       problemId: problem.id,
     });
   };
-
-  const problemId = problem?.id;
 
 const handleSubmit = useCallback(async () => {
   if (!problemId) return;
@@ -340,7 +328,10 @@ const handleSubmit = useCallback(async () => {
     timestamp: new Date(),
   };
 
-  setSubmissions((prev) => [...prev, newSubmission]);
+  setSubmissions((prev) => {
+    if (prev.some((s) => s.id === newSubmission.id)) return prev;
+    return [...prev, newSubmission];
+  });
   setActiveSubmission(newSubmission);
   setActiveTab('submissions');
 }, [problemId, currentCode, language, submitProblem]);
@@ -706,7 +697,14 @@ const handleSubmit = useCallback(async () => {
                     )}
                   </div>
 
-                  {submissions.length === 0 ? (
+                  {isLoadingSubmissions ? (
+                    <div className='flex flex-col items-center justify-center py-12 gap-2'>
+                      <Loader2 className='h-5 w-5 animate-spin text-primary' />
+                      <p className='text-xs text-muted-foreground'>
+                        Loading submissions...
+                      </p>
+                    </div>
+                  ) : submissions.length === 0 ? (
                     <div className='text-center py-12'>
                       <Clock className='h-8 w-8 text-muted-foreground mx-auto mb-3' />
                       <p className='text-sm text-muted-foreground'>
@@ -749,6 +747,7 @@ const handleSubmit = useCallback(async () => {
                                   : 'border-border/40 bg-surface-1/30 hover:bg-surface-2/40 hover:border-border/60'
                               }`}
                             >
+                              {/* Header row */}
                               <div className='flex items-center justify-between mb-1'>
                                 <div className='flex items-center gap-2'>
                                   <StatusIcon
@@ -765,6 +764,7 @@ const handleSubmit = useCallback(async () => {
                                 </span>
                               </div>
 
+                              {/* Stats row */}
                               <div className='grid grid-cols-3 gap-3 text-[11px] mt-2'>
                                 {[
                                   { label: 'Language', value: sub.language },
@@ -782,6 +782,7 @@ const handleSubmit = useCallback(async () => {
                                 ))}
                               </div>
 
+                              {/* Expanded detail */}
                               <AnimatePresence>
                                 {isActive && (
                                   <motion.div
@@ -792,6 +793,7 @@ const handleSubmit = useCallback(async () => {
                                     className='overflow-hidden'
                                   >
                                     <div className='mt-3 pt-3 border-t border-border/30 space-y-3'>
+                                      {/* Runtime / Memory cards */}
                                       <div className='grid grid-cols-2 gap-3'>
                                         {[
                                           {
@@ -827,49 +829,61 @@ const handleSubmit = useCallback(async () => {
                                               <div className='text-sm font-semibold text-foreground'>
                                                 {value}
                                               </div>
-                                              <div className='text-[10px] text-muted-foreground'>
-                                                Beats {percentile}
-                                              </div>
-                                              <div className='mt-1.5 h-1 bg-surface-3 rounded-full overflow-hidden'>
-                                                <div
-                                                  className={`h-full ${barColor} rounded-full transition-all`}
-                                                  style={{ width: percentile }}
-                                                />
-                                              </div>
+                                              {percentile !== '—' && (
+                                                <>
+                                                  <div className='text-[10px] text-muted-foreground'>
+                                                    Beats {percentile}
+                                                  </div>
+                                                  <div className='mt-1.5 h-1 bg-surface-3 rounded-full overflow-hidden'>
+                                                    <div
+                                                      className={`h-full ${barColor} rounded-full transition-all`}
+                                                      style={{
+                                                        width: percentile,
+                                                      }}
+                                                    />
+                                                  </div>
+                                                </>
+                                              )}
                                             </div>
                                           ),
                                         )}
                                       </div>
 
-                                      <div className='flex items-center justify-between text-[11px]'>
-                                        <span className='text-muted-foreground'>
-                                          Test cases
-                                        </span>
-                                        <span
-                                          className={
-                                            isAccepted
-                                              ? 'text-primary font-medium'
-                                              : 'text-destructive font-medium'
-                                          }
-                                        >
-                                          {sub.testCasesPassed}/
-                                          {sub.totalTestCases} passed
-                                        </span>
-                                      </div>
-                                      <div className='flex gap-1'>
-                                        {Array.from({
-                                          length: sub.totalTestCases,
-                                        }).map((_, i) => (
-                                          <div
-                                            key={i}
-                                            className={`h-1.5 flex-1 rounded-full ${
-                                              i < sub.testCasesPassed
-                                                ? 'bg-primary'
-                                                : 'bg-destructive/60'
-                                            }`}
-                                          />
-                                        ))}
-                                      </div>
+                                      {/* Test cases progress */}
+                                      {/* Test cases progress — only show if data exists */}
+                                      {sub.totalTestCases > 0 && (
+                                        <>
+                                          <div className='flex items-center justify-between text-[11px]'>
+                                            <span className='text-muted-foreground'>
+                                              Test cases
+                                            </span>
+                                            <span
+                                              className={
+                                                isAccepted
+                                                  ? 'text-primary font-medium'
+                                                  : 'text-destructive font-medium'
+                                              }
+                                            >
+                                              {sub.testCasesPassed}/
+                                              {sub.totalTestCases} passed
+                                            </span>
+                                          </div>
+                                          <div className='flex gap-1'>
+                                            {Array.from({
+                                              length: sub.totalTestCases,
+                                            }).map((_, i) => (
+                                              <div
+                                                key={i}
+                                                className={`h-1.5 flex-1 rounded-full ${
+                                                  i < sub.testCasesPassed
+                                                    ? 'bg-primary'
+                                                    : 'bg-destructive/60'
+                                                }`}
+                                              />
+                                            ))}
+                                          </div>
+                                        </>
+                                      )}
                                     </div>
                                   </motion.div>
                                 )}
