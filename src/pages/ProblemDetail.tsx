@@ -21,7 +21,6 @@ import {
   Play,
   Send,
   RotateCcw,
-  Check,
   ChevronLeft,
   ChevronRight,
   Lightbulb,
@@ -39,14 +38,18 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react';
+import { Palette } from 'lucide-react';
 import CodeEditor, {
   editorThemes,
   type EditorThemeId,
 } from '@/components/CodeEditor';
 import AIAssistantPanel from '@/components/ai/AIAssistantPanel';
-import { Palette } from 'lucide-react';
 import { useProblem } from '@/hooks/problems/useGetIndividualProblemDetails';
 import { useExecuteProblem } from '@/hooks/problems/useRunProblem';
+import { useSubmitCode } from '@/hooks/problems/useSubmitProblem';
+import type { SubmitCodeResponse } from '@/types/code.types';
+
+// ─── Constants ────────────────────────────────────────────────────
 
 const languageLabels: Record<string, string> = {
   python: 'Python',
@@ -54,7 +57,11 @@ const languageLabels: Record<string, string> = {
   java: 'Java',
 };
 
-// ─── Difficulty helpers ───────────────────────────────────────────
+const languageIdMap: Record<string, number> = {
+  python: 71,
+  javascript: 63,
+  java: 62,
+};
 
 const difficultyConfig: Record<string, { class: string; label: string }> = {
   EASY: { class: 'difficulty-easy', label: 'Easy' },
@@ -62,7 +69,7 @@ const difficultyConfig: Record<string, { class: string; label: string }> = {
   HARD: { class: 'difficulty-hard', label: 'Hard' },
 };
 
-// ─── Submission types ────────────────────────────────────────────
+// ─── Submission types ─────────────────────────────────────────────
 
 interface Submission {
   id: string;
@@ -75,33 +82,6 @@ interface Submission {
   testCasesPassed: number;
   totalTestCases: number;
   timestamp: Date;
-}
-
-function generateMockSubmission(lang: string, totalCases: number): Submission {
-  const statuses: Submission['status'][] = [
-    'Accepted',
-    'Wrong Answer',
-    'Time Limit Exceeded',
-    'Accepted',
-  ];
-  const status = statuses[Math.floor(Math.random() * statuses.length)];
-  const passed =
-    status === 'Accepted' ? totalCases : Math.floor(Math.random() * totalCases);
-  const runtime = `${Math.floor(Math.random() * 80) + 2} ms`;
-  const memory = `${(Math.random() * 20 + 10).toFixed(1)} MB`;
-
-  return {
-    id: crypto.randomUUID(),
-    status,
-    language: lang,
-    runtime,
-    runtimePercentile: `${(Math.random() * 40 + 55).toFixed(1)}%`,
-    memory,
-    memoryPercentile: `${(Math.random() * 40 + 50).toFixed(1)}%`,
-    testCasesPassed: passed,
-    totalTestCases: totalCases,
-    timestamp: new Date(),
-  };
 }
 
 function buildSeedSubmissions(solved: boolean): Submission[] {
@@ -142,30 +122,144 @@ function formatTimeAgo(date: Date): string {
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 }
+
+// ─── Shared sub-components ────────────────────────────────────────
+
+function TestCaseResultCard({ result }: { result: any }) {
+  return (
+    <div
+      className={`rounded-lg border p-3 ${
+        result.passed
+          ? 'border-primary/30 bg-primary/5'
+          : 'border-destructive/30 bg-destructive/5'
+      }`}
+    >
+      <div className='flex items-center justify-between mb-2'>
+        <span className='text-xs font-medium text-muted-foreground'>
+          Case {result.testCase}
+        </span>
+        <div className='flex items-center gap-1'>
+          {result.passed ? (
+            <CheckCircle2 className='h-3 w-3 text-primary' />
+          ) : (
+            <XCircle className='h-3 w-3 text-destructive' />
+          )}
+          <span
+            className={`text-xs font-medium ${
+              result.passed ? 'text-primary' : 'text-destructive'
+            }`}
+          >
+            {result.passed ? 'Passed' : 'Failed'}
+          </span>
+        </div>
+      </div>
+
+      <div className='font-mono text-xs space-y-1.5'>
+        <div className='flex gap-2'>
+          <span className='text-muted-foreground shrink-0'>Output:</span>
+          <span className={result.passed ? 'text-primary' : 'text-destructive'}>
+            {result.stdout ?? '—'}
+          </span>
+        </div>
+        <div className='flex gap-2'>
+          <span className='text-muted-foreground shrink-0'>Expected:</span>
+          <span className='text-foreground/80'>{result.expected}</span>
+        </div>
+        {result.stderr && (
+          <div className='flex gap-2'>
+            <span className='text-muted-foreground shrink-0'>Error:</span>
+            <span className='text-destructive'>{result.stderr}</span>
+          </div>
+        )}
+        {result.compile_output && (
+          <div className='flex gap-2'>
+            <span className='text-muted-foreground shrink-0'>Compile:</span>
+            <span className='text-destructive'>{result.compile_output}</span>
+          </div>
+        )}
+      </div>
+
+      <div className='flex items-center gap-4 mt-2 pt-2 border-t border-border/20'>
+        <div className='flex items-center gap-1 text-[10px] text-muted-foreground'>
+          <Timer className='h-3 w-3' />
+          {result.time}
+        </div>
+        <div className='flex items-center gap-1 text-[10px] text-muted-foreground'>
+          <Cpu className='h-3 w-3' />
+          {result.memory}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultsPanel({
+  results,
+  allPassed,
+  label,
+}: {
+  results: any[];
+  allPassed: boolean;
+  label: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className='space-y-3'
+    >
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-2'>
+          {allPassed ? (
+            <CheckCircle2 className='h-4 w-4 text-primary' />
+          ) : (
+            <XCircle className='h-4 w-4 text-destructive' />
+          )}
+          <span
+            className={`text-sm font-semibold ${
+              allPassed ? 'text-primary' : 'text-destructive'
+            }`}
+          >
+            {label}
+          </span>
+        </div>
+        <span className='text-xs text-muted-foreground'>
+          {results.filter((r) => r.passed).length}/{results.length} passed
+        </span>
+      </div>
+      {results.map((result: any) => (
+        <TestCaseResultCard key={result.testCase} result={result} />
+      ))}
+    </motion.div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────
 
 export default function ProblemDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  // ── Fetch problem from API ──────────────────────────────────────
   const { problem, isPending, isError } = useProblem(id ?? '');
   const {
     mutateAsync: runProblemMutation,
     isPending: isExecuting,
     data: executionData,
   } = useExecuteProblem();
+  const { submitProblem, isPending: isSubmitting } = useSubmitCode();
 
   const [language, setLanguage] = useState('python');
   const [code, setCode] = useState('');
   const [activeTab, setActiveTab] = useState('description');
   const [outputTab, setOutputTab] = useState('testcases');
   const [hasRun, setHasRun] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [editorTheme, setEditorTheme] = useState<EditorThemeId>('algodrill');
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [activeSubmission, setActiveSubmission] = useState<Submission | null>(
+    null,
+  );
+  const [submitResult, setSubmitResult] = useState<SubmitCodeResponse | null>(
     null,
   );
   const [activeCase, setActiveCase] = useState(0);
@@ -177,43 +271,34 @@ export default function ProblemDetailPage() {
     }
   }, [problem?.id]);
 
-  // Reset editor state when navigating to a different problem
+  // Reset all editor state when navigating to a different problem
   useEffect(() => {
     setLanguage('python');
     setCode('');
     setActiveTab('description');
     setOutputTab('testcases');
     setHasRun(false);
-    setHasSubmitted(false);
+    setSubmitResult(null);
     setActiveSubmission(null);
     setActiveCase(0);
   }, [id]);
 
-  // Use starter code if user hasn't typed anything yet
   const currentCode = useMemo(() => {
     if (code) return code;
     return problem?.codeSnippets?.[language] ?? '';
   }, [problem, language, code]);
 
-  const totalTestCases = problem?.examples?.length || 3;
-
   const handleLanguageChange = (lang: string) => {
     setLanguage(lang);
     setCode('');
     setHasRun(false);
-    setHasSubmitted(false);
-  };
-
-  const languageIdMap: Record<string, number> = {
-    python: 71,
-    javascript: 63,
-    java: 62,
+    setSubmitResult(null);
   };
 
   const handleRun = async () => {
     if (!problem?.id) return;
     setHasRun(true);
-    setHasSubmitted(false);
+    setSubmitResult(null);
     setOutputTab('output');
     await runProblemMutation({
       source_code: currentCode,
@@ -222,26 +307,52 @@ export default function ProblemDetailPage() {
     });
   };
 
-  const handleSubmit = useCallback(() => {
-    const newSubmission = generateMockSubmission(
-      languageLabels[language] || language,
-      totalTestCases,
-    );
-    setSubmissions((prev) => [...prev, newSubmission]);
-    setActiveSubmission(newSubmission);
-    setHasSubmitted(true);
-    setHasRun(true);
-    setOutputTab('output');
-    setActiveTab('submissions');
-  }, [language, totalTestCases]);
+  const problemId = problem?.id;
+
+const handleSubmit = useCallback(async () => {
+  if (!problemId) return;
+  setHasRun(true);
+  setOutputTab('output');
+  setSubmitResult(null);
+
+  const result = await submitProblem({
+    source_code: currentCode,
+    language_id: languageIdMap[language],
+    problemId,
+  });
+
+  setSubmitResult(result);
+
+  const [passed, total] = (result.submission.testCasesPassed ?? '0/0')
+    .split('/')
+    .map(Number);
+
+  const newSubmission: Submission = {
+    id: crypto.randomUUID(),
+    status: result.submission.status as Submission['status'],
+    language: result.submission.language,
+    runtime: result.submission.performance.totalTime,
+    runtimePercentile: '—',
+    memory: result.submission.performance.totalMemory,
+    memoryPercentile: '—',
+    testCasesPassed: passed,
+    totalTestCases: total,
+    timestamp: new Date(),
+  };
+
+  setSubmissions((prev) => [...prev, newSubmission]);
+  setActiveSubmission(newSubmission);
+  setActiveTab('submissions');
+}, [problemId, currentCode, language, submitProblem]);
 
   const handleReset = () => {
     setCode('');
     setHasRun(false);
-    setHasSubmitted(false);
+    setSubmitResult(null);
+    setActiveSubmission(null);
   };
 
-  // ── Loading state ───────────────────────────────────────────────
+  // ── Loading ───────────────────────────────────────────────────────
   if (isPending) {
     return (
       <div className='flex items-center justify-center min-h-[60vh]'>
@@ -253,7 +364,7 @@ export default function ProblemDetailPage() {
     );
   }
 
-  // ── Error / not found state ─────────────────────────────────────
+  // ── Error / not found ─────────────────────────────────────────────
   if (isError || !problem) {
     return (
       <div className='flex items-center justify-center min-h-[60vh]'>
@@ -273,7 +384,6 @@ export default function ProblemDetailPage() {
     );
   }
 
-  // ── Difficulty badge ────────────────────────────────────────────
   const diffClass =
     difficultyConfig[problem.difficulty]?.class ?? 'difficulty-medium';
   const diffLabel =
@@ -281,7 +391,7 @@ export default function ProblemDetailPage() {
 
   return (
     <div className='h-[calc(100vh-4rem)] flex flex-col'>
-      {/* Top Bar */}
+      {/* ── Top Bar ─────────────────────────────────────────────── */}
       <div className='flex items-center justify-between px-4 py-2 border-b border-border/50 bg-surface-1/50 backdrop-blur-sm shrink-0'>
         <div className='flex items-center gap-3'>
           <Link
@@ -307,7 +417,6 @@ export default function ProblemDetailPage() {
         </div>
 
         <div className='flex items-center gap-2'>
-          {/* Problem navigation — disabled since we don't have a list here */}
           <div className='hidden sm:flex items-center gap-1'>
             <Button
               variant='ghost'
@@ -332,12 +441,11 @@ export default function ProblemDetailPage() {
 
           <div className='w-px h-5 bg-border/50 hidden sm:block' />
 
-          {/* Actions */}
           <Button
             variant='ghost'
             size='sm'
             onClick={handleRun}
-            disabled={isExecuting}
+            disabled={isExecuting || isSubmitting}
             className='text-muted-foreground hover:text-foreground gap-1.5 h-7 text-xs'
           >
             {isExecuting ? (
@@ -347,20 +455,26 @@ export default function ProblemDetailPage() {
             )}
             {isExecuting ? 'Running...' : 'Run'}
           </Button>
+
           <Button
             size='sm'
             onClick={handleSubmit}
+            disabled={isSubmitting || isExecuting}
             className='bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 h-7 text-xs font-medium'
           >
-            <Send className='h-3 w-3' />
-            Submit
+            {isSubmitting ? (
+              <Loader2 className='h-3 w-3 animate-spin' />
+            ) : (
+              <Send className='h-3 w-3' />
+            )}
+            {isSubmitting ? 'Submitting...' : 'Submit'}
           </Button>
         </div>
       </div>
 
-      {/* Main Split Pane */}
+      {/* ── Main Split Pane ──────────────────────────────────────── */}
       <ResizablePanelGroup direction='horizontal' className='flex-1'>
-        {/* Left Panel - Problem Description */}
+        {/* Left Panel */}
         <ResizablePanel defaultSize={45} minSize={30}>
           <div className='h-full flex flex-col bg-background overflow-hidden'>
             <Tabs
@@ -401,12 +515,12 @@ export default function ProblemDetailPage() {
                 </TabsList>
               </div>
 
+              {/* Description */}
               <TabsContent
                 value='description'
                 className='flex-1 min-h-0 overflow-auto m-0 p-0'
               >
                 <div className='p-6 space-y-6'>
-                  {/* Tags */}
                   <div className='flex flex-wrap gap-1.5'>
                     {(problem.tags ?? []).map((tag) => (
                       <span
@@ -424,7 +538,6 @@ export default function ProblemDetailPage() {
                     )}
                   </div>
 
-                  {/* Description */}
                   <div className='prose prose-invert prose-sm max-w-none'>
                     {problem.description?.split('\n').map((line, i) => {
                       if (!line.trim()) return <br key={i} />;
@@ -462,7 +575,6 @@ export default function ProblemDetailPage() {
                     })}
                   </div>
 
-                  {/* Examples */}
                   {(problem.examples ?? []).length > 0 && (
                     <div className='space-y-4'>
                       {(problem.examples ?? []).map((example, i) => (
@@ -508,7 +620,6 @@ export default function ProblemDetailPage() {
                     </div>
                   )}
 
-                  {/* Constraints */}
                   {problem.constraints && (
                     <div>
                       <h3 className='text-sm font-semibold mb-3 text-foreground'>
@@ -537,6 +648,7 @@ export default function ProblemDetailPage() {
                 </div>
               </TabsContent>
 
+              {/* Hints */}
               <TabsContent
                 value='hints'
                 className='flex-1 overflow-auto m-0 p-0'
@@ -570,6 +682,7 @@ export default function ProblemDetailPage() {
                 </div>
               </TabsContent>
 
+              {/* Submissions */}
               <TabsContent
                 value='submissions'
                 className='flex-1 overflow-auto m-0 p-0'
@@ -653,30 +766,20 @@ export default function ProblemDetailPage() {
                               </div>
 
                               <div className='grid grid-cols-3 gap-3 text-[11px] mt-2'>
-                                <div>
-                                  <span className='text-muted-foreground block'>
-                                    Language
-                                  </span>
-                                  <span className='text-foreground font-medium'>
-                                    {sub.language}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className='text-muted-foreground block'>
-                                    Runtime
-                                  </span>
-                                  <span className='text-foreground font-medium'>
-                                    {sub.runtime}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className='text-muted-foreground block'>
-                                    Memory
-                                  </span>
-                                  <span className='text-foreground font-medium'>
-                                    {sub.memory}
-                                  </span>
-                                </div>
+                                {[
+                                  { label: 'Language', value: sub.language },
+                                  { label: 'Runtime', value: sub.runtime },
+                                  { label: 'Memory', value: sub.memory },
+                                ].map(({ label, value }) => (
+                                  <div key={label}>
+                                    <span className='text-muted-foreground block'>
+                                      {label}
+                                    </span>
+                                    <span className='text-foreground font-medium'>
+                                      {value}
+                                    </span>
+                                  </div>
+                                ))}
                               </div>
 
                               <AnimatePresence>
@@ -690,46 +793,52 @@ export default function ProblemDetailPage() {
                                   >
                                     <div className='mt-3 pt-3 border-t border-border/30 space-y-3'>
                                       <div className='grid grid-cols-2 gap-3'>
-                                        <div className='rounded-lg border border-border/30 p-2.5 bg-surface-2/20'>
-                                          <div className='flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1.5'>
-                                            <Timer className='h-3 w-3' />
-                                            Runtime
-                                          </div>
-                                          <div className='text-sm font-semibold text-foreground'>
-                                            {sub.runtime}
-                                          </div>
-                                          <div className='text-[10px] text-muted-foreground'>
-                                            Beats {sub.runtimePercentile}
-                                          </div>
-                                          <div className='mt-1.5 h-1 bg-surface-3 rounded-full overflow-hidden'>
+                                        {[
+                                          {
+                                            icon: Timer,
+                                            label: 'Runtime',
+                                            value: sub.runtime,
+                                            percentile: sub.runtimePercentile,
+                                            barColor: 'bg-primary',
+                                          },
+                                          {
+                                            icon: Cpu,
+                                            label: 'Memory',
+                                            value: sub.memory,
+                                            percentile: sub.memoryPercentile,
+                                            barColor: 'bg-accent',
+                                          },
+                                        ].map(
+                                          ({
+                                            icon: Icon,
+                                            label,
+                                            value,
+                                            percentile,
+                                            barColor,
+                                          }) => (
                                             <div
-                                              className='h-full bg-primary rounded-full transition-all'
-                                              style={{
-                                                width: sub.runtimePercentile,
-                                              }}
-                                            />
-                                          </div>
-                                        </div>
-                                        <div className='rounded-lg border border-border/30 p-2.5 bg-surface-2/20'>
-                                          <div className='flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1.5'>
-                                            <Cpu className='h-3 w-3' />
-                                            Memory
-                                          </div>
-                                          <div className='text-sm font-semibold text-foreground'>
-                                            {sub.memory}
-                                          </div>
-                                          <div className='text-[10px] text-muted-foreground'>
-                                            Beats {sub.memoryPercentile}
-                                          </div>
-                                          <div className='mt-1.5 h-1 bg-surface-3 rounded-full overflow-hidden'>
-                                            <div
-                                              className='h-full bg-accent rounded-full transition-all'
-                                              style={{
-                                                width: sub.memoryPercentile,
-                                              }}
-                                            />
-                                          </div>
-                                        </div>
+                                              key={label}
+                                              className='rounded-lg border border-border/30 p-2.5 bg-surface-2/20'
+                                            >
+                                              <div className='flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1.5'>
+                                                <Icon className='h-3 w-3' />
+                                                {label}
+                                              </div>
+                                              <div className='text-sm font-semibold text-foreground'>
+                                                {value}
+                                              </div>
+                                              <div className='text-[10px] text-muted-foreground'>
+                                                Beats {percentile}
+                                              </div>
+                                              <div className='mt-1.5 h-1 bg-surface-3 rounded-full overflow-hidden'>
+                                                <div
+                                                  className={`h-full ${barColor} rounded-full transition-all`}
+                                                  style={{ width: percentile }}
+                                                />
+                                              </div>
+                                            </div>
+                                          ),
+                                        )}
                                       </div>
 
                                       <div className='flex items-center justify-between text-[11px]'>
@@ -774,6 +883,7 @@ export default function ProblemDetailPage() {
                 </div>
               </TabsContent>
 
+              {/* AI */}
               <TabsContent
                 value='ai'
                 className='flex-1 overflow-hidden m-0 p-0'
@@ -793,10 +903,10 @@ export default function ProblemDetailPage() {
           className='bg-border/30 hover:bg-primary/30 transition-colors'
         />
 
-        {/* Right Panel - Code Editor + Testcase/Output below */}
+        {/* Right Panel */}
         <ResizablePanel defaultSize={55} minSize={35}>
           <div className='h-full flex flex-col bg-surface-1/30 overflow-hidden'>
-            {/* Editor Header - full width, fixed */}
+            {/* Editor Header */}
             <div className='flex items-center justify-between px-4 py-2 border-b border-border/50 shrink-0'>
               <div className='flex items-center gap-2'>
                 <FileCode className='h-3.5 w-3.5 text-muted-foreground' />
@@ -835,6 +945,7 @@ export default function ProblemDetailPage() {
                   </SelectContent>
                 </Select>
               </div>
+
               <Button
                 variant='ghost'
                 size='sm'
@@ -846,7 +957,6 @@ export default function ProblemDetailPage() {
               </Button>
             </div>
 
-            {/* Vertical split: Editor on top, Testcase/Output on bottom */}
             <ResizablePanelGroup
               direction='vertical'
               className='flex-1 min-h-0'
@@ -868,45 +978,42 @@ export default function ProblemDetailPage() {
                 className='bg-border/30 hover:bg-primary/30 transition-colors'
               />
 
-              {/* Testcase / Output Panel - BELOW the editor */}
+              {/* Testcase / Output Panel */}
               <ResizablePanel defaultSize={40} minSize={15}>
                 <div className='h-full flex flex-col bg-background'>
                   {/* Tab bar */}
                   <div className='flex items-center gap-1 px-4 h-10 border-b border-border/50 shrink-0'>
-                    <button
-                      onClick={() => setOutputTab('testcases')}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                        outputTab === 'testcases'
-                          ? 'bg-surface-2 text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <TestTube2 className='h-3 w-3' />
-                      Testcases
-                    </button>
-                    <button
-                      onClick={() => setOutputTab('output')}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                        outputTab === 'output'
-                          ? 'bg-surface-2 text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <Terminal className='h-3 w-3' />
-                      Output
-                      {hasRun && (
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${hasSubmitted ? 'bg-primary' : 'bg-amber'}`}
-                        />
-                      )}
-                    </button>
+                    {[
+                      { key: 'testcases', icon: TestTube2, label: 'Testcases' },
+                      { key: 'output', icon: Terminal, label: 'Output' },
+                    ].map(({ key, icon: Icon, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => setOutputTab(key)}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                          outputTab === key
+                            ? 'bg-surface-2 text-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Icon className='h-3 w-3' />
+                        {label}
+                        {key === 'output' && hasRun && (
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              submitResult ? 'bg-primary' : 'bg-amber'
+                            }`}
+                          />
+                        )}
+                      </button>
+                    ))}
                   </div>
 
                   {/* Content */}
                   <div className='flex-1 overflow-auto p-4'>
+                    {/* ── Testcases tab ── */}
                     {outputTab === 'testcases' && (
                       <div className='space-y-4'>
-                        {/* Case tabs */}
                         <div className='flex items-center gap-2'>
                           {(problem.testCases ?? []).map((_, i) => (
                             <button
@@ -923,33 +1030,37 @@ export default function ProblemDetailPage() {
                           ))}
                         </div>
 
-                        {/* Active case details */}
                         {(problem.testCases ?? [])[activeCase] && (
                           <div className='space-y-3'>
-                            <div>
-                              <label className='text-xs font-semibold text-foreground mb-1.5 block'>
-                                Input
-                              </label>
-                              <div className='w-full rounded-md border border-border/40 bg-surface-2/40 px-3 py-2 font-mono text-xs text-foreground/90 min-h-[36px] whitespace-pre-wrap'>
-                                {(problem.testCases ?? [])[activeCase].input}
+                            {[
+                              {
+                                label: 'Input',
+                                value: (problem.testCases ?? [])[activeCase]
+                                  .input,
+                              },
+                              {
+                                label: 'Expected Output',
+                                value: (problem.testCases ?? [])[activeCase]
+                                  .expected,
+                              },
+                            ].map(({ label, value }) => (
+                              <div key={label}>
+                                <label className='text-xs font-semibold text-foreground mb-1.5 block'>
+                                  {label}
+                                </label>
+                                <div className='w-full rounded-md border border-border/40 bg-surface-2/40 px-3 py-2 font-mono text-xs text-foreground/90 min-h-[36px] whitespace-pre-wrap'>
+                                  {value}
+                                </div>
                               </div>
-                            </div>
-                            <div>
-                              <label className='text-xs font-semibold text-foreground mb-1.5 block'>
-                                Expected Output
-                              </label>
-                              <div className='w-full rounded-md border border-border/40 bg-surface-2/40 px-3 py-2 font-mono text-xs text-foreground/90 min-h-[36px] whitespace-pre-wrap'>
-                                {(problem.testCases ?? [])[activeCase].expected}
-                              </div>
-                            </div>
+                            ))}
                           </div>
                         )}
                       </div>
                     )}
 
+                    {/* ── Output tab ── */}
                     {outputTab === 'output' && (
                       <div>
-                        {/* Not yet run */}
                         {!hasRun ? (
                           <div className='text-center py-8'>
                             <Terminal className='h-6 w-6 text-muted-foreground mx-auto mb-2' />
@@ -957,160 +1068,104 @@ export default function ProblemDetailPage() {
                               Run your code to see output
                             </p>
                           </div>
-                        ) : /* Running spinner */
-                        isExecuting ? (
+                        ) : isExecuting || isSubmitting ? (
                           <div className='flex flex-col items-center justify-center py-8 gap-2'>
                             <Loader2 className='h-5 w-5 animate-spin text-primary' />
                             <p className='text-xs text-muted-foreground'>
-                              Executing...
+                              {isSubmitting ? 'Submitting...' : 'Executing...'}
                             </p>
                           </div>
-                        ) : /* Real execution results */
-                        executionData?.results ? (
+                        ) : submitResult ? (
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className='space-y-3'
                           >
-                            {/* Summary header */}
-                            <div className='flex items-center justify-between'>
-                              <div className='flex items-center gap-2'>
-                                {executionData.allPassed ? (
-                                  <CheckCircle2 className='h-4 w-4 text-primary' />
-                                ) : (
-                                  <XCircle className='h-4 w-4 text-destructive' />
-                                )}
-                                <span
-                                  className={`text-sm font-semibold ${
-                                    executionData.allPassed
-                                      ? 'text-primary'
-                                      : 'text-destructive'
-                                  }`}
-                                >
-                                  {executionData.allPassed
-                                    ? 'All Tests Passed'
-                                    : 'Some Tests Failed'}
+                            {/* Summary card */}
+                            <div
+                              className={`rounded-lg border p-4 ${
+                                submitResult.allPassedFlag
+                                  ? 'border-primary/30 bg-primary/5'
+                                  : 'border-destructive/30 bg-destructive/5'
+                              }`}
+                            >
+                              <div className='flex items-center justify-between mb-3'>
+                                <div className='flex items-center gap-2'>
+                                  {submitResult.allPassedFlag ? (
+                                    <CheckCircle2 className='h-5 w-5 text-primary' />
+                                  ) : (
+                                    <XCircle className='h-5 w-5 text-destructive' />
+                                  )}
+                                  <span
+                                    className={`text-sm font-semibold ${
+                                      submitResult.allPassedFlag
+                                        ? 'text-primary'
+                                        : 'text-destructive'
+                                    }`}
+                                  >
+                                    {submitResult.submission.status}
+                                  </span>
+                                </div>
+                                <span className='text-xs text-muted-foreground'>
+                                  {submitResult.submission.testCasesPassed}{' '}
+                                  passed
                                 </span>
                               </div>
-                              <span className='text-xs text-muted-foreground'>
-                                {
-                                  executionData.results.filter(
-                                    (r: any) => r.passed,
-                                  ).length
-                                }
-                                /{executionData.results.length} passed
-                              </span>
-                            </div>
 
-                            {/* Per test case results */}
-                            {executionData.results.map((result: any) => (
-                              <div
-                                key={result.testCase}
-                                className={`rounded-lg border p-3 ${
-                                  result.passed
-                                    ? 'border-primary/30 bg-primary/5'
-                                    : 'border-destructive/30 bg-destructive/5'
-                                }`}
-                              >
-                                <div className='flex items-center justify-between mb-2'>
-                                  <span className='text-xs font-medium text-muted-foreground'>
-                                    Case {result.testCase}
-                                  </span>
-                                  <div className='flex items-center gap-1'>
-                                    {result.passed ? (
-                                      <CheckCircle2 className='h-3 w-3 text-primary' />
-                                    ) : (
-                                      <XCircle className='h-3 w-3 text-destructive' />
-                                    )}
-                                    <span
-                                      className={`text-xs font-medium ${
-                                        result.passed
-                                          ? 'text-primary'
-                                          : 'text-destructive'
-                                      }`}
-                                    >
-                                      {result.passed ? 'Passed' : 'Failed'}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <div className='font-mono text-xs space-y-1.5'>
-                                  <div className='flex gap-2'>
-                                    <span className='text-muted-foreground shrink-0'>
-                                      Output:
-                                    </span>
-                                    <span
-                                      className={
-                                        result.passed
-                                          ? 'text-primary'
-                                          : 'text-destructive'
-                                      }
-                                    >
-                                      {result.stdout ?? '—'}
-                                    </span>
-                                  </div>
-                                  <div className='flex gap-2'>
-                                    <span className='text-muted-foreground shrink-0'>
-                                      Expected:
-                                    </span>
-                                    <span className='text-foreground/80'>
-                                      {result.expected}
-                                    </span>
-                                  </div>
-                                  {result.stderr && (
-                                    <div className='flex gap-2'>
-                                      <span className='text-muted-foreground shrink-0'>
-                                        Error:
-                                      </span>
-                                      <span className='text-destructive'>
-                                        {result.stderr}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {result.compile_output && (
-                                    <div className='flex gap-2'>
-                                      <span className='text-muted-foreground shrink-0'>
-                                        Compile:
-                                      </span>
-                                      <span className='text-destructive'>
-                                        {result.compile_output}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Runtime & memory */}
-                                <div className='flex items-center gap-4 mt-2 pt-2 border-t border-border/20'>
-                                  <div className='flex items-center gap-1 text-[10px] text-muted-foreground'>
+                              <div className='grid grid-cols-2 gap-3'>
+                                <div className='rounded-md bg-surface-2/40 px-3 py-2'>
+                                  <div className='flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1'>
                                     <Timer className='h-3 w-3' />
-                                    {result.time}
+                                    Runtime
                                   </div>
-                                  <div className='flex items-center gap-1 text-[10px] text-muted-foreground'>
+                                  <div className='text-sm font-semibold text-foreground'>
+                                    {
+                                      submitResult.submission.performance
+                                        .totalTime
+                                    }
+                                  </div>
+                                </div>
+                                <div className='rounded-md bg-surface-2/40 px-3 py-2'>
+                                  <div className='flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1'>
                                     <Cpu className='h-3 w-3' />
-                                    {result.memory}
+                                    Memory
+                                  </div>
+                                  <div className='text-sm font-semibold text-foreground'>
+                                    {
+                                      submitResult.submission.performance
+                                        .totalMemory
+                                    }
                                   </div>
                                 </div>
                               </div>
-                            ))}
+
+                              {submitResult.message && (
+                                <p className='text-xs text-muted-foreground mt-3 pt-3 border-t border-border/20'>
+                                  {submitResult.message}
+                                </p>
+                              )}
+                            </div>
                           </motion.div>
-                        ) : /* Fallback: no data yet after run */
-                        null}
+                        ) : executionData?.results ? (
+                          <ResultsPanel
+                            results={executionData.results}
+                            allPassed={executionData.allPassed}
+                            label={
+                              executionData.allPassed
+                                ? 'All Tests Passed'
+                                : 'Some Tests Failed'
+                            }
+                          />
+                        ) : null}
                       </div>
                     )}
                   </div>
-                  {/* end content */}
                 </div>
-                {/* end testcase/output panel inner */}
               </ResizablePanel>
-              {/* end bottom panel */}
             </ResizablePanelGroup>
-            {/* end vertical group */}
           </div>
-          {/* end right panel outer */}
         </ResizablePanel>
-        {/* end right panel */}
       </ResizablePanelGroup>
-      {/* end horizontal group */}
     </div>
   );
 }
