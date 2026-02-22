@@ -32,6 +32,10 @@ import CreateSheet from './pages/CreateSheet';
 import CreateRoadmap from './pages/CreateRoadmap';
 import NotFound from './pages/NotFound';
 import { Toaster } from 'sonner';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+
+import { store, persistor } from '@/app/store';
 
 const queryClient = new QueryClient();
 
@@ -86,17 +90,21 @@ function AppLayout() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme='dark'>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppLayout />
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <Provider store={store}>
+    <PersistGate loading={null} persistor={persistor}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme='dark'>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppLayout />
+            </BrowserRouter>
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </PersistGate>
+  </Provider>
 );
 
 export default App;
