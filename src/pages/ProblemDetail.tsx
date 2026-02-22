@@ -37,19 +37,29 @@ import {
   Cpu,
   Hash,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
-import { problems, getProblemWithDefaults } from '@/data/problems';
 import CodeEditor, {
   editorThemes,
   type EditorThemeId,
 } from '@/components/CodeEditor';
 import AIAssistantPanel from '@/components/ai/AIAssistantPanel';
 import { Palette } from 'lucide-react';
+import { useProblem } from '@/hooks/problems/useGetIndividualProblemDetails';
+
 
 const languageLabels: Record<string, string> = {
   python: 'Python',
   javascript: 'JavaScript',
   java: 'Java',
+};
+
+// ─── Difficulty helpers ───────────────────────────────────────────
+
+const difficultyConfig: Record<string, { class: string; label: string }> = {
+  EASY: { class: 'difficulty-easy', label: 'Easy' },
+  MEDIUM: { class: 'difficulty-medium', label: 'Medium' },
+  HARD: { class: 'difficulty-hard', label: 'Hard' },
 };
 
 // ─── Submission types ────────────────────────────────────────────
@@ -94,7 +104,6 @@ function generateMockSubmission(lang: string, totalCases: number): Submission {
   };
 }
 
-// Build seed history for problems that are already solved
 function buildSeedSubmissions(solved: boolean): Submission[] {
   if (!solved) return [];
   return [
@@ -139,10 +148,9 @@ function formatTimeAgo(date: Date): string {
 
 export default function ProblemDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const problemId = parseInt(id || '1', 10);
 
-  const rawProblem = problems.find((p) => p.id === problemId);
-  const problem = rawProblem ? getProblemWithDefaults(rawProblem) : null;
+  // ── Fetch problem from API ──────────────────────────────────────
+  const { problem, isPending, isError } = useProblem(id ?? '');
 
   const [language, setLanguage] = useState('python');
   const [code, setCode] = useState('');
@@ -151,29 +159,33 @@ export default function ProblemDetailPage() {
   const [hasRun, setHasRun] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [editorTheme, setEditorTheme] = useState<EditorThemeId>('algodrill');
-  const [submissions, setSubmissions] = useState<Submission[]>(() =>
-    buildSeedSubmissions(problem?.solved ?? false),
-  );
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [activeSubmission, setActiveSubmission] = useState<Submission | null>(
     null,
   );
 
-  // Reset state when navigating to a different problem
+  // Seed submissions once problem loads
   useEffect(() => {
-    setLanguage('python');
+    if (problem) {
+      setSubmissions(buildSeedSubmissions(problem.isSolved ?? false));
+    }
+  }, [problem?.id]);
+
+  // Reset editor state when navigating to a different problem
+  useEffect(() => {
+    setLanguage('javascript');
     setCode('');
     setActiveTab('description');
     setOutputTab('testcases');
     setHasRun(false);
     setHasSubmitted(false);
-    setSubmissions(buildSeedSubmissions(problem?.solved ?? false));
     setActiveSubmission(null);
-  }, [problemId]);
+  }, [id]);
 
-  // Set initial code when problem/language changes
+  // Use starter code if user hasn't typed anything yet
   const currentCode = useMemo(() => {
     if (code) return code;
-    return problem?.starterCode?.[language] || '';
+    return problem?.codeSnippets?.[language] ?? '';
   }, [problem, language, code]);
 
   const totalTestCases = problem?.examples?.length || 3;
@@ -210,13 +222,20 @@ export default function ProblemDetailPage() {
     setHasSubmitted(false);
   };
 
-  // Navigation
-  const currentIndex = problems.findIndex((p) => p.id === problemId);
-  const prevProblem = currentIndex > 0 ? problems[currentIndex - 1] : null;
-  const nextProblem =
-    currentIndex < problems.length - 1 ? problems[currentIndex + 1] : null;
+  // ── Loading state ───────────────────────────────────────────────
+  if (isPending) {
+    return (
+      <div className='flex items-center justify-center min-h-[60vh]'>
+        <div className='flex flex-col items-center gap-3'>
+          <Loader2 className='h-8 w-8 animate-spin text-primary' />
+          <p className='text-sm text-muted-foreground'>Loading problem...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (!problem) {
+  // ── Error / not found state ─────────────────────────────────────
+  if (isError || !problem) {
     return (
       <div className='flex items-center justify-center min-h-[60vh]'>
         <div className='text-center'>
@@ -235,12 +254,11 @@ export default function ProblemDetailPage() {
     );
   }
 
-  const difficultyClass =
-    problem.difficulty === 'Easy'
-      ? 'difficulty-easy'
-      : problem.difficulty === 'Medium'
-        ? 'difficulty-medium'
-        : 'difficulty-hard';
+  // ── Difficulty badge ────────────────────────────────────────────
+  const diffClass =
+    difficultyConfig[problem.difficulty]?.class ?? 'difficulty-medium';
+  const diffLabel =
+    difficultyConfig[problem.difficulty]?.label ?? problem.difficulty;
 
   return (
     <div className='h-[calc(100vh-4rem)] flex flex-col'>
@@ -255,66 +273,42 @@ export default function ProblemDetailPage() {
           </Link>
           <div className='flex items-center gap-2'>
             <span className='text-sm font-mono text-muted-foreground'>
-              {problem.number}.
+              {problem.problemNumber}.
             </span>
             <h1 className='text-sm font-semibold truncate max-w-[200px] sm:max-w-none'>
               {problem.title}
             </h1>
             <Badge
               variant='outline'
-              className={`text-[10px] font-medium border ${difficultyClass} hidden sm:inline-flex`}
+              className={`text-[10px] font-medium border ${diffClass} hidden sm:inline-flex`}
             >
-              {problem.difficulty}
+              {diffLabel}
             </Badge>
           </div>
         </div>
 
         <div className='flex items-center gap-2'>
-          {/* Problem navigation */}
+          {/* Problem navigation — disabled since we don't have a list here */}
           <div className='hidden sm:flex items-center gap-1'>
-            {prevProblem ? (
-              <Link to={`/problem/${prevProblem.id}`}>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='h-7 w-7 text-muted-foreground hover:text-foreground'
-                >
-                  <ChevronLeft className='h-4 w-4' />
-                </Button>
-              </Link>
-            ) : (
-              <Button
-                variant='ghost'
-                size='icon'
-                className='h-7 w-7 text-muted-foreground/30'
-                disabled
-              >
-                <ChevronLeft className='h-4 w-4' />
-              </Button>
-            )}
+            <Button
+              variant='ghost'
+              size='icon'
+              className='h-7 w-7 text-muted-foreground/30'
+              disabled
+            >
+              <ChevronLeft className='h-4 w-4' />
+            </Button>
             <span className='text-xs text-muted-foreground tabular-nums'>
-              {currentIndex + 1}/{problems.length}
+              #{problem.problemNumber}
             </span>
-            {nextProblem ? (
-              <Link to={`/problem/${nextProblem.id}`}>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='h-7 w-7 text-muted-foreground hover:text-foreground'
-                >
-                  <ChevronRight className='h-4 w-4' />
-                </Button>
-              </Link>
-            ) : (
-              <Button
-                variant='ghost'
-                size='icon'
-                className='h-7 w-7 text-muted-foreground/30'
-                disabled
-              >
-                <ChevronRight className='h-4 w-4' />
-              </Button>
-            )}
+            <Button
+              variant='ghost'
+              size='icon'
+              className='h-7 w-7 text-muted-foreground/30'
+              disabled
+            >
+              <ChevronRight className='h-4 w-4' />
+            </Button>
           </div>
 
           <div className='w-px h-5 bg-border/50 hidden sm:block' />
@@ -344,14 +338,13 @@ export default function ProblemDetailPage() {
       <ResizablePanelGroup direction='horizontal' className='flex-1'>
         {/* Left Panel - Problem Description */}
         <ResizablePanel defaultSize={45} minSize={30}>
-          <div className='h-full flex flex-col bg-background'>
-            {/* Description Tabs */}
+          <div className='h-full flex flex-col bg-background overflow-hidden'>
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
-              className='flex-1 flex flex-col'
+              className='flex-1 flex flex-col min-h-0'
             >
-              <div className='border-b border-border/50 px-4'>
+              <div className='border-b border-border/50 px-4 shrink-0'>
                 <TabsList className='bg-transparent h-10 gap-1 p-0'>
                   <TabsTrigger
                     value='description'
@@ -386,12 +379,12 @@ export default function ProblemDetailPage() {
 
               <TabsContent
                 value='description'
-                className='flex-1 overflow-auto m-0 p-0'
+                className='flex-1 min-h-0 overflow-auto m-0 p-0'
               >
                 <div className='p-6 space-y-6'>
                   {/* Tags */}
                   <div className='flex flex-wrap gap-1.5'>
-                    {problem.tags.map((tag) => (
+                    {(problem.tags ?? []).map((tag) => (
                       <span
                         key={tag}
                         className='text-[11px] px-2 py-0.5 rounded-md bg-surface-3 text-muted-foreground border border-border/30'
@@ -399,17 +392,18 @@ export default function ProblemDetailPage() {
                         {tag}
                       </span>
                     ))}
-                    <span className='text-[11px] px-2 py-0.5 rounded-md bg-surface-3 text-muted-foreground border border-border/30 flex items-center gap-1'>
-                      <BarChart3 className='h-3 w-3' />
-                      {problem.acceptance}% acceptance
-                    </span>
+                    {problem.acceptance != null && (
+                      <span className='text-[11px] px-2 py-0.5 rounded-md bg-surface-3 text-muted-foreground border border-border/30 flex items-center gap-1'>
+                        <BarChart3 className='h-3 w-3' />
+                        {problem.acceptance}% acceptance
+                      </span>
+                    )}
                   </div>
 
                   {/* Description */}
                   <div className='prose prose-invert prose-sm max-w-none'>
                     {problem.description?.split('\n').map((line, i) => {
                       if (!line.trim()) return <br key={i} />;
-                      // Simple markdown bold
                       const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
                       return (
                         <p
@@ -445,57 +439,62 @@ export default function ProblemDetailPage() {
                   </div>
 
                   {/* Examples */}
-                  <div className='space-y-4'>
-                    {problem.examples?.map((example, i) => (
-                      <div
-                        key={i}
-                        className='rounded-lg border border-border/40 overflow-hidden'
-                      >
-                        <div className='px-4 py-2 bg-surface-2/50 border-b border-border/30'>
-                          <span className='text-xs font-semibold text-muted-foreground'>
-                            Example {i + 1}
-                          </span>
-                        </div>
-                        <div className='p-4 bg-surface-1/30 space-y-2 font-mono text-sm'>
-                          <div className='flex gap-2'>
-                            <span className='text-muted-foreground shrink-0'>
-                              Input:
-                            </span>
-                            <span className='text-foreground/90'>
-                              {example.input}
+                  {(problem.examples ?? []).length > 0 && (
+                    <div className='space-y-4'>
+                      {(problem.examples ?? []).map((example, i) => (
+                        <div
+                          key={i}
+                          className='rounded-lg border border-border/40 overflow-hidden'
+                        >
+                          <div className='px-4 py-2 bg-surface-2/50 border-b border-border/30'>
+                            <span className='text-xs font-semibold text-muted-foreground'>
+                              Example {i + 1}
                             </span>
                           </div>
-                          <div className='flex gap-2'>
-                            <span className='text-muted-foreground shrink-0'>
-                              Output:
-                            </span>
-                            <span className='text-primary'>
-                              {example.output}
-                            </span>
-                          </div>
-                          {example.explanation && (
-                            <div className='flex gap-2 pt-1 border-t border-border/20'>
+                          <div className='p-4 bg-surface-1/30 space-y-2 font-mono text-sm'>
+                            <div className='flex gap-2'>
                               <span className='text-muted-foreground shrink-0'>
-                                Explanation:
+                                Input:
                               </span>
-                              <span className='text-foreground/70 font-sans text-xs'>
-                                {example.explanation}
+                              <span className='text-foreground/90'>
+                                {example.input}
                               </span>
                             </div>
-                          )}
+                            <div className='flex gap-2'>
+                              <span className='text-muted-foreground shrink-0'>
+                                Output:
+                              </span>
+                              <span className='text-primary'>
+                                {example.output}
+                              </span>
+                            </div>
+                            {example.explanation && (
+                              <div className='flex gap-2 pt-1 border-t border-border/20'>
+                                <span className='text-muted-foreground shrink-0'>
+                                  Explanation:
+                                </span>
+                                <span className='text-foreground/70 font-sans text-xs'>
+                                  {example.explanation}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Constraints */}
-                  {problem.constraints && problem.constraints.length > 0 && (
+                  {problem.constraints && (
                     <div>
                       <h3 className='text-sm font-semibold mb-3 text-foreground'>
                         Constraints
                       </h3>
                       <ul className='space-y-1.5'>
-                        {problem.constraints.map((c, i) => (
+                        {(Array.isArray(problem.constraints)
+                          ? problem.constraints
+                          : problem.constraints.split('\n').filter(Boolean)
+                        ).map((c, i) => (
                           <li
                             key={i}
                             className='flex items-start gap-2 text-sm text-foreground/80'
@@ -527,22 +526,21 @@ export default function ProblemDetailPage() {
                       without giving away the solution.
                     </p>
                     <div className='space-y-3'>
-                      <button className='w-full text-left p-3 rounded-lg border border-border/40 bg-surface-2/30 hover:bg-surface-2/60 transition-colors group'>
-                        <div className='flex items-center justify-between'>
-                          <span className='text-sm font-medium'>Hint 1</span>
-                          <span className='text-xs text-muted-foreground group-hover:text-primary transition-colors'>
-                            Click to reveal
-                          </span>
-                        </div>
-                      </button>
-                      <button className='w-full text-left p-3 rounded-lg border border-border/40 bg-surface-2/30 hover:bg-surface-2/60 transition-colors group'>
-                        <div className='flex items-center justify-between'>
-                          <span className='text-sm font-medium'>Hint 2</span>
-                          <span className='text-xs text-muted-foreground group-hover:text-primary transition-colors'>
-                            Click to reveal
-                          </span>
-                        </div>
-                      </button>
+                      {[1, 2].map((n) => (
+                        <button
+                          key={n}
+                          className='w-full text-left p-3 rounded-lg border border-border/40 bg-surface-2/30 hover:bg-surface-2/60 transition-colors group'
+                        >
+                          <div className='flex items-center justify-between'>
+                            <span className='text-sm font-medium'>
+                              Hint {n}
+                            </span>
+                            <span className='text-xs text-muted-foreground group-hover:text-primary transition-colors'>
+                              Click to reveal
+                            </span>
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -553,7 +551,6 @@ export default function ProblemDetailPage() {
                 className='flex-1 overflow-auto m-0 p-0'
               >
                 <div className='p-6 space-y-4'>
-                  {/* Submission count */}
                   <div className='flex items-center justify-between'>
                     <div className='flex items-center gap-2'>
                       <Hash className='h-3.5 w-3.5 text-muted-foreground' />
@@ -615,7 +612,6 @@ export default function ProblemDetailPage() {
                                   : 'border-border/40 bg-surface-1/30 hover:bg-surface-2/40 hover:border-border/60'
                               }`}
                             >
-                              {/* Submission row */}
                               <div className='flex items-center justify-between mb-1'>
                                 <div className='flex items-center gap-2'>
                                   <StatusIcon
@@ -659,7 +655,6 @@ export default function ProblemDetailPage() {
                                 </div>
                               </div>
 
-                              {/* Expanded details */}
                               <AnimatePresence>
                                 {isActive && (
                                   <motion.div
@@ -670,7 +665,6 @@ export default function ProblemDetailPage() {
                                     className='overflow-hidden'
                                   >
                                     <div className='mt-3 pt-3 border-t border-border/30 space-y-3'>
-                                      {/* Performance bars */}
                                       <div className='grid grid-cols-2 gap-3'>
                                         <div className='rounded-lg border border-border/30 p-2.5 bg-surface-2/20'>
                                           <div className='flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1.5'>
@@ -714,7 +708,6 @@ export default function ProblemDetailPage() {
                                         </div>
                                       </div>
 
-                                      {/* Test cases */}
                                       <div className='flex items-center justify-between text-[11px]'>
                                         <span className='text-muted-foreground'>
                                           Test cases
@@ -756,6 +749,7 @@ export default function ProblemDetailPage() {
                   )}
                 </div>
               </TabsContent>
+
               <TabsContent
                 value='ai'
                 className='flex-1 overflow-hidden m-0 p-0'
@@ -884,7 +878,7 @@ export default function ProblemDetailPage() {
                   <div className='flex-1 overflow-auto p-4'>
                     {outputTab === 'testcases' && (
                       <div className='space-y-3'>
-                        {problem.examples?.map((example, i) => (
+                        {(problem.examples ?? []).map((example, i) => (
                           <div
                             key={i}
                             className='rounded-lg border border-border/30 p-3 bg-surface-2/20'
@@ -972,7 +966,7 @@ export default function ProblemDetailPage() {
                             animate={{ opacity: 1, y: 0 }}
                             className='space-y-3'
                           >
-                            {problem.examples?.map((example, i) => (
+                            {(problem.examples ?? []).map((example, i) => (
                               <div
                                 key={i}
                                 className='rounded-lg border border-border/30 p-3 bg-surface-2/20'
