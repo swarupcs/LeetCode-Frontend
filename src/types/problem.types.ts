@@ -4,7 +4,7 @@ export interface Problem {
   problemNumber: number;
   description: string;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-  constraints: string; // string, not array
+  constraints: string;
   tags: string[];
   examples: {
     input: string;
@@ -27,12 +27,7 @@ export interface Problem {
   userId: string;
   createdAt: string;
   updatedAt: string;
-  // from the problems list endpoint
   isSolved?: boolean;
-}
-
-export interface ApiError {
-  message: string;
 }
 
 export interface GetAllProblemsPayload {
@@ -40,6 +35,8 @@ export interface GetAllProblemsPayload {
 }
 
 export interface GetAllProblemsResponse {
+  success: boolean;
+  message: string;
   problems: Problem[];
 }
 

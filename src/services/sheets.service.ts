@@ -13,6 +13,8 @@ export const getAllSheetDetailsRequest =
     try {
       const { data } =
         await axiosInstance.get<GetAllSheetDetailsResponse>('/sheets');
+
+        console.log("data", data)
       return data;
     } catch (err) {
       const error = err as AxiosError<ApiErrorResponse>;

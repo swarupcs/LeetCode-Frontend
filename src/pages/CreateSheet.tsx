@@ -19,11 +19,10 @@ import { toast } from 'sonner';
 import { TagInput } from '@/components/admin/TagInput';
 import { TopicEditor } from '@/components/admin/TopicEditor';
 
-
+import type { SheetTopic } from '@/types/sheet.types';
+import type { Problem } from '@/types/problem.types';
 import { useCreateSheet } from '@/hooks/sheets/useCreateSheet';
 import { useProblems } from '@/hooks/problems/useGetAllProblems';
-import type { SheetTopic } from '@/types/sheet.types';
-
 
 export default function CreateSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,11 +30,11 @@ export default function CreateSheetPage() {
 
   const isEditing = !!id;
 
-  // Hooks
   const { createSheetMutation, isPending } = useCreateSheet();
   const { problems, isLoading: isProblemsLoading } = useProblems();
 
-  // Form state
+  console.log("problems", problems)
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<
@@ -64,7 +63,11 @@ export default function CreateSheetPage() {
     }
 
     try {
-      await createSheetMutation({ name, description });
+      await createSheetMutation({
+        name,
+        description,
+        topics,
+      });
       toast.success('Sheet created', {
         description: `"${name}" has been created successfully.`,
       });
@@ -120,7 +123,7 @@ export default function CreateSheetPage() {
                 </h1>
                 <p className='text-sm text-muted-foreground'>
                   {isEditing
-                    ? `Editing sheet`
+                    ? 'Editing sheet'
                     : 'Organize problems into a structured practice sheet'}
                 </p>
               </div>
@@ -191,7 +194,6 @@ export default function CreateSheetPage() {
           </motion.div>
         )}
 
-        {/* Section Tabs */}
         <Tabs value={activeSection} onValueChange={setActiveSection}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -224,7 +226,6 @@ export default function CreateSheetPage() {
               transition={{ delay: 0.15 }}
               className='glass-card p-6 space-y-6'
             >
-              {/* Name */}
               <div>
                 <Label
                   htmlFor='name'
@@ -245,7 +246,6 @@ export default function CreateSheetPage() {
                 </p>
               </div>
 
-              {/* Description */}
               <div>
                 <Label
                   htmlFor='desc'
@@ -266,7 +266,6 @@ export default function CreateSheetPage() {
                 </p>
               </div>
 
-              {/* Difficulty */}
               <div>
                 <Label className='text-sm font-semibold mb-2 block'>
                   Difficulty Level
@@ -309,7 +308,6 @@ export default function CreateSheetPage() {
                 </Select>
               </div>
 
-              {/* Tags */}
               <TagInput tags={tags} onChange={setTags} />
             </motion.div>
           </TabsContent>
@@ -330,7 +328,7 @@ export default function CreateSheetPage() {
                 <TopicEditor
                   topics={topics}
                   onChange={setTopics}
-                  problems={problems}
+                  problems={problems as Problem[]}
                 />
               )}
             </motion.div>

@@ -19,11 +19,13 @@ export default function SheetsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { sheets, isLoading, isError, error } = useGetAllSheetDetails();
 
+  // console.log('sheets', sheets);
+
   const filteredSheets = useMemo(() => {
     return sheets.filter(
       (s) =>
-        s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.description.toLowerCase().includes(searchQuery.toLowerCase()),
+        s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.description?.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [searchQuery, sheets]);
 

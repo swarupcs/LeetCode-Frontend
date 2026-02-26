@@ -11,8 +11,10 @@ export const useGetAllSheetDetails = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 
+  console.log("query", query)
+
   return {
     ...query,
-    sheets: query.data?.sheets ?? [],
+    sheets: query.data?.sdeSheets ?? [],
   };
 };

@@ -1,22 +1,22 @@
 export interface Sheet {
-  _id: string;
-  title: string;
+  id: string;
+  name: string;
   description: string;
-  totalProblems: number;
-  solvedProblems: number;
+  userId: string;
   createdAt: string;
   updatedAt: string;
+  user: SheetUser;
+  problems: string[];
+  totalProblems: number;
+  allTags: string[];
+  allDifficulties: string[];
 }
 
 export interface GetAllSheetDetailsResponse {
-  sheets: Sheet[];
+  sdeSheets: Sheet[];
   message?: string;
 }
 
-export interface CreateSheetPayload {
-  name: string;
-  description: string;
-}
 
 export interface CreateSheetResponse {
   sheet: Sheet;
@@ -33,3 +33,18 @@ export interface SheetTopic {
   name: string;
   problemIds: string[];
 }
+
+export interface SheetUser {
+  id: string;
+  name: string;
+  username: string;
+  image: string;
+}
+
+
+export interface CreateSheetPayload {
+  name: string;
+  description: string;
+  topics: SheetTopic[];
+}
+
