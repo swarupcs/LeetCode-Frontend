@@ -10,33 +10,40 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Search, Target, ArrowRight } from 'lucide-react';
-import { sheets, getSheetStats } from '@/data/sheets';
+import { BookOpen, Search, Target, ArrowRight, Loader2 } from 'lucide-react';
+
+import type { Sheet } from '@/types/sheet.types';
+import { useGetAllSheetDetails } from '@/hooks/sheets/useGetAllSheetDetails';
 
 export default function SheetsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-
-  const publishedSheets = useMemo(
-    () => sheets.filter((s) => s.isPublished),
-    [],
-  );
-
-  const sheetsWithStats = useMemo(
-    () => publishedSheets.map((s) => ({ ...s, stats: getSheetStats(s) })),
-    [publishedSheets],
-  );
+  const { sheets, isLoading, isError, error } = useGetAllSheetDetails();
 
   const filteredSheets = useMemo(() => {
-    return sheetsWithStats.filter(
+    return sheets.filter(
       (s) =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())),
+        s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.description.toLowerCase().includes(searchQuery.toLowerCase()),
     );
-  }, [searchQuery, sheetsWithStats]);
+  }, [searchQuery, sheets]);
 
-  const totalProblems = sheetsWithStats.reduce((a, b) => a + b.stats.total, 0);
-  const totalSolved = sheetsWithStats.reduce((a, b) => a + b.stats.solved, 0);
+  if (isLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <p className='text-destructive text-sm'>
+          {error?.message ?? 'Failed to load sheets. Please try again.'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen'>
@@ -51,8 +58,7 @@ export default function SheetsPage() {
             Problem Sheets
           </h1>
           <p className='text-muted-foreground'>
-            {totalSolved} of {totalProblems} problems solved across{' '}
-            {publishedSheets.length} sheets
+            {sheets.length} sheets available
           </p>
         </motion.div>
 
@@ -65,7 +71,7 @@ export default function SheetsPage() {
         >
           <div className='glass-card p-4 text-center'>
             <div className='text-2xl font-bold text-foreground'>
-              {publishedSheets.length}
+              {sheets.length}
             </div>
             <div className='text-xs text-muted-foreground mt-1'>
               Total Sheets
@@ -73,7 +79,7 @@ export default function SheetsPage() {
           </div>
           <div className='glass-card p-4 text-center'>
             <div className='text-2xl font-bold text-primary'>
-              {totalProblems}
+              {sheets.reduce((acc, s) => acc + (s.totalProblems ?? 0), 0)}
             </div>
             <div className='text-xs text-muted-foreground mt-1'>
               Total Problems
@@ -81,12 +87,11 @@ export default function SheetsPage() {
           </div>
           <div className='glass-card p-4 text-center col-span-2 md:col-span-1'>
             <div className='text-2xl font-bold text-[hsl(var(--emerald))]'>
-              {totalProblems > 0
-                ? Math.round((totalSolved / totalProblems) * 100)
-                : 0}
-              %
+              {sheets.reduce((acc, s) => acc + (s.solvedProblems ?? 0), 0)}
             </div>
-            <div className='text-xs text-muted-foreground mt-1'>Completion</div>
+            <div className='text-xs text-muted-foreground mt-1'>
+              Total Solved
+            </div>
           </div>
         </motion.div>
 
@@ -100,7 +105,7 @@ export default function SheetsPage() {
           <div className='relative'>
             <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground' />
             <Input
-              placeholder='Search sheets by title, description, or tag...'
+              placeholder='Search sheets by title or description...'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className='pl-10 bg-surface-1 border-border/50 h-10'
@@ -108,57 +113,54 @@ export default function SheetsPage() {
           </div>
         </motion.div>
 
+        {/* Empty State */}
+        {filteredSheets.length === 0 && (
+          <div className='flex flex-col items-center justify-center py-20 text-center'>
+            <Search className='h-10 w-10 text-muted-foreground mb-3' />
+            <p className='text-muted-foreground text-sm'>
+              No sheets found matching{' '}
+              <span className='text-foreground font-medium'>
+                "{searchQuery}"
+              </span>
+            </p>
+          </div>
+        )}
+
         {/* Sheets Grid */}
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-          {filteredSheets.map((sheet, i) => {
+          {filteredSheets.map((sheet: Sheet, i: number) => {
             const progress =
-              sheet.stats.total > 0
-                ? Math.round((sheet.stats.solved / sheet.stats.total) * 100)
+              sheet.totalProblems > 0
+                ? Math.round((sheet.solvedProblems / sheet.totalProblems) * 100)
                 : 0;
+
             return (
               <motion.div
-                key={sheet.id}
+                key={sheet._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + i * 0.05 }}
               >
-                <Link to={`/sheets/${sheet.id}`} className='block h-full'>
+                <Link to={`/sheets/${sheet._id}`} className='block h-full'>
                   <Card className='glass-card border-border/50 group hover:border-primary/30 transition-all duration-300 cursor-pointer h-full flex flex-col'>
                     <CardHeader className='pb-3'>
                       <div className='flex items-start justify-between'>
                         <div className='p-2 rounded-lg bg-primary/10 border border-primary/20'>
                           <Target className='h-5 w-5 text-primary' />
                         </div>
-                        <Badge
-                          variant='outline'
-                          className='text-xs border-border/50 text-muted-foreground'
-                        >
-                          {sheet.difficulty}
-                        </Badge>
                       </div>
                       <CardTitle className='text-lg mt-3 group-hover:text-primary transition-colors'>
-                        {sheet.name}
+                        {sheet.title}
                       </CardTitle>
                       <CardDescription className='text-sm line-clamp-2'>
                         {sheet.description}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className='mt-auto'>
-                      <div className='flex flex-wrap gap-1 mb-4'>
-                        {sheet.tags.slice(0, 4).map((tag) => (
-                          <span
-                            key={tag}
-                            className='text-[10px] px-1.5 py-0.5 rounded bg-surface-3 text-muted-foreground'
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-
                       <div className='space-y-2'>
                         <div className='flex justify-between text-sm'>
                           <span className='text-muted-foreground'>
-                            {sheet.stats.solved}/{sheet.stats.total} solved
+                            {sheet.solvedProblems}/{sheet.totalProblems} solved
                           </span>
                           <span className='text-primary font-medium'>
                             {progress}%

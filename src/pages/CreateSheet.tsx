@@ -14,24 +14,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  ArrowLeft,
-  Save,
-  Eye,
-  Settings2,
-  Layers,
-  Plus,
-  Trash2,
-  GripVertical,
-  Search,
-  Check,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, Save, Eye, Settings2, Layers, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { sheets, type Sheet, type SheetTopic } from '@/data/sheets';
-import { problems } from '@/data/problems';
 import { TagInput } from '@/components/admin/TagInput';
 import { TopicEditor } from '@/components/admin/TopicEditor';
+
+
+import { useCreateSheet } from '@/hooks/sheets/useCreateSheet';
+import { useProblems } from '@/hooks/problems/useGetAllProblems';
+import type { SheetTopic } from '@/types/sheet.types';
+
 
 export default function CreateSheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -39,20 +31,20 @@ export default function CreateSheetPage() {
 
   const isEditing = !!id;
 
-  const existingSheet = isEditing ? sheets.find((s) => s.id === id) : null;
+  // Hooks
+  const { createSheetMutation, isPending } = useCreateSheet();
+  const { problems, isLoading: isProblemsLoading } = useProblems();
 
   // Form state
-  const [name, setName] = useState(existingSheet?.name || '');
-  const [description, setDescription] = useState(
-    existingSheet?.description || '',
-  );
-  const [difficulty, setDifficulty] = useState<Sheet['difficulty']>(
-    existingSheet?.difficulty || 'Mixed',
-  );
-  const [tags, setTags] = useState<string[]>(existingSheet?.tags || []);
-  const [topics, setTopics] = useState<SheetTopic[]>(
-    existingSheet?.topics || [{ name: '', problemIds: [] }],
-  );
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [difficulty, setDifficulty] = useState<
+    'Easy' | 'Medium' | 'Hard' | 'Mixed'
+  >('Mixed');
+  const [tags, setTags] = useState<string[]>([]);
+  const [topics, setTopics] = useState<SheetTopic[]>([
+    { name: '', problemIds: [] },
+  ]);
   const [activeSection, setActiveSection] = useState('basics');
 
   const totalProblems = useMemo(() => {
@@ -60,29 +52,39 @@ export default function CreateSheetPage() {
     return ids.size;
   }, [topics]);
 
-  const canSave = name.trim() && topics.some((t) => t.name.trim());
+  const canSave =
+    name.trim() && topics.some((t) => t.name.trim()) && !isPending;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!canSave) {
-toast.error('Missing fields', {
-  description: 'Please provide a name and at least one named topic.',
-});
+      toast.error('Missing fields', {
+        description: 'Please provide a name and at least one named topic.',
+      });
       return;
     }
 
-    toast.success(`${isEditing ? 'Sheet updated' : 'Sheet created'}`, {
-      description: `"${name}" has been ${isEditing ? 'updated' : 'created'} successfully.`,
-    });
-    navigate('/admin/sheets');
+    try {
+      await createSheetMutation({ name, description });
+      toast.success('Sheet created', {
+        description: `"${name}" has been created successfully.`,
+      });
+      navigate('/admin/sheets');
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      toast.error('Failed to create sheet', {
+        description:
+          error?.message ?? 'Something went wrong. Please try again.',
+      });
+    }
   };
 
   const handlePreview = () => {
-    if (existingSheet) {
-      window.open(`/sheets/${existingSheet.id}`, '_blank');
+    if (isEditing && id) {
+      window.open(`/sheets/${id}`, '_blank');
     } else {
-toast.warning('Save first', {
-  description: 'Save the sheet before previewing.',
-});
+      toast.warning('Save first', {
+        description: 'Save the sheet before previewing.',
+      });
     }
   };
 
@@ -118,7 +120,7 @@ toast.warning('Save first', {
                 </h1>
                 <p className='text-sm text-muted-foreground'>
                   {isEditing
-                    ? `Editing "${existingSheet?.name}"`
+                    ? `Editing sheet`
                     : 'Organize problems into a structured practice sheet'}
                 </p>
               </div>
@@ -138,11 +140,19 @@ toast.warning('Save first', {
               <Button
                 size='sm'
                 onClick={handleSave}
-                disabled={!canSave}
+                disabled={!canSave || isPending}
                 className='bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 font-medium'
               >
-                <Save className='h-3.5 w-3.5' />
-                {isEditing ? 'Save Changes' : 'Create Sheet'}
+                {isPending ? (
+                  <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                ) : (
+                  <Save className='h-3.5 w-3.5' />
+                )}
+                {isPending
+                  ? 'Saving...'
+                  : isEditing
+                    ? 'Save Changes'
+                    : 'Create Sheet'}
               </Button>
             </div>
           </div>
@@ -206,7 +216,7 @@ toast.warning('Save first', {
             </TabsList>
           </motion.div>
 
-          {/* Basics */}
+          {/* Basics Tab */}
           <TabsContent value='basics'>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -263,7 +273,9 @@ toast.warning('Save first', {
                 </Label>
                 <Select
                   value={difficulty}
-                  onValueChange={(v) => setDifficulty(v as Sheet['difficulty'])}
+                  onValueChange={(v) =>
+                    setDifficulty(v as 'Easy' | 'Medium' | 'Hard' | 'Mixed')
+                  }
                 >
                   <SelectTrigger className='bg-surface-1 border-border/50 h-11 w-full max-w-xs'>
                     <SelectValue />
@@ -302,7 +314,7 @@ toast.warning('Save first', {
             </motion.div>
           </TabsContent>
 
-          {/* Topics & Problems */}
+          {/* Topics & Problems Tab */}
           <TabsContent value='topics'>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -310,7 +322,17 @@ toast.warning('Save first', {
               transition={{ delay: 0.15 }}
               className='glass-card p-6'
             >
-              <TopicEditor topics={topics} onChange={setTopics} />
+              {isProblemsLoading ? (
+                <div className='flex items-center justify-center py-16'>
+                  <Loader2 className='h-6 w-6 animate-spin text-primary' />
+                </div>
+              ) : (
+                <TopicEditor
+                  topics={topics}
+                  onChange={setTopics}
+                  problems={problems}
+                />
+              )}
             </motion.div>
           </TabsContent>
         </Tabs>
@@ -329,15 +351,25 @@ toast.warning('Save first', {
           </Link>
           <div className='flex items-center gap-3'>
             <div className='text-xs text-muted-foreground hidden sm:block'>
-              {!canSave && 'Add a name and at least one topic to save'}
+              {!canSave &&
+                !isPending &&
+                'Add a name and at least one topic to save'}
             </div>
             <Button
               onClick={handleSave}
-              disabled={!canSave}
+              disabled={!canSave || isPending}
               className='bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 font-medium'
             >
-              <Save className='h-4 w-4' />
-              {isEditing ? 'Save Changes' : 'Create Sheet'}
+              {isPending ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : (
+                <Save className='h-4 w-4' />
+              )}
+              {isPending
+                ? 'Saving...'
+                : isEditing
+                  ? 'Save Changes'
+                  : 'Create Sheet'}
             </Button>
           </div>
         </motion.div>
