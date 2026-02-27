@@ -1,56 +1,114 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
 import {
   ArrowLeft,
   Search,
   CheckCircle2,
   Circle,
-  ChevronDown,
   ChevronRight,
-  Target,
   BookOpen,
-  Filter,
+  Loader2,
 } from 'lucide-react';
-import { sheets, getSheetProblems, getSheetStats } from '@/data/sheets';
-import type { Problem } from '@/data/problems';
+import { useGetSheetById } from '@/hooks/sheets/useGetSheetById';
+import type { SheetProblem, SheetProblemInSheet } from '@/types/sheet.types';
 
 const difficultyClass: Record<string, string> = {
-  Easy: 'difficulty-easy',
-  Medium: 'difficulty-medium',
-  Hard: 'difficulty-hard',
+  EASY: 'difficulty-easy',
+  MEDIUM: 'difficulty-medium',
+  HARD: 'difficulty-hard',
 };
+
+const difficultyOrder = ['EASY', 'MEDIUM', 'HARD'];
 
 export default function SheetDetail() {
   const { id } = useParams<{ id: string }>();
-  const sheet = sheets.find((s) => s.id === id);
+  const { sheet, isLoading, isError, error } = useGetSheetById(id);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
-  const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    new Set(difficultyOrder),
+  );
 
-  // Expand all by default on mount
-  const topicData = useMemo(() => {
-    if (!sheet) return [];
-    return getSheetProblems(sheet);
+  useEffect(() => {
+    if (sheet) {
+      setExpandedGroups(new Set(difficultyOrder));
+    }
   }, [sheet]);
 
-  // Auto-expand all topics initially
-  useMemo(() => {
-    if (topicData.length > 0 && expandedTopics.size === 0) {
-      setExpandedTopics(new Set(topicData.map((t) => t.topic)));
-    }
-  }, [topicData]);
+  const stats = useMemo(() => {
+    if (!sheet) return { total: 0, solved: 0, easy: 0, medium: 0, hard: 0 };
+    const problems = sheet.problems.map((p) => p.problem);
+    return {
+      total: problems.length,
+      solved: problems.filter((p) => p.isSolved).length,
+      easy: problems.filter((p) => p.difficulty === 'EASY').length,
+      medium: problems.filter((p) => p.difficulty === 'MEDIUM').length,
+      hard: problems.filter((p) => p.difficulty === 'HARD').length,
+    };
+  }, [sheet]);
 
-  if (!sheet) {
+  const progress =
+    stats.total > 0 ? Math.round((stats.solved / stats.total) * 100) : 0;
+
+  // Group by difficulty, unwrapping p.problem
+  const groupedByDifficulty = useMemo(() => {
+    if (!sheet) return [];
+    return difficultyOrder
+      .map((diff) => ({
+        difficulty: diff,
+        items: sheet.problems.filter((p) => p.problem.difficulty === diff),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [sheet]);
+
+  const filterItem = (item: SheetProblemInSheet) => {
+    const p = item.problem;
+    const matchesSearch =
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesDifficulty =
+      difficultyFilter === 'All' || p.difficulty === difficultyFilter;
+    const matchesStatus =
+      statusFilter === 'All' ||
+      (statusFilter === 'Solved' && p.isSolved) ||
+      (statusFilter === 'Unsolved' && !p.isSolved);
+    return matchesSearch && matchesDifficulty && matchesStatus;
+  };
+
+  const filteredGroups = groupedByDifficulty
+    .map((g) => ({ ...g, items: g.items.filter(filterItem) }))
+    .filter((g) => g.items.length > 0);
+
+  const toggleGroup = (diff: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      next.has(diff) ? next.delete(diff) : next.add(diff);
+      return next;
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
+
+  if (isError || !sheet) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
-          <h2 className='text-xl font-semibold mb-2'>Sheet not found</h2>
+          <h2 className='text-xl font-semibold mb-2'>
+            {isError
+              ? (error?.message ?? 'Failed to load sheet.')
+              : 'Sheet not found'}
+          </h2>
           <Link to='/sheets' className='text-primary hover:underline text-sm'>
             ← Back to Sheets
           </Link>
@@ -59,44 +117,12 @@ export default function SheetDetail() {
     );
   }
 
-  const stats = getSheetStats(sheet);
-  const progress = Math.round((stats.solved / stats.total) * 100);
-
-  const toggleTopic = (topic: string) => {
-    setExpandedTopics((prev) => {
-      const next = new Set(prev);
-      next.has(topic) ? next.delete(topic) : next.add(topic);
-      return next;
-    });
-  };
-
-  const filterProblem = (p: Problem) => {
-    const matchesSearch =
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesDifficulty =
-      difficultyFilter === 'All' || p.difficulty === difficultyFilter;
-    const matchesStatus =
-      statusFilter === 'All' ||
-      (statusFilter === 'Solved' && p.solved) ||
-      (statusFilter === 'Unsolved' && !p.solved);
-    return matchesSearch && matchesDifficulty && matchesStatus;
-  };
-
-  const filteredTopics = topicData
-    .map((t) => ({
-      ...t,
-      problems: t.problems.filter(filterProblem),
-    }))
-    .filter((t) => t.problems.length > 0);
-
-  const difficulties = ['All', 'Easy', 'Medium', 'Hard'];
+  const difficulties = ['All', 'EASY', 'MEDIUM', 'HARD'];
   const statuses = ['All', 'Solved', 'Unsolved'];
 
   return (
     <div className='min-h-screen'>
       <div className='mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Back link */}
         <Link
           to='/sheets'
           className='inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6'
@@ -120,23 +146,28 @@ export default function SheetDetail() {
                 {sheet.name}
               </h1>
               <p className='text-muted-foreground text-sm'>
-                {sheet.description}
+                {sheet.description || 'No description provided.'}
+              </p>
+              <p className='text-xs text-muted-foreground/60 mt-1'>
+                by {sheet.user.name} · @{sheet.user.username}
               </p>
             </div>
           </div>
 
           {/* Tags */}
-          <div className='flex flex-wrap gap-1.5 mb-6'>
-            {sheet.tags.map((tag) => (
-              <Badge
-                key={tag}
-                variant='outline'
-                className='text-xs border-border/50 text-muted-foreground'
-              >
-                {tag}
-              </Badge>
-            ))}
-          </div>
+          {sheet.allTags.length > 0 && (
+            <div className='flex flex-wrap gap-1.5 mb-6'>
+              {sheet.allTags.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant='outline'
+                  className='text-xs border-border/50 text-muted-foreground'
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
 
           {/* Stats bar */}
           <div className='glass-card p-5'>
@@ -205,7 +236,7 @@ export default function SheetDetail() {
               className='pl-10 bg-surface-1 border-border/50 h-9 text-sm'
             />
           </div>
-          <div className='flex gap-2'>
+          <div className='flex gap-2 flex-wrap'>
             <div className='flex items-center gap-1 bg-surface-1 border border-border/50 rounded-lg px-1'>
               {difficulties.map((d) => (
                 <button
@@ -217,7 +248,7 @@ export default function SheetDetail() {
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {d}
+                  {d === 'All' ? 'All' : d.charAt(0) + d.slice(1).toLowerCase()}
                 </button>
               ))}
             </div>
@@ -239,22 +270,23 @@ export default function SheetDetail() {
           </div>
         </motion.div>
 
-        {/* Topic sections */}
+        {/* Problem groups */}
         <div className='space-y-3'>
-          {filteredTopics.map((section, i) => {
-            const isExpanded = expandedTopics.has(section.topic);
-            const topicSolved = section.problems.filter((p) => p.solved).length;
+          {filteredGroups.map((group, i) => {
+            const isExpanded = expandedGroups.has(group.difficulty);
+            const groupSolved = group.items.filter(
+              (item) => item.problem.isSolved,
+            ).length;
             return (
               <motion.div
-                key={section.topic}
+                key={group.difficulty}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 + i * 0.03 }}
                 className='glass-card overflow-hidden'
               >
-                {/* Topic header */}
                 <button
-                  onClick={() => toggleTopic(section.topic)}
+                  onClick={() => toggleGroup(group.difficulty)}
                   className='w-full flex items-center justify-between p-4 hover:bg-surface-2/50 transition-colors'
                 >
                   <div className='flex items-center gap-3'>
@@ -264,28 +296,30 @@ export default function SheetDetail() {
                     >
                       <ChevronRight className='h-4 w-4 text-muted-foreground' />
                     </motion.div>
-                    <span className='font-medium text-sm'>{section.topic}</span>
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded border ${difficultyClass[group.difficulty]}`}
+                    >
+                      {group.difficulty.charAt(0) +
+                        group.difficulty.slice(1).toLowerCase()}
+                    </span>
                     <span className='text-xs text-muted-foreground'>
-                      {topicSolved}/{section.problems.length}
+                      {groupSolved}/{group.items.length} solved
                     </span>
                   </div>
-                  <div className='flex items-center gap-3'>
-                    <div className='w-20 h-1.5 bg-surface-3 rounded-full overflow-hidden'>
-                      <div
-                        className='h-full bg-primary rounded-full transition-all'
-                        style={{
-                          width: `${
-                            section.problems.length > 0
-                              ? (topicSolved / section.problems.length) * 100
-                              : 0
-                          }%`,
-                        }}
-                      />
-                    </div>
+                  <div className='w-20 h-1.5 bg-surface-3 rounded-full overflow-hidden'>
+                    <div
+                      className='h-full bg-primary rounded-full transition-all'
+                      style={{
+                        width: `${
+                          group.items.length > 0
+                            ? (groupSolved / group.items.length) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
                   </div>
                 </button>
 
-                {/* Problem list */}
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
@@ -296,8 +330,8 @@ export default function SheetDetail() {
                       className='overflow-hidden'
                     >
                       <div className='border-t border-border/30'>
-                        {section.problems.map((problem) => (
-                          <ProblemRow key={problem.id} problem={problem} />
+                        {group.items.map((item) => (
+                          <ProblemRow key={item.id} problem={item.problem} />
                         ))}
                       </div>
                     </motion.div>
@@ -308,7 +342,7 @@ export default function SheetDetail() {
           })}
         </div>
 
-        {filteredTopics.length === 0 && (
+        {filteredGroups.length === 0 && (
           <div className='text-center py-16 text-muted-foreground text-sm'>
             No problems match your filters.
           </div>
@@ -318,32 +352,28 @@ export default function SheetDetail() {
   );
 }
 
-function ProblemRow({ problem }: { problem: Problem }) {
+function ProblemRow({ problem }: { problem: SheetProblem }) {
   return (
     <Link
       to={`/problem/${problem.id}`}
       className='flex items-center gap-3 px-4 py-3 hover:bg-surface-2/40 transition-colors group border-b border-border/20 last:border-b-0'
     >
-      {/* Status */}
       <div className='flex-shrink-0'>
-        {problem.solved ? (
+        {problem.isSolved ? (
           <CheckCircle2 className='h-4 w-4 text-primary' />
         ) : (
           <Circle className='h-4 w-4 text-muted-foreground/40' />
         )}
       </div>
 
-      {/* Number */}
       <span className='text-xs text-muted-foreground font-mono w-8 flex-shrink-0'>
-        {problem.number}
+        #{problem.problemNumber}
       </span>
 
-      {/* Title */}
       <span className='flex-1 text-sm group-hover:text-primary transition-colors truncate'>
         {problem.title}
       </span>
 
-      {/* Tags */}
       <div className='hidden sm:flex items-center gap-1'>
         {problem.tags.slice(0, 2).map((tag) => (
           <span
@@ -355,18 +385,13 @@ function ProblemRow({ problem }: { problem: Problem }) {
         ))}
       </div>
 
-      {/* Difficulty */}
       <Badge
         variant='outline'
         className={`text-[10px] px-1.5 py-0 border ${difficultyClass[problem.difficulty]}`}
       >
-        {problem.difficulty}
+        {problem.difficulty.charAt(0) +
+          problem.difficulty.slice(1).toLowerCase()}
       </Badge>
-
-      {/* Acceptance */}
-      <span className='text-xs text-muted-foreground w-12 text-right flex-shrink-0'>
-        {problem.acceptance}%
-      </span>
 
       <ChevronRight className='h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0' />
     </Link>

@@ -4,6 +4,7 @@ import type {
   CreateSheetPayload,
   CreateSheetResponse,
   GetAllSheetDetailsResponse,
+  GetSheetByIdResponse,
 } from '@/types/sheet.types';
 
 import type { AxiosError } from 'axios';
@@ -14,7 +15,7 @@ export const getAllSheetDetailsRequest =
       const { data } =
         await axiosInstance.get<GetAllSheetDetailsResponse>('/sheets');
 
-        console.log("data", data)
+      console.log('data', data);
       return data;
     } catch (err) {
       const error = err as AxiosError<ApiErrorResponse>;
@@ -45,6 +46,21 @@ export const createSheetRequest = async (
       throw error.response.data;
     }
 
+    throw { message: error.message || 'Something went wrong' };
+  }
+};
+
+export const getSheetByIdRequest = async (
+  sheetId: string,
+): Promise<GetSheetByIdResponse> => {
+  try {
+    const { data } = await axiosInstance.get<GetSheetByIdResponse>(
+      `/sheets/${sheetId}`,
+    );
+    return data;
+  } catch (err) {
+    const error = err as AxiosError<ApiErrorResponse>;
+    if (error.response?.data) throw error.response.data;
     throw { message: error.message || 'Something went wrong' };
   }
 };
