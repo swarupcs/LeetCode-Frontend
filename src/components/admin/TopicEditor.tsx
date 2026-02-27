@@ -12,21 +12,22 @@ import {
   ChevronRight,
   GripVertical,
 } from 'lucide-react';
-import { problems, type Problem } from '@/data/problems';
-import type { SheetTopic } from '@/data/sheets';
+import type { Problem } from '@/types/problem.types';
+import type { SheetTopic } from '@/types/sheet.types';
 
 interface TopicEditorProps {
   topics: SheetTopic[];
   onChange: (topics: SheetTopic[]) => void;
+  problems: Problem[];
 }
 
 const difficultyClass: Record<string, string> = {
-  Easy: 'difficulty-easy',
-  Medium: 'difficulty-medium',
-  Hard: 'difficulty-hard',
+  EASY: 'difficulty-easy',
+  MEDIUM: 'difficulty-medium',
+  HARD: 'difficulty-hard',
 };
 
-export function TopicEditor({ topics, onChange }: TopicEditorProps) {
+export function TopicEditor({ topics, onChange, problems }: TopicEditorProps) {
   const [expandedTopics, setExpandedTopics] = useState<Set<number>>(
     new Set(topics.map((_, i) => i)),
   );
@@ -54,7 +55,7 @@ export function TopicEditor({ topics, onChange }: TopicEditorProps) {
     onChange(updated);
   };
 
-  const toggleProblem = (topicIndex: number, problemId: number) => {
+  const toggleProblem = (topicIndex: number, problemId: string) => {
     const updated = [...topics];
     const ids = updated[topicIndex].problemIds;
     updated[topicIndex] = {
@@ -183,6 +184,7 @@ export function TopicEditor({ topics, onChange }: TopicEditorProps) {
                 <ProblemSelector
                   selectedIds={topic.problemIds}
                   onToggle={(problemId) => toggleProblem(i, problemId)}
+                  problems={problems}
                 />
               </div>
             )}
@@ -193,13 +195,14 @@ export function TopicEditor({ topics, onChange }: TopicEditorProps) {
   );
 }
 
-/** Searchable problem picker */
 function ProblemSelector({
   selectedIds,
   onToggle,
+  problems,
 }: {
-  selectedIds: number[];
-  onToggle: (id: number) => void;
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+  problems: Problem[];
 }) {
   const [search, setSearch] = useState('');
 
@@ -209,12 +212,11 @@ function ProblemSelector({
     return problems.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
-        p.number.toString().includes(q) ||
+        p.problemNumber.toString().includes(q) ||
         p.tags.some((t) => t.toLowerCase().includes(q)),
     );
-  }, [search]);
+  }, [search, problems]);
 
-  // Show selected first, then the rest
   const sorted = useMemo(() => {
     const selected = filtered.filter((p) => selectedIds.includes(p.id));
     const unselected = filtered.filter((p) => !selectedIds.includes(p.id));
@@ -254,7 +256,7 @@ function ProblemSelector({
                 className='h-3.5 w-3.5'
               />
               <span className='text-xs text-muted-foreground font-mono w-7 flex-shrink-0'>
-                #{problem.number}
+                #{problem.problemNumber}
               </span>
               <span
                 className={`text-sm flex-1 truncate ${

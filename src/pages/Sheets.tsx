@@ -18,6 +18,8 @@ export default function SheetsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { sheets, isLoading, isError, error } = useGetAllSheetDetails();
 
+  console.log('sheets', sheets);
+
   const filteredSheets = useMemo(() => {
     return sheets.filter(
       (s) =>
