@@ -43,3 +43,79 @@ export interface GetAllProblemsResponse {
 export interface ApiError {
   message: string;
 }
+
+export interface CreateProblemPayload {
+  problemNumber: number;
+  problem: {
+    title: string;
+    description: string;
+    difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+    constraints: string;
+    tags: string[];
+    hints?: string;
+    editorial?: string;
+    companyTags?: string[];
+    examples: {
+      input: string;
+      output: string;
+      explanation?: string;
+    }[];
+    codeSnippets: {
+      python?: string;
+      javascript?: string;
+      java?: string;
+    };
+    referenceSolutions: Record<string, string>;
+  };
+  testCases: {
+    input: string;
+    expected: string;
+  }[];
+}
+
+export interface CreateProblemResponse {
+  success: boolean;
+  message: string;
+  problem: Problem;
+}
+
+export interface UpdateProblemPayload {
+  problemId: string;
+  problemNumber: number;
+  problem: {
+    title: string;
+    description: string;
+    difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+    constraints: string;
+    tags: string[];
+    hints?: string;
+    editorial?: string;
+    companyTags?: string[];
+    examples: {
+      input: string;
+      output: string;
+      explanation?: string;
+    }[];
+    codeSnippets: {
+      python?: string;
+      javascript?: string;
+      java?: string;
+    };
+    referenceSolutions: Record<string, string>;
+  };
+  testCases: {
+    input: string;
+    expected: string;
+  }[];
+}
+
+export interface UpdateProblemResponse {
+  success: boolean;
+  message: string;
+  problem: Problem;
+}
+
+export interface DeleteProblemResponse {
+  success: boolean;
+  message: string;
+}

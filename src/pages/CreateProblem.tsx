@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,16 +18,14 @@ import {
   ArrowLeft,
   Save,
   Eye,
-  FileCode,
   BookOpen,
   Settings2,
   Code2,
   Lightbulb,
   TestTube2,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react';
-
-import { problems } from '@/data/problems';
 import {
   ExampleEditor,
   type ExampleItem,
@@ -45,6 +43,30 @@ import {
 } from '@/components/admin/SolutionEditor';
 import { SolutionPreview } from '@/components/admin/SolutionPreview';
 import { toast } from 'sonner';
+import { useCreateProblem } from '@/hooks/problems/useCreateProblem';
+import { useUpdateProblem } from '@/hooks/problems/useUpdateProblem';
+import { useProblem } from '@/hooks/problems/useGetIndividualProblemDetails';
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+const DEFAULT_TEST_CASE: TestCase = {
+  id: crypto.randomUUID(),
+  input: '',
+  expectedOutput: '',
+  isHidden: false,
+  explanation: '',
+  code: { python: '', javascript: '', java: '' },
+};
+
+const DEFAULT_SOLUTION: SolutionData = {
+  code: { python: '', javascript: '', java: '' },
+  timeComplexity: '',
+  spaceComplexity: '',
+  approach: '',
+  explanation: '',
+};
+
+const DEFAULT_STARTER_CODE = { python: '', javascript: '', java: '' };
 
 export default function CreateProblemPage() {
   const { id } = useParams<{ id: string }>();
@@ -52,94 +74,182 @@ export default function CreateProblemPage() {
 
   const isEditing = !!id;
 
-  // Find existing problem for edit mode
-  const existingProblem = isEditing
-    ? problems.find((p) => p.id === parseInt(id, 10))
-    : null;
+  // ─── hooks ────────────────────────────────────────────────────────────────
+  const { createProblemMutation, isPending: isCreating } = useCreateProblem();
+  const { updateProblemMutation, isPending: isUpdating } = useUpdateProblem();
+  const { problem: existingProblem, isLoading: isProblemLoading } = useProblem(
+    isEditing ? id : '',
+  );
 
-  // Form state
-  const [title, setTitle] = useState(existingProblem?.title || '');
-  const [number, setNumber] = useState<number>(
-    existingProblem?.number || problems.length + 1,
+  const isPending = isCreating || isUpdating;
+
+  // ─── form state ───────────────────────────────────────────────────────────
+  const [title, setTitle] = useState('');
+  const [number, setNumber] = useState<number>(1);
+  const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>(
+    'EASY',
   );
-  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>(
-    existingProblem?.difficulty || 'Easy',
-  );
-  const [acceptance, setAcceptance] = useState<number>(
-    existingProblem?.acceptance || 50,
-  );
-  const [tags, setTags] = useState<string[]>(existingProblem?.tags || []);
-  const [description, setDescription] = useState(
-    existingProblem?.description || '',
-  );
-  const [examples, setExamples] = useState<ExampleItem[]>(
-    existingProblem?.examples || [{ input: '', output: '', explanation: '' }],
-  );
-  const [constraints, setConstraints] = useState<string[]>(
-    existingProblem?.constraints || [],
-  );
-  const [starterCode, setStarterCode] = useState<Record<string, string>>(
-    existingProblem?.starterCode || {
-      python: '',
-      javascript: '',
-      java: '',
-    },
-  );
-  const [testCases, setTestCases] = useState<TestCase[]>([
-    {
-      id: crypto.randomUUID(),
-      input: '',
-      expectedOutput: '',
-      isHidden: false,
-      explanation: '',
-      code: { python: '', javascript: '', java: '' },
-    },
+  const [tags, setTags] = useState<string[]>([]);
+  const [description, setDescription] = useState('');
+  const [constraints, setConstraints] = useState<string[]>([]);
+  const [hints, setHints] = useState('');
+  const [editorial, setEditorial] = useState('');
+  const [companyTags, setCompanyTags] = useState<string[]>([]);
+  const [examples, setExamples] = useState<ExampleItem[]>([
+    { input: '', output: '', explanation: '' },
   ]);
-  const [solution, setSolution] = useState<SolutionData>({
-    code: { python: '', javascript: '', java: '' },
-    timeComplexity: '',
-    spaceComplexity: '',
-    approach: '',
-    explanation: '',
+  const [starterCode, setStarterCode] =
+    useState<Record<string, string>>(DEFAULT_STARTER_CODE);
+
+  const [referenceSolutions, setReferenceSolutions] = useState<
+    Record<string, string>
+  >({
+    python: '',
+    javascript: '',
+    java: '',
   });
 
+  const [testCases, setTestCases] = useState<TestCase[]>([DEFAULT_TEST_CASE]);
+  const [solution, setSolution] = useState<SolutionData>(DEFAULT_SOLUTION);
   const [activeSection, setActiveSection] = useState('basics');
   const [solutionView, setSolutionView] = useState<'edit' | 'preview'>('edit');
 
-  const canSave = title.trim() && number > 0 && tags.length > 0;
+  // ─── populate form when editing ───────────────────────────────────────────
+  useEffect(() => {
+    if (isEditing && existingProblem) {
+      setTitle(existingProblem.title ?? '');
+      setNumber(existingProblem.problemNumber ?? 1);
+      setDifficulty(existingProblem.difficulty ?? 'EASY');
+      setTags(existingProblem.tags ?? []);
+      setDescription(existingProblem.description ?? '');
+      setConstraints(
+        existingProblem.constraints
+          ? existingProblem.constraints.split('\n').filter(Boolean)
+          : [],
+      );
+      setHints(existingProblem.hints ?? '');
+      setEditorial(existingProblem.editorial ?? '');
+      setCompanyTags(existingProblem.companyTags ?? []);
+      setExamples(
+        Array.isArray(existingProblem.examples) &&
+          existingProblem.examples.length > 0
+          ? (existingProblem.examples as ExampleItem[])
+          : [{ input: '', output: '', explanation: '' }],
+      );
+      setStarterCode(
+        (existingProblem.codeSnippets as Record<string, string>) ??
+          DEFAULT_STARTER_CODE,
+      );
+      setReferenceSolutions(
+        (existingProblem.referenceSolutions as Record<string, string>) ?? {
+          python: '',
+          javascript: '',
+          java: '',
+        },
+      );
+      if (
+        Array.isArray(existingProblem.testCases) &&
+        existingProblem.testCases.length > 0
+      ) {
+        setTestCases(
+          existingProblem.testCases.map((tc) => ({
+            id: crypto.randomUUID(),
+            input: tc.input,
+            expectedOutput: tc.expected,
+            isHidden: false,
+            explanation: '',
+            code: { python: '', javascript: '', java: '' },
+          })),
+        );
+      }
+    }
+  }, [isEditing, existingProblem]);
 
-  const handleSave = () => {
+  // ─── derived ──────────────────────────────────────────────────────────────
+  const canSave = title.trim() && number > 0 && tags.length > 0 && !isPending;
+
+  const difficultyClass =
+    difficulty === 'EASY'
+      ? 'difficulty-easy'
+      : difficulty === 'MEDIUM'
+        ? 'difficulty-medium'
+        : 'difficulty-hard';
+
+  // ─── handlers ─────────────────────────────────────────────────────────────
+  const buildPayload = () => ({
+    problemNumber: number,
+    problem: {
+      title,
+      description,
+      difficulty,
+      constraints: constraints.join('\n'),
+      tags,
+      hints: hints || undefined,
+      editorial: editorial || undefined,
+      companyTags,
+      examples,
+      codeSnippets: starterCode,
+      referenceSolutions,
+    },
+    testCases: testCases.map((tc) => ({
+      input: tc.input,
+      expected: tc.expectedOutput,
+    })),
+  });
+
+  const handleSave = async () => {
     if (!canSave) {
-   toast.error('Missing fields', {
-     description: 'Please fill in the title, number, and at least one tag.',
-   });
+      toast.error('Missing fields', {
+        description: 'Please fill in the title, number, and at least one tag.',
+      });
       return;
     }
 
-    toast({
-      title: isEditing ? 'Problem updated' : 'Problem created',
-      description: `"${title}" has been ${isEditing ? 'updated' : 'created'} successfully.`,
-    });
-    navigate('/admin/problems');
+    try {
+      if (isEditing && id) {
+        await updateProblemMutation({ problemId: id, ...buildPayload() });
+        toast.success('Problem updated', {
+          description: `"${title}" has been updated successfully.`,
+        });
+      } else {
+        await createProblemMutation(buildPayload());
+        toast.success('Problem created', {
+          description: `"${title}" has been created successfully.`,
+        });
+      }
+      navigate('/admin/problems');
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      toast.error(
+        isEditing ? 'Failed to update problem' : 'Failed to create problem',
+        {
+          description:
+            error?.message ?? 'Something went wrong. Please try again.',
+        },
+      );
+    }
   };
 
   const handlePreview = () => {
-    if (existingProblem) {
-      window.open(`/problem/${existingProblem.id}`, '_blank');
+    if (isEditing && id) {
+      window.open(`/problem/${id}`, '_blank');
     } else {
-      toast.error('Save first', {
+      toast.warning('Save first', {
         description: 'Save the problem before previewing.',
       });
     }
   };
 
-  const difficultyClass =
-    difficulty === 'Easy'
-      ? 'difficulty-easy'
-      : difficulty === 'Medium'
-        ? 'difficulty-medium'
-        : 'difficulty-hard';
+  // ─── loading state ────────────────────────────────────────────────────────
+  if (isEditing && isProblemLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
 
+  // ─── render ───────────────────────────────────────────────────────────────
   return (
     <div className='min-h-screen'>
       <div className='mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8'>
@@ -163,7 +273,7 @@ export default function CreateProblemPage() {
                 </h1>
                 <p className='text-sm text-muted-foreground'>
                   {isEditing
-                    ? `Editing problem #${existingProblem?.number}`
+                    ? `Editing problem #${existingProblem?.problemNumber}`
                     : 'Fill in all details to add a new problem'}
                 </p>
               </div>
@@ -183,11 +293,19 @@ export default function CreateProblemPage() {
               <Button
                 size='sm'
                 onClick={handleSave}
-                disabled={!canSave}
+                disabled={!canSave || isPending}
                 className='bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 font-medium'
               >
-                <Save className='h-3.5 w-3.5' />
-                {isEditing ? 'Save Changes' : 'Create Problem'}
+                {isPending ? (
+                  <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                ) : (
+                  <Save className='h-3.5 w-3.5' />
+                )}
+                {isPending
+                  ? 'Saving...'
+                  : isEditing
+                    ? 'Save Changes'
+                    : 'Create Problem'}
               </Button>
             </div>
           </div>
@@ -208,7 +326,7 @@ export default function CreateProblemPage() {
               variant='outline'
               className={`text-[10px] font-medium border ${difficultyClass}`}
             >
-              {difficulty}
+              {difficulty.charAt(0) + difficulty.slice(1).toLowerCase()}
             </Badge>
             {tags.length > 0 && (
               <div className='hidden sm:flex gap-1 ml-2'>
@@ -334,26 +452,26 @@ export default function CreateProblemPage() {
                   <Select
                     value={difficulty}
                     onValueChange={(v) =>
-                      setDifficulty(v as 'Easy' | 'Medium' | 'Hard')
+                      setDifficulty(v as 'EASY' | 'MEDIUM' | 'HARD')
                     }
                   >
                     <SelectTrigger className='bg-surface-1 border-border/50 h-11'>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value='Easy'>
+                      <SelectItem value='EASY'>
                         <span className='flex items-center gap-2'>
                           <span className='h-2 w-2 rounded-full bg-[hsl(var(--emerald))]' />
                           Easy
                         </span>
                       </SelectItem>
-                      <SelectItem value='Medium'>
+                      <SelectItem value='MEDIUM'>
                         <span className='flex items-center gap-2'>
                           <span className='h-2 w-2 rounded-full bg-[hsl(var(--amber))]' />
                           Medium
                         </span>
                       </SelectItem>
-                      <SelectItem value='Hard'>
+                      <SelectItem value='HARD'>
                         <span className='flex items-center gap-2'>
                           <span className='h-2 w-2 rounded-full bg-destructive' />
                           Hard
@@ -363,30 +481,13 @@ export default function CreateProblemPage() {
                   </Select>
                 </div>
 
-                {/* Acceptance Rate */}
-                <div>
-                  <Label
-                    htmlFor='acceptance'
-                    className='text-sm font-semibold mb-2 block'
-                  >
-                    Acceptance Rate (%)
-                  </Label>
-                  <Input
-                    id='acceptance'
-                    type='number'
-                    value={acceptance}
-                    onChange={(e) =>
-                      setAcceptance(
-                        Math.min(
-                          100,
-                          Math.max(0, parseFloat(e.target.value) || 0),
-                        ),
-                      )
-                    }
-                    min={0}
-                    max={100}
-                    step={0.1}
-                    className='bg-surface-1 border-border/50 h-11'
+                {/* Company Tags */}
+                <div className='md:col-span-2'>
+                  <TagInput
+                    tags={companyTags}
+                    onChange={setCompanyTags}
+                    label='Company Tags'
+                    placeholder='Add company (e.g. Google, Amazon)...'
                   />
                 </div>
               </div>
@@ -415,13 +516,30 @@ export default function CreateProblemPage() {
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder={`Given an array of integers \`nums\` and an integer \`target\`, return indices of the two numbers such that they add up to \`target\`.\n\nYou may assume that each input would have **exactly one solution**...`}
+                  placeholder='Given an array of integers...'
                   className='bg-surface-1 border-border/50 min-h-[300px] text-sm resize-y'
                   spellCheck={false}
                 />
                 <p className='text-[11px] text-muted-foreground/60 mt-1'>
                   {description.length} characters
                 </p>
+              </div>
+
+              {/* Hints */}
+              <div>
+                <Label className='text-sm font-semibold mb-2 block'>
+                  Hints
+                  <span className='text-muted-foreground font-normal ml-1'>
+                    (optional)
+                  </span>
+                </Label>
+                <Textarea
+                  value={hints}
+                  onChange={(e) => setHints(e.target.value)}
+                  placeholder='Add hints to help users...'
+                  className='bg-surface-1 border-border/50 min-h-[100px] text-sm resize-y'
+                  spellCheck={false}
+                />
               </div>
 
               {/* Constraints */}
@@ -479,7 +597,6 @@ export default function CreateProblemPage() {
               transition={{ delay: 0.15 }}
               className='glass-card p-6'
             >
-              {/* Edit / Preview toggle */}
               <div className='flex items-center gap-2 mb-6'>
                 <div className='bg-surface-2 border border-border/50 rounded-lg p-0.5 flex'>
                   <button
@@ -529,15 +646,23 @@ export default function CreateProblemPage() {
           </Link>
           <div className='flex items-center gap-3'>
             <div className='text-xs text-muted-foreground hidden sm:block'>
-              {!canSave && 'Fill required fields to save'}
+              {!canSave && !isPending && 'Fill required fields to save'}
             </div>
             <Button
               onClick={handleSave}
-              disabled={!canSave}
+              disabled={!canSave || isPending}
               className='bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 font-medium'
             >
-              <Save className='h-4 w-4' />
-              {isEditing ? 'Save Changes' : 'Create Problem'}
+              {isPending ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : (
+                <Save className='h-4 w-4' />
+              )}
+              {isPending
+                ? 'Saving...'
+                : isEditing
+                  ? 'Save Changes'
+                  : 'Create Problem'}
             </Button>
           </div>
         </motion.div>

@@ -4,6 +4,11 @@ import type {
   GetAllProblemsResponse,
   ApiError,
   Problem,
+  CreateProblemPayload,
+  CreateProblemResponse,
+  UpdateProblemPayload,
+  UpdateProblemResponse,
+  DeleteProblemResponse,
 } from '@/types/problem.types';
 import type { AxiosError } from 'axios';
 
@@ -37,5 +42,53 @@ export const getIndividualProblemRequest = async (
   } catch (error) {
     const err = error as AxiosError<ApiError>;
     throw err.response?.data ?? { message: 'Something went wrong' };
+  }
+};
+
+export const createProblemRequest = async (
+  payload: CreateProblemPayload,
+): Promise<CreateProblemResponse> => {
+  try {
+    const { data } = await axiosInstance.post<CreateProblemResponse>(
+      '/problems/create-problem',
+      payload,
+    );
+    return data;
+  } catch (err) {
+    const error = err as AxiosError<ApiError>;
+    if (error.response?.data) throw error.response.data;
+    throw { message: error.message || 'Something went wrong' };
+  }
+};
+
+export const updateProblemRequest = async (
+  payload: UpdateProblemPayload,
+): Promise<UpdateProblemResponse> => {
+  try {
+    const { problemId, ...rest } = payload;
+    const { data } = await axiosInstance.put<UpdateProblemResponse>(
+      `/problems/update-problem/${problemId}`,
+      rest,
+    );
+    return data;
+  } catch (err) {
+    const error = err as AxiosError<ApiError>;
+    if (error.response?.data) throw error.response.data;
+    throw { message: error.message || 'Something went wrong' };
+  }
+};
+
+export const deleteProblemRequest = async (
+  problemId: string,
+): Promise<DeleteProblemResponse> => {
+  try {
+    const { data } = await axiosInstance.delete<DeleteProblemResponse>(
+      `/problems/delete-problem/${problemId}`,
+    );
+    return data;
+  } catch (err) {
+    const error = err as AxiosError<ApiError>;
+    if (error.response?.data) throw error.response.data;
+    throw { message: error.message || 'Something went wrong' };
   }
 };

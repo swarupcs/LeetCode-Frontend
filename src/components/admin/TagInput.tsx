@@ -6,9 +6,12 @@ import { X } from 'lucide-react';
 interface TagInputProps {
   tags: string[];
   onChange: (tags: string[]) => void;
+  label?: string;
+  placeholder?: string;
+  suggestions?: string[];
 }
 
-const suggestedTags = [
+const DEFAULT_SUGGESTIONS = [
   'Array',
   'String',
   'Hash Table',
@@ -35,7 +38,13 @@ const suggestedTags = [
   'Design',
 ];
 
-export function TagInput({ tags, onChange }: TagInputProps) {
+export function TagInput({
+  tags,
+  onChange,
+  label = 'Tags',
+  placeholder = 'Type a tag and press Enter...',
+  suggestions = DEFAULT_SUGGESTIONS,
+}: TagInputProps) {
   const [input, setInput] = useState('');
 
   const addTag = (tag: string) => {
@@ -60,13 +69,13 @@ export function TagInput({ tags, onChange }: TagInputProps) {
     }
   };
 
-  const availableSuggestions = suggestedTags.filter(
+  const availableSuggestions = suggestions.filter(
     (s) => !tags.includes(s) && s.toLowerCase().includes(input.toLowerCase()),
   );
 
   return (
     <div className='space-y-2'>
-      <Label className='text-sm font-semibold text-foreground'>Tags</Label>
+      <Label className='text-sm font-semibold text-foreground'>{label}</Label>
 
       {/* Selected tags */}
       <div className='flex flex-wrap gap-1.5 min-h-[32px]'>
@@ -92,11 +101,11 @@ export function TagInput({ tags, onChange }: TagInputProps) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder='Type a tag and press Enter...'
+        placeholder={placeholder}
         className='bg-surface-1 border-border/50 h-9 text-sm'
       />
 
-      {/* Suggestions */}
+      {/* Filtered suggestions while typing */}
       {input && availableSuggestions.length > 0 && (
         <div className='flex flex-wrap gap-1'>
           {availableSuggestions.slice(0, 8).map((s) => (
@@ -112,12 +121,13 @@ export function TagInput({ tags, onChange }: TagInputProps) {
         </div>
       )}
 
-      {!input && tags.length === 0 && (
+      {/* Default suggestions when empty */}
+      {!input && tags.length === 0 && suggestions.length > 0 && (
         <div className='flex flex-wrap gap-1'>
           <span className='text-[10px] text-muted-foreground/60 mr-1'>
             Suggestions:
           </span>
-          {suggestedTags.slice(0, 10).map((s) => (
+          {suggestions.slice(0, 10).map((s) => (
             <button
               key={s}
               type='button'

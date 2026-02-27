@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, Eye, EyeOff, Copy } from 'lucide-react';
 
 export interface TestCase {
@@ -14,21 +13,12 @@ export interface TestCase {
   expectedOutput: string;
   isHidden: boolean;
   explanation?: string;
-  code: Record<string, string>;
 }
 
 interface TestCaseEditorProps {
   testCases: TestCase[];
   onChange: (testCases: TestCase[]) => void;
 }
-
-const languages = [
-  { id: 'python', label: 'Python', icon: '🐍' },
-  { id: 'javascript', label: 'JavaScript', icon: '⚡' },
-  { id: 'java', label: 'Java', icon: '☕' },
-];
-
-const defaultCode = () => ({ python: '', javascript: '', java: '' });
 
 export function TestCaseEditor({ testCases, onChange }: TestCaseEditorProps) {
   const addTestCase = () => {
@@ -40,7 +30,6 @@ export function TestCaseEditor({ testCases, onChange }: TestCaseEditorProps) {
         expectedOutput: '',
         isHidden: false,
         explanation: '',
-        code: defaultCode(),
       },
     ]);
   };
@@ -59,17 +48,8 @@ export function TestCaseEditor({ testCases, onChange }: TestCaseEditorProps) {
     );
   };
 
-  const updateTestCaseCode = (id: string, lang: string, value: string) => {
-    onChange(
-      testCases.map((tc) =>
-        tc.id === id ? { ...tc, code: { ...tc.code, [lang]: value } } : tc,
-      ),
-    );
-  };
-
   const duplicateTestCase = (tc: TestCase) => {
-    const newTc = { ...tc, id: crypto.randomUUID(), code: { ...tc.code } };
-    onChange([...testCases, newTc]);
+    onChange([...testCases, { ...tc, id: crypto.randomUUID() }]);
   };
 
   const visibleCount = testCases.filter((tc) => !tc.isHidden).length;
@@ -99,7 +79,6 @@ export function TestCaseEditor({ testCases, onChange }: TestCaseEditorProps) {
         </Button>
       </div>
 
-      {/* Summary badges */}
       {testCases.length > 0 && (
         <div className='flex gap-2'>
           <Badge
@@ -242,66 +221,9 @@ export function TestCaseEditor({ testCases, onChange }: TestCaseEditorProps) {
                 className='bg-surface-2 border-border/50 text-sm h-9'
               />
             </div>
-
-            {/* Language-specific code */}
-            <div>
-              <Label className='text-xs text-muted-foreground mb-1.5 block'>
-                Test Code{' '}
-                <span className='text-muted-foreground/60'>(per language)</span>
-              </Label>
-              <TestCaseCodeTabs
-                code={tc.code}
-                onChange={(lang, value) =>
-                  updateTestCaseCode(tc.id, lang, value)
-                }
-              />
-            </div>
           </div>
         </div>
       ))}
     </div>
-  );
-}
-
-/** Tabbed code editors for a single test case */
-function TestCaseCodeTabs({
-  code,
-  onChange,
-}: {
-  code: Record<string, string>;
-  onChange: (lang: string, value: string) => void;
-}) {
-  const [activeTab, setActiveTab] = useState('python');
-
-  return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className='bg-surface-2 border border-border/50 h-8'>
-        {languages.map((lang) => (
-          <TabsTrigger
-            key={lang.id}
-            value={lang.id}
-            className='data-[state=active]:bg-surface-3 data-[state=active]:text-foreground text-muted-foreground text-[11px] gap-1 px-2.5 h-6'
-          >
-            <span>{lang.icon}</span>
-            {lang.label}
-            {code[lang.id]?.trim() && (
-              <span className='h-1.5 w-1.5 rounded-full bg-primary ml-0.5' />
-            )}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-
-      {languages.map((lang) => (
-        <TabsContent key={lang.id} value={lang.id} className='mt-2'>
-          <Textarea
-            value={code[lang.id] || ''}
-            onChange={(e) => onChange(lang.id, e.target.value)}
-            placeholder={`# ${lang.label} test code...\nassert solution(nums, target) == expected`}
-            className='bg-surface-2 border-border/50 font-mono text-xs min-h-[80px] resize-y'
-            spellCheck={false}
-          />
-        </TabsContent>
-      ))}
-    </Tabs>
   );
 }
