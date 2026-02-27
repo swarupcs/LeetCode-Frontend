@@ -80,3 +80,20 @@ export const deleteSheetRequest = async (
     throw { message: error.message || 'Something went wrong' };
   }
 };
+
+export const updateSheetRequest = async (
+  sheetId: string,
+  payload: CreateSheetPayload,
+): Promise<CreateSheetResponse> => {
+  try {
+    const { data } = await axiosInstance.put<CreateSheetResponse>(
+      `/sheets/${sheetId}`,
+      payload,
+    );
+    return data;
+  } catch (err) {
+    const error = err as AxiosError<ApiErrorResponse>;
+    if (error.response?.data) throw error.response.data;
+    throw { message: error.message || 'Something went wrong' };
+  }
+};

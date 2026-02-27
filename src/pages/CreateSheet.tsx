@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,10 +18,11 @@ import { ArrowLeft, Save, Eye, Settings2, Layers, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TagInput } from '@/components/admin/TagInput';
 import { TopicEditor } from '@/components/admin/TopicEditor';
-
 import type { SheetTopic } from '@/types/sheet.types';
 import type { Problem } from '@/types/problem.types';
 import { useCreateSheet } from '@/hooks/sheets/useCreateSheet';
+import { useUpdateSheet } from '@/hooks/sheets/useUpdateSheet';
+import { useGetSheetById } from '@/hooks/sheets/useGetSheetById';
 import { useProblems } from '@/hooks/problems/useGetAllProblems';
 
 export default function CreateSheetPage() {
@@ -30,21 +31,43 @@ export default function CreateSheetPage() {
 
   const isEditing = !!id;
 
-  const { createSheetMutation, isPending } = useCreateSheet();
+  const { createSheetMutation, isPending: isCreating } = useCreateSheet();
+  const { updateSheetMutation, isPending: isUpdating } = useUpdateSheet();
   const { problems, isLoading: isProblemsLoading } = useProblems();
 
-  console.log("problems", problems)
+  // Fetch existing sheet data when editing
+  const { sheet: existingSheet, isLoading: isSheetLoading } = useGetSheetById(
+    isEditing ? id : undefined,
+  );
 
+  const isPending = isCreating || isUpdating;
+
+  // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [difficulty, setDifficulty] = useState<
-    'Easy' | 'Medium' | 'Hard' | 'Mixed'
-  >('Mixed');
+const [difficulty, setDifficulty] = useState<
+  'Easy' | 'Medium' | 'Hard' | 'Mixed'
+>('Easy');
   const [tags, setTags] = useState<string[]>([]);
   const [topics, setTopics] = useState<SheetTopic[]>([
     { name: '', problemIds: [] },
   ]);
   const [activeSection, setActiveSection] = useState('basics');
+
+  // Populate form when editing and sheet data is loaded
+  useEffect(() => {
+    if (isEditing && existingSheet) {
+      setName(existingSheet.name ?? '');
+      setDescription(existingSheet.description ?? '');
+
+      // Rebuild topics from flat problems list
+      // Since backend has no topics, treat all problems as one default topic
+      const problemIds = existingSheet.problems.map((p) => p.problem.id);
+      if (problemIds.length > 0) {
+        setTopics([{ name: 'Problems', problemIds }]);
+      }
+    }
+  }, [isEditing, existingSheet]);
 
   const totalProblems = useMemo(() => {
     const ids = new Set(topics.flatMap((t) => t.problemIds));
@@ -63,21 +86,30 @@ export default function CreateSheetPage() {
     }
 
     try {
-      await createSheetMutation({
-        name,
-        description,
-        topics,
-      });
-      toast.success('Sheet created', {
-        description: `"${name}" has been created successfully.`,
-      });
+      if (isEditing && id) {
+        await updateSheetMutation({
+          sheetId: id,
+          payload: { name, description, topics },
+        });
+        toast.success('Sheet updated', {
+          description: `"${name}" has been updated successfully.`,
+        });
+      } else {
+        await createSheetMutation({ name, description, topics });
+        toast.success('Sheet created', {
+          description: `"${name}" has been created successfully.`,
+        });
+      }
       navigate('/admin/sheets');
     } catch (err: unknown) {
       const error = err as { message?: string };
-      toast.error('Failed to create sheet', {
-        description:
-          error?.message ?? 'Something went wrong. Please try again.',
-      });
+      toast.error(
+        isEditing ? 'Failed to update sheet' : 'Failed to create sheet',
+        {
+          description:
+            error?.message ?? 'Something went wrong. Please try again.',
+        },
+      );
     }
   };
 
@@ -99,6 +131,15 @@ export default function CreateSheetPage() {
         : difficulty === 'Hard'
           ? 'difficulty-hard'
           : 'border-primary/30 text-primary';
+
+  // Show loader while fetching existing sheet
+  if (isEditing && isSheetLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen'>
@@ -123,7 +164,7 @@ export default function CreateSheetPage() {
                 </h1>
                 <p className='text-sm text-muted-foreground'>
                   {isEditing
-                    ? 'Editing sheet'
+                    ? `Editing "${existingSheet?.name ?? ''}"`
                     : 'Organize problems into a structured practice sheet'}
                 </p>
               </div>
