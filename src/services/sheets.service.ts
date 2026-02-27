@@ -64,3 +64,19 @@ export const getSheetByIdRequest = async (
     throw { message: error.message || 'Something went wrong' };
   }
 };
+
+export const deleteSheetRequest = async (
+  sheetId: string,
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const { data } = await axiosInstance.delete<{
+      success: boolean;
+      message: string;
+    }>(`/sheets/${sheetId}`);
+    return data;
+  } catch (err) {
+    const error = err as AxiosError<ApiErrorResponse>;
+    if (error.response?.data) throw error.response.data;
+    throw { message: error.message || 'Something went wrong' };
+  }
+};
