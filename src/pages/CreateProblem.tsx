@@ -111,6 +111,55 @@ export default function CreateProblemPage() {
 
   const [testCases, setTestCases] = useState<TestCase[]>([DEFAULT_TEST_CASE]);
   const [solution, setSolution] = useState<SolutionData>(DEFAULT_SOLUTION);
+
+  /**
+   
+const [title, setTitle] = useState('Find Peak Element-1');
+const [number, setNumber] = useState<number>(163);
+const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM');
+const [tags, setTags] = useState<string[]>(['array', 'binary-search']);
+const [description, setDescription] = useState('A peak element is an element that is strictly greater than its neighbors. Given a 0-indexed integer array nums, find a peak element, and return its index. If the array contains multiple peaks, return the index to any of the peaks. You may imagine that nums[-1] = nums[n] = -∞. You must write an algorithm that runs in O(log n) time.');
+const [constraints, setConstraints] = useState<string[]>([
+  '1 ≤ nums.length ≤ 1000',
+  '-2³¹ ≤ nums[i] ≤ 2³¹ - 1',
+  'nums[i] != nums[i + 1] for all valid i.',
+]);
+const [hints, setHints] = useState('');
+const [editorial, setEditorial] = useState('');
+const [companyTags, setCompanyTags] = useState<string[]>(['Google', 'Facebook', 'Microsoft', 'Amazon', 'Apple', 'LinkedIn', 'Adobe', 'Bloomberg']);
+const [examples, setExamples] = useState<ExampleItem[]>([
+  { input: 'nums = [1,2,3,1]', output: '2', explanation: '3 is a peak element and your function should return the index number 2.' },
+  { input: 'nums = [1,2,1,3,5,6,4]', output: '1 or 5', explanation: 'Your function can return either index number 1 where the peak element is 2, or index number 5 where the peak element is 6.' },
+  { input: 'nums = [1]', output: '0', explanation: 'Single element is always a peak.' },
+  { input: 'nums = [1,2]', output: '1', explanation: 'Element at index 1 (value 2) is greater than element at index 0 (value 1), and there\'s no element to the right, so it\'s a peak.' },
+  { input: 'nums = [3,2,1]', output: '0', explanation: 'Element at index 0 (value 3) is greater than element at index 1 (value 2), and there\'s no element to the left, so it\'s a peak.' },
+]);
+const [starterCode, setStarterCode] = useState<Record<string, string>>({
+  java: `import java.util.*;\n\npublic class Main {\n    public static int findPeakElement(int[] nums) {\n        for (int i = 0; i < nums.length; i++) {\n            boolean leftOk = (i == 0) || (nums[i] > nums[i - 1]);\n            boolean rightOk = (i == nums.length - 1) || (nums[i] > nums[i + 1]);\n            if (leftOk && rightOk) return i;\n        }\n        return -1;\n    }\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String[] input = sc.nextLine().trim().split(\" \");\n        int[] nums = new int[input.length];\n        for (int i = 0; i < input.length; i++) nums[i] = Integer.parseInt(input[i]);\n        System.out.println(findPeakElement(nums));\n    }\n}`,
+  python: `def find_peak_element(nums):\n    for i in range(len(nums)):\n        left_ok = (i == 0) or (nums[i] > nums[i - 1])\n        right_ok = (i == len(nums) - 1) or (nums[i] > nums[i + 1])\n        if left_ok and right_ok:\n            return i\n    return -1\n\nnums = list(map(int, input().strip().split()))\nprint(find_peak_element(nums))`,
+  javascript: `function findPeakElement(nums) {\n    for (let i = 0; i < nums.length; i++) {\n        const leftOk = (i === 0) || (nums[i] > nums[i - 1]);\n        const rightOk = (i === nums.length - 1) || (nums[i] > nums[i + 1]);\n        if (leftOk && rightOk) return i;\n    }\n    return -1;\n}\nconst input = require('fs').readFileSync(0, 'utf-8').trim();\nconst nums = input.split(' ').map(Number);\nconsole.log(findPeakElement(nums));`,
+});
+const [referenceSolutions, setReferenceSolutions] = useState<Record<string, string>>({
+  java: `import java.util.*;\n\npublic class Main {\n    public static int findPeakElement(int[] nums) {\n        for (int i = 0; i < nums.length; i++) {\n            boolean leftOk = (i == 0) || (nums[i] > nums[i - 1]);\n            boolean rightOk = (i == nums.length - 1) || (nums[i] > nums[i + 1]);\n            if (leftOk && rightOk) return i;\n        }\n        return -1;\n    }\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String[] input = sc.nextLine().trim().split(\" \");\n        int[] nums = new int[input.length];\n        for (int i = 0; i < input.length; i++) nums[i] = Integer.parseInt(input[i]);\n        System.out.println(findPeakElement(nums));\n    }\n}`,
+  python: `def find_peak_element(nums):\n    for i in range(len(nums)):\n        left_ok = (i == 0) or (nums[i] > nums[i - 1])\n        right_ok = (i == len(nums) - 1) or (nums[i] > nums[i + 1])\n        if left_ok and right_ok:\n            return i\n    return -1\n\nnums = list(map(int, input().strip().split()))\nprint(find_peak_element(nums))`,
+  javascript: `function findPeakElement(nums) {\n    for (let i = 0; i < nums.length; i++) {\n        const leftOk = (i === 0) || (nums[i] > nums[i - 1]);\n        const rightOk = (i === nums.length - 1) || (nums[i] > nums[i + 1]);\n        if (leftOk && rightOk) return i;\n    }\n    return -1;\n}\nconst input = require('fs').readFileSync(0, 'utf-8').trim();\nconst nums = input.split(' ').map(Number);\nconsole.log(findPeakElement(nums));`,
+});
+const [testCases, setTestCases] = useState<TestCase[]>([
+  { id: crypto.randomUUID(), input: '1 2 3 1', expectedOutput: '2', isHidden: false, explanation: '', code: { python: '', javascript: '', java: '' } },
+  { id: crypto.randomUUID(), input: '1 2 1 3 5 6 4', expectedOutput: '1', isHidden: false, explanation: '', code: { python: '', javascript: '', java: '' } },
+  { id: crypto.randomUUID(), input: '1', expectedOutput: '0', isHidden: false, explanation: '', code: { python: '', javascript: '', java: '' } },
+  { id: crypto.randomUUID(), input: '1 2', expectedOutput: '1', isHidden: true, explanation: '', code: { python: '', javascript: '', java: '' } },
+  { id: crypto.randomUUID(), input: '3 2 1', expectedOutput: '0', isHidden: true, explanation: '', code: { python: '', javascript: '', java: '' } },
+  { id: crypto.randomUUID(), input: '1 3 2 1', expectedOutput: '1', isHidden: true, explanation: '', code: { python: '', javascript: '', java: '' } },
+  { id: crypto.randomUUID(), input: '6 5 4 3 2 3 2', expectedOutput: '0', isHidden: true, explanation: '', code: { python: '', javascript: '', java: '' } },
+  { id: crypto.randomUUID(), input: '1 2 3 4 5', expectedOutput: '4', isHidden: true, explanation: '', code: { python: '', javascript: '', java: '' } },
+  { id: crypto.randomUUID(), input: '5 4 3 2 1', expectedOutput: '0', isHidden: true, explanation: '', code: { python: '', javascript: '', java: '' } },
+  { id: crypto.randomUUID(), input: '1 3 2 4 5', expectedOutput: '1', isHidden: true, explanation: '', code: { python: '', javascript: '', java: '' } },
+]);
+const [solution, setSolution] = useState<SolutionData>(DEFAULT_SOLUTION);
+
+   */
+
   const [activeSection, setActiveSection] = useState('basics');
   const [solutionView, setSolutionView] = useState<'edit' | 'preview'>('edit');
 

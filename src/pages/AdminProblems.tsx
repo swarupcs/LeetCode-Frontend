@@ -57,34 +57,41 @@ import {
   Filter,
   Globe,
   EyeOff,
+  Loader2,
 } from 'lucide-react';
-import { problems as initialProblems, type Problem } from '@/data/problems';
 import { usePagination } from '@/hooks/use-pagination';
+
 import { toast } from 'sonner';
+import { useProblems } from '@/hooks/problems/useGetAllProblems';
 
 export default function AdminProblemsPage() {
+  const { problems, isLoading, isError } = useProblems();
 
-  const [problemList, setProblemList] = useState<Problem[]>(initialProblems);
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [deleteTarget, setDeleteTarget] = useState<Problem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(typeof problems)[0] | null>(
+    null,
+  );
 
   const filteredProblems = useMemo(() => {
-    return problemList.filter((p) => {
+    return problems.filter((p) => {
       const matchesSearch =
         p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.number.toString().includes(searchQuery) ||
-        p.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+        p.problemNumber?.toString().includes(searchQuery) ||
+        p.tags?.some((t) =>
+          t.toLowerCase().includes(searchQuery.toLowerCase()),
+        );
       const matchesDifficulty =
-        difficultyFilter === 'all' || p.difficulty === difficultyFilter;
+        difficultyFilter === 'all' ||
+        p.difficulty?.toLowerCase() === difficultyFilter.toLowerCase();
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'published' && p.isPublished) ||
         (statusFilter === 'draft' && !p.isPublished);
       return matchesSearch && matchesDifficulty && matchesStatus;
     });
-  }, [problemList, searchQuery, difficultyFilter, statusFilter]);
+  }, [problems, searchQuery, difficultyFilter, statusFilter]);
 
   const {
     currentPage,
@@ -105,39 +112,26 @@ export default function AdminProblemsPage() {
   );
 
   const stats = useMemo(() => {
-    const easy = problemList.filter((p) => p.difficulty === 'Easy').length;
-    const medium = problemList.filter((p) => p.difficulty === 'Medium').length;
-    const hard = problemList.filter((p) => p.difficulty === 'Hard').length;
-    const published = problemList.filter((p) => p.isPublished).length;
-    const draft = problemList.length - published;
-    return { total: problemList.length, easy, medium, hard, published, draft };
-  }, [problemList]);
-
-  const handleDelete = () => {
-    if (!deleteTarget) return;
-    setProblemList((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-toast.success('Problem deleted', {
-  description: `"${deleteTarget.title}" has been removed.`,
-});
-    setDeleteTarget(null);
-  };
-
-  const handleTogglePublish = (problem: Problem) => {
-    setProblemList((prev) =>
-      prev.map((p) =>
-        p.id === problem.id ? { ...p, isPublished: !p.isPublished } : p,
-      ),
-    );
-    toast.success(problem.isPublished ? 'Problem unpublished' : 'Problem published', {
-      description: `"${problem.title}" is now ${problem.isPublished ? 'a draft' : 'live'}.`,
-    });
-  };
+    const easy = problems.filter(
+      (p) => p.difficulty?.toUpperCase() === 'EASY',
+    ).length;
+    const medium = problems.filter(
+      (p) => p.difficulty?.toUpperCase() === 'MEDIUM',
+    ).length;
+    const hard = problems.filter(
+      (p) => p.difficulty?.toUpperCase() === 'HARD',
+    ).length;
+    const published = problems.filter((p) => p.isPublished).length;
+    const draft = problems.length - published;
+    return { total: problems.length, easy, medium, hard, published, draft };
+  }, [problems]);
 
   const getDifficultyBadge = (difficulty: string) => {
+    const upper = difficulty?.toUpperCase();
     const cls =
-      difficulty === 'Easy'
+      upper === 'EASY'
         ? 'difficulty-easy'
-        : difficulty === 'Medium'
+        : upper === 'MEDIUM'
           ? 'difficulty-medium'
           : 'difficulty-hard';
     return (
@@ -145,10 +139,29 @@ toast.success('Problem deleted', {
         variant='outline'
         className={`text-[10px] font-medium border ${cls}`}
       >
-        {difficulty}
+        {difficulty.charAt(0).toUpperCase() + difficulty.slice(1).toLowerCase()}
       </Badge>
     );
   };
+
+  // ─── loading / error states ───────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <p className='text-destructive text-sm'>
+          Failed to load problems. Please try again.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className='p-6 lg:p-8 max-w-7xl'>
@@ -181,42 +194,27 @@ toast.success('Problem deleted', {
         transition={{ delay: 0.1 }}
         className='grid grid-cols-2 md:grid-cols-6 gap-4 mb-8'
       >
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-foreground'>
-            {stats.total}
+        {[
+          { label: 'Total', value: stats.total, cls: 'text-foreground' },
+          { label: 'Published', value: stats.published, cls: 'text-primary' },
+          { label: 'Drafts', value: stats.draft, cls: 'text-muted-foreground' },
+          {
+            label: 'Easy',
+            value: stats.easy,
+            cls: 'text-[hsl(var(--emerald))]',
+          },
+          {
+            label: 'Medium',
+            value: stats.medium,
+            cls: 'text-[hsl(var(--amber))]',
+          },
+          { label: 'Hard', value: stats.hard, cls: 'text-destructive' },
+        ].map(({ label, value, cls }) => (
+          <div key={label} className='glass-card p-4 text-center'>
+            <div className={`text-2xl font-bold ${cls}`}>{value}</div>
+            <div className='text-xs text-muted-foreground mt-1'>{label}</div>
           </div>
-          <div className='text-xs text-muted-foreground mt-1'>Total</div>
-        </div>
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-primary'>
-            {stats.published}
-          </div>
-          <div className='text-xs text-muted-foreground mt-1'>Published</div>
-        </div>
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-muted-foreground'>
-            {stats.draft}
-          </div>
-          <div className='text-xs text-muted-foreground mt-1'>Drafts</div>
-        </div>
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-[hsl(var(--emerald))]'>
-            {stats.easy}
-          </div>
-          <div className='text-xs text-muted-foreground mt-1'>Easy</div>
-        </div>
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-[hsl(var(--amber))]'>
-            {stats.medium}
-          </div>
-          <div className='text-xs text-muted-foreground mt-1'>Medium</div>
-        </div>
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-destructive'>
-            {stats.hard}
-          </div>
-          <div className='text-xs text-muted-foreground mt-1'>Hard</div>
-        </div>
+        ))}
       </motion.div>
 
       {/* Toolbar */}
@@ -243,9 +241,9 @@ toast.success('Problem deleted', {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value='all'>All Levels</SelectItem>
-              <SelectItem value='Easy'>Easy</SelectItem>
-              <SelectItem value='Medium'>Medium</SelectItem>
-              <SelectItem value='Hard'>Hard</SelectItem>
+              <SelectItem value='easy'>Easy</SelectItem>
+              <SelectItem value='medium'>Medium</SelectItem>
+              <SelectItem value='hard'>Hard</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -281,14 +279,11 @@ toast.success('Problem deleted', {
               <TableHead className='text-muted-foreground text-xs font-semibold w-[100px]'>
                 Difficulty
               </TableHead>
-              <TableHead className='text-muted-foreground text-xs font-semibold w-[100px]'>
+              <TableHead className='text-muted-foreground text-xs font-semibold w-[110px]'>
                 Status
               </TableHead>
               <TableHead className='text-muted-foreground text-xs font-semibold hidden md:table-cell'>
                 Tags
-              </TableHead>
-              <TableHead className='text-muted-foreground text-xs font-semibold w-[100px] hidden sm:table-cell'>
-                Acceptance
               </TableHead>
               <TableHead className='text-muted-foreground text-xs font-semibold w-[80px] text-center'>
                 Details
@@ -308,7 +303,7 @@ toast.success('Problem deleted', {
                   className='border-border/30 hover:bg-surface-2/50 transition-colors group'
                 >
                   <TableCell className='font-mono text-sm text-muted-foreground'>
-                    {problem.number}
+                    {problem.problemNumber}
                   </TableCell>
                   <TableCell>
                     <div className='flex items-center gap-2'>
@@ -326,12 +321,11 @@ toast.success('Problem deleted', {
                   <TableCell>
                     <Badge
                       variant='outline'
-                      className={`text-[10px] font-medium border cursor-pointer transition-colors ${
+                      className={`text-[10px] font-medium border ${
                         problem.isPublished
-                          ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
-                          : 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20 animate-pulse'
+                          ? 'bg-primary/10 text-primary border-primary/20'
+                          : 'bg-destructive/10 text-destructive border-destructive/20 animate-pulse'
                       }`}
-                      onClick={() => handleTogglePublish(problem)}
                     >
                       {problem.isPublished ? (
                         <span className='flex items-center gap-1'>
@@ -348,7 +342,7 @@ toast.success('Problem deleted', {
                   </TableCell>
                   <TableCell className='hidden md:table-cell'>
                     <div className='flex flex-wrap gap-1'>
-                      {problem.tags.slice(0, 3).map((tag) => (
+                      {problem.tags?.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
                           className='text-[10px] px-1.5 py-0.5 rounded bg-surface-3 text-muted-foreground'
@@ -356,15 +350,12 @@ toast.success('Problem deleted', {
                           {tag}
                         </span>
                       ))}
-                      {problem.tags.length > 3 && (
+                      {(problem.tags?.length ?? 0) > 3 && (
                         <span className='text-[10px] text-muted-foreground/60'>
                           +{problem.tags.length - 3}
                         </span>
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>
-                    {problem.acceptance}%
                   </TableCell>
                   <TableCell className='text-center'>
                     <div className='flex items-center justify-center gap-1'>
@@ -373,7 +364,7 @@ toast.success('Problem deleted', {
                       ) : (
                         <Code2 className='h-3.5 w-3.5 text-muted-foreground/30' />
                       )}
-                      {problem.starterCode ? (
+                      {problem.codeSnippets ? (
                         <ListChecks className='h-3.5 w-3.5 text-primary' />
                       ) : (
                         <ListChecks className='h-3.5 w-3.5 text-muted-foreground/30' />
@@ -418,23 +409,6 @@ toast.success('Problem deleted', {
                             <Pencil className='h-3.5 w-3.5' />
                             Edit
                           </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className='text-sm cursor-pointer flex items-center gap-2'
-                          onClick={() => handleTogglePublish(problem)}
-                        >
-                          {problem.isPublished ? (
-                            <>
-                              <EyeOff className='h-3.5 w-3.5' />
-                              Unpublish
-                            </>
-                          ) : (
-                            <>
-                              <Globe className='h-3.5 w-3.5' />
-                              Publish
-                            </>
-                          )}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -519,6 +493,7 @@ toast.success('Problem deleted', {
         </motion.div>
       )}
 
+      {/* Delete Dialog */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
@@ -539,7 +514,12 @@ toast.success('Problem deleted', {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={() => {
+                toast.success('Problem deleted', {
+                  description: `"${deleteTarget?.title}" has been removed.`,
+                });
+                setDeleteTarget(null);
+              }}
               className='bg-destructive hover:bg-destructive/90 text-destructive-foreground'
             >
               Delete
