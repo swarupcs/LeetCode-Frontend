@@ -1,14 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-
-type Theme = 'light' | 'dark' | 'system';
-
-interface ThemeContextType {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-  resolvedTheme: 'light' | 'dark';
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+import { useEffect, useState } from 'react';
+import { ThemeContext, type Theme } from './ThemeContext';
 
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'dark';
@@ -43,7 +34,6 @@ export function ThemeProvider({
     localStorage.setItem(storageKey, theme);
   }, [theme, storageKey]);
 
-  // Listen for system theme changes
   useEffect(() => {
     if (theme !== 'system') return;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -61,17 +51,4 @@ export function ThemeProvider({
       {children}
     </ThemeContext.Provider>
   );
-}
-
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    // Return safe defaults when used outside ThemeProvider (e.g. during initial render)
-    return {
-      theme: 'dark' as Theme,
-      setTheme: () => {},
-      resolvedTheme: 'dark' as 'light' | 'dark',
-    };
-  }
-  return context;
 }

@@ -16,7 +16,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-const { signupMutation, isPending, isSuccess, isError, data, error } =
+const { signupMutation, isPending} =
   useSignup();
 
   const navigate = useNavigate();

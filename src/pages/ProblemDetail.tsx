@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -48,16 +48,14 @@ import AIAssistantPanel from '@/components/ai/AIAssistantPanel';
 import { useProblem } from '@/hooks/problems/useGetIndividualProblemDetails';
 import { useExecuteProblem } from '@/hooks/problems/useRunProblem';
 import { useSubmitCode } from '@/hooks/problems/useSubmitProblem';
-import type { SubmitCodeResponse } from '@/types/code.types';
 import { useUserSubmissionSpecificProblem } from '@/hooks/problems/useUserSubmissionSpecificProblem';
+import type {
+  SubmitCodeResponse,
+  TestCaseResult,
+} from '@/types/code.types';
+
 
 // ─── Constants ────────────────────────────────────────────────────
-
-// const languageLabels: Record<string, string> = {
-//   python: 'Python',
-//   javascript: 'JavaScript',
-//   java: 'Java',
-// };
 
 const languageIdMap: Record<string, number> = {
   python: 71,
@@ -86,6 +84,16 @@ interface Submission {
   timestamp: Date;
 }
 
+// Shape of raw submission records returned by the API hook
+interface RawSubmission {
+  id: string;
+  status: string;
+  language: string;
+  runtime?: string;
+  memory?: string;
+  date: string;
+}
+
 function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (seconds < 5) return 'just now';
@@ -99,18 +107,15 @@ function formatTimeAgo(date: Date): string {
 
 // ─── Shared sub-components ────────────────────────────────────────
 
-interface TestCaseResult {
-  testCase: number;
-  passed: boolean;
-  stdout?: string;
-  expected: string;
-  stderr?: string;
-  compile_output?: string;
-  time: string;
-  memory: string;
-}
 
-function TestCaseResultCard({ result }: { result: TestCaseResult }) {
+
+function TestCaseResultCard({
+  result,
+  index,
+}: {
+  result: TestCaseResult;
+  index: number;
+}) {
   return (
     <div
       className={`rounded-lg border p-3 ${
@@ -121,7 +126,7 @@ function TestCaseResultCard({ result }: { result: TestCaseResult }) {
     >
       <div className='flex items-center justify-between mb-2'>
         <span className='text-xs font-medium text-muted-foreground'>
-          Case {result.testCase}
+          Case {index + 1}
         </span>
         <div className='flex items-center gap-1'>
           {result.passed ? (
@@ -141,37 +146,18 @@ function TestCaseResultCard({ result }: { result: TestCaseResult }) {
 
       <div className='font-mono text-xs space-y-1.5'>
         <div className='flex gap-2'>
-          <span className='text-muted-foreground shrink-0'>Output:</span>
-          <span className={result.passed ? 'text-primary' : 'text-destructive'}>
-            {result.stdout ?? '—'}
-          </span>
+          <span className='text-muted-foreground shrink-0'>Input:</span>
+          <span className='text-foreground/80'>{result.input}</span>
         </div>
         <div className='flex gap-2'>
           <span className='text-muted-foreground shrink-0'>Expected:</span>
-          <span className='text-foreground/80'>{result.expected}</span>
+          <span className='text-foreground/80'>{result.expectedOutput}</span>
         </div>
-        {result.stderr && (
-          <div className='flex gap-2'>
-            <span className='text-muted-foreground shrink-0'>Error:</span>
-            <span className='text-destructive'>{result.stderr}</span>
-          </div>
-        )}
-        {result.compile_output && (
-          <div className='flex gap-2'>
-            <span className='text-muted-foreground shrink-0'>Compile:</span>
-            <span className='text-destructive'>{result.compile_output}</span>
-          </div>
-        )}
-      </div>
-
-      <div className='flex items-center gap-4 mt-2 pt-2 border-t border-border/20'>
-        <div className='flex items-center gap-1 text-[10px] text-muted-foreground'>
-          <Timer className='h-3 w-3' />
-          {result.time}
-        </div>
-        <div className='flex items-center gap-1 text-[10px] text-muted-foreground'>
-          <Cpu className='h-3 w-3' />
-          {result.memory}
+        <div className='flex gap-2'>
+          <span className='text-muted-foreground shrink-0'>Output:</span>
+          <span className={result.passed ? 'text-primary' : 'text-destructive'}>
+            {result.actualOutput}
+          </span>
         </div>
       </div>
     </div>
@@ -212,12 +198,38 @@ function ResultsPanel({
           {results.filter((r) => r.passed).length}/{results.length} passed
         </span>
       </div>
-      {results.map((result: TestCaseResult) => (
-        <TestCaseResultCard key={result.testCase} result={result} />
+      {results.map((result, index) => (
+        <TestCaseResultCard key={index} result={result} index={index} />
       ))}
     </motion.div>
   );
 }
+
+// ─── Editor state — isolated so it can be reset via key ──────────
+
+type SupportedLanguage = 'python' | 'javascript' | 'java';
+
+interface EditorPanelState {
+  language: SupportedLanguage;
+  code: string;
+  outputTab: string;
+  hasRun: boolean;
+  submitResult: SubmitCodeResponse | null;
+  activeSubmission: Submission | null;
+  activeCase: number;
+  newSubmissions: Submission[]; // submissions added this session
+}
+
+const DEFAULT_EDITOR_STATE: EditorPanelState = {
+  language: 'python',
+  code: '',
+  outputTab: 'testcases',
+  hasRun: false,
+  submitResult: null,
+  activeSubmission: null,
+  activeCase: 0,
+  newSubmissions: [],
+};
 
 // ─── Main page ────────────────────────────────────────────────────
 
@@ -232,96 +244,104 @@ export default function ProblemDetailPage() {
   } = useExecuteProblem();
   const { submitProblem, isPending: isSubmitting } = useSubmitCode();
 
-  const [language, setLanguage] = useState('python');
-  const [code, setCode] = useState('');
-  const [activeTab, setActiveTab] = useState('description');
-  const [outputTab, setOutputTab] = useState('testcases');
-  const [hasRun, setHasRun] = useState(false);
+  // ── Editor state ─────────────────────────────────────────────────
+  // Grouped so that resetting on problem navigation is a single setState call
+  const [editorState, setEditorState] =
+    useState<EditorPanelState>(DEFAULT_EDITOR_STATE);
   const [editorTheme, setEditorTheme] = useState<EditorThemeId>('algodrill');
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [activeSubmission, setActiveSubmission] = useState<Submission | null>(
-    null,
-  );
-  const [submitResult, setSubmitResult] = useState<SubmitCodeResponse | null>(
-    null,
-  );
-  const [activeCase, setActiveCase] = useState(0);
+  const [activeTab, setActiveTab] = useState('description');
 
-  // Seed submissions once problem loads
+  // Destructure for readability
+  const {
+    language,
+    code,
+    outputTab,
+    hasRun,
+    submitResult,
+    activeSubmission,
+    activeCase,
+    newSubmissions,
+  } = editorState;
 
+  const set = useCallback(
+    (patch: Partial<EditorPanelState>) =>
+      setEditorState((prev) => ({ ...prev, ...patch })),
+    [],
+  );
+
+  const [prevId, setPrevId] = useState<string | undefined>(undefined);
+  if (prevId !== id) {
+    setPrevId(id);
+    setEditorState(DEFAULT_EDITOR_STATE);
+    setActiveTab('description');
+  }
+
+  // ── Fetch persisted submissions ───────────────────────────────────
   const problemId = problem?.id;
-
   const { submissions: fetchedSubmissions, isPending: isLoadingSubmissions } =
     useUserSubmissionSpecificProblem(problemId ?? '', true);
 
-  useEffect(() => {
-    if (fetchedSubmissions.length > 0) {
-      const mapped: Submission[] = fetchedSubmissions.map((s: any) => ({
-        id: s.id,
-        status: s.status as Submission['status'],
-        language: s.language,
-        runtime: s.runtime ?? '—',
-        runtimePercentile: '—',
-        memory: s.memory ?? '—',
-        memoryPercentile: '—',
-        testCasesPassed: 0,
-        totalTestCases: 0,
-        timestamp: new Date(s.date),
-      }));
-      setSubmissions(mapped);
-    }
+  // Derive mapped submissions from API data — no setState in an effect
+  const persistedSubmissions = useMemo<Submission[]>(() => {
+    return (fetchedSubmissions as RawSubmission[]).map((s) => ({
+      id: s.id,
+      status: s.status as Submission['status'],
+      language: s.language,
+      runtime: s.runtime ?? '—',
+      runtimePercentile: '—',
+      memory: s.memory ?? '—',
+      memoryPercentile: '—',
+      testCasesPassed: 0,
+      totalTestCases: 0,
+      timestamp: new Date(s.date),
+    }));
   }, [fetchedSubmissions]);
 
-  // Reset all editor state when navigating to a different problem
-  useEffect(() => {
-    setLanguage('python');
-    setCode('');
-    setActiveTab('description');
-    setOutputTab('testcases');
-    setHasRun(false);
-    setSubmitResult(null);
-    setActiveSubmission(null);
-    setActiveCase(0);
-    setSubmissions([]); // clear while new problem's submissions load
-  }, [id]);
+  // Merge persisted + new submissions added this session, deduped by id
+  const submissions = useMemo<Submission[]>(() => {
+    const ids = new Set(persistedSubmissions.map((s) => s.id));
+    const fresh = newSubmissions.filter((s) => !ids.has(s.id));
+    return [...persistedSubmissions, ...fresh];
+  }, [persistedSubmissions, newSubmissions]);
 
+  // ── Derived code value ────────────────────────────────────────────
   const currentCode = useMemo(() => {
     if (code) return code;
     return problem?.codeSnippets?.[language] ?? '';
   }, [problem, language, code]);
 
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang);
-    setCode('');
-    setHasRun(false);
-    setSubmitResult(null);
-  };
+  // ── Handlers ─────────────────────────────────────────────────────
+  const handleLanguageChange = useCallback(
+    (lang: string) => {
+      set({
+        language: lang as SupportedLanguage,
+        code: '',
+        hasRun: false,
+        submitResult: null,
+      });
+    },
+    [set],
+  );
 
-  const handleRun = async () => {
-    if (!problem?.id) return;
-    setHasRun(true);
-    setSubmitResult(null);
-    setOutputTab('output');
+  const handleRun = useCallback(async () => {
+    if (!problemId) return;
+    set({ hasRun: true, submitResult: null, outputTab: 'output' });
     await runProblemMutation({
       source_code: currentCode,
       language_id: languageIdMap[language],
-      problemId: problem.id,
+      problemId,
     });
-  };
+  }, [problemId, currentCode, language, runProblemMutation, set]);
 
   const handleSubmit = useCallback(async () => {
     if (!problemId) return;
-    setHasRun(true);
-    setOutputTab('output');
-    setSubmitResult(null);
+    set({ hasRun: true, outputTab: 'output', submitResult: null });
 
     const result = await submitProblem({
       source_code: currentCode,
       language_id: languageIdMap[language],
       problemId,
     });
-
-    setSubmitResult(result);
 
     const [passed, total] = (result.submission.testCasesPassed ?? '0/0')
       .split('/')
@@ -340,20 +360,22 @@ export default function ProblemDetailPage() {
       timestamp: new Date(),
     };
 
-    setSubmissions((prev) => {
-      if (prev.some((s) => s.id === newSubmission.id)) return prev;
-      return [...prev, newSubmission];
+    set({
+      submitResult: result,
+      activeSubmission: newSubmission,
+      newSubmissions: [...newSubmissions, newSubmission],
     });
-    setActiveSubmission(newSubmission);
     setActiveTab('submissions');
-  }, [problemId, currentCode, language, submitProblem]);
+  }, [problemId, currentCode, language, submitProblem, set, newSubmissions]);
 
-  const handleReset = () => {
-    setCode('');
-    setHasRun(false);
-    setSubmitResult(null);
-    setActiveSubmission(null);
-  };
+  const handleReset = useCallback(() => {
+    set({
+      code: '',
+      hasRun: false,
+      submitResult: null,
+      activeSubmission: null,
+    });
+  }, [set]);
 
   // ── Loading ───────────────────────────────────────────────────────
   if (isPending) {
@@ -476,7 +498,7 @@ export default function ProblemDetailPage() {
       </div>
 
       {/* ── Main Split Pane ──────────────────────────────────────── */}
-      <ResizablePanelGroup direction='horizontal' className='flex-1'>
+      <ResizablePanelGroup className='flex-1'>
         {/* Left Panel */}
         <ResizablePanel defaultSize={45} minSize={30}>
           <div className='h-full flex flex-col bg-background overflow-hidden'>
@@ -533,10 +555,12 @@ export default function ProblemDetailPage() {
                         {tag}
                       </span>
                     ))}
-                    {problem.acceptance != null && (
+                    {(problem as { acceptance?: number }).acceptance !=
+                      null && (
                       <span className='text-[11px] px-2 py-0.5 rounded-md bg-surface-3 text-muted-foreground border border-border/30 flex items-center gap-1'>
                         <BarChart3 className='h-3 w-3' />
-                        {problem.acceptance}% acceptance
+                        {(problem as { acceptance?: number }).acceptance}%
+                        acceptance
                       </span>
                     )}
                   </div>
@@ -751,7 +775,7 @@ export default function ProblemDetailPage() {
                                 delay: idx === 0 ? 0.1 : 0,
                               }}
                               onClick={() =>
-                                setActiveSubmission(isActive ? null : sub)
+                                set({ activeSubmission: isActive ? null : sub })
                               }
                               className={`rounded-lg border p-3 cursor-pointer transition-all ${
                                 isActive
@@ -861,7 +885,6 @@ export default function ProblemDetailPage() {
                                         )}
                                       </div>
 
-                                      {/* Test cases progress */}
                                       {/* Test cases progress — only show if data exists */}
                                       {sub.totalTestCases > 0 && (
                                         <>
@@ -983,16 +1006,13 @@ export default function ProblemDetailPage() {
               </Button>
             </div>
 
-            <ResizablePanelGroup
-              direction='vertical'
-              className='flex-1 min-h-0'
-            >
+            <ResizablePanelGroup className='flex-1 min-h-0'>
               {/* Code Editor */}
               <ResizablePanel defaultSize={60} minSize={30}>
                 <div className='h-full w-full overflow-hidden'>
                   <CodeEditor
                     value={currentCode}
-                    onChange={(val) => setCode(val)}
+                    onChange={(val) => set({ code: val })}
                     language={language}
                     editorTheme={editorTheme}
                   />
@@ -1015,7 +1035,7 @@ export default function ProblemDetailPage() {
                     ].map(({ key, icon: Icon, label }) => (
                       <button
                         key={key}
-                        onClick={() => setOutputTab(key)}
+                        onClick={() => set({ outputTab: key })}
                         className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                           outputTab === key
                             ? 'bg-surface-2 text-foreground'
@@ -1044,7 +1064,7 @@ export default function ProblemDetailPage() {
                           {(problem.testCases ?? []).map((_, i) => (
                             <button
                               key={i}
-                              onClick={() => setActiveCase(i)}
+                              onClick={() => set({ activeCase: i })}
                               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                                 activeCase === i
                                   ? 'bg-primary text-primary-foreground'
@@ -1175,9 +1195,11 @@ export default function ProblemDetailPage() {
                         ) : executionData?.results ? (
                           <ResultsPanel
                             results={executionData.results}
-                            allPassed={executionData.allPassed}
+                            allPassed={executionData.results.every(
+                              (r) => r.passed,
+                            )}
                             label={
-                              executionData.allPassed
+                              executionData.results.every((r) => r.passed)
                                 ? 'All Tests Passed'
                                 : 'Some Tests Failed'
                             }

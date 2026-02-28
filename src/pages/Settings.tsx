@@ -360,31 +360,24 @@ function SecuritySettings() {
 
   const handlePasswordChange = () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      toast({
-        title: 'Missing fields',
+      toast.error('Missing fields', {
         description: 'Please fill in all password fields.',
-        variant: 'destructive',
       });
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast({
-        title: "Passwords don't match",
+      toast.error("Passwords don't match", {
         description: 'New password and confirmation must match.',
-        variant: 'destructive',
       });
       return;
     }
     if (newPassword.length < 8) {
-      toast({
-        title: 'Password too short',
+      toast.error('Password too short', {
         description: 'Password must be at least 8 characters.',
-        variant: 'destructive',
       });
       return;
     }
-    toast({
-      title: 'Password updated',
+    toast.success('Password updated', {
       description: 'Your password has been changed successfully.',
     });
     setCurrentPassword('');
@@ -655,8 +648,7 @@ function NotificationSettings() {
   const [digestFrequency, setDigestFrequency] = useState('daily');
 
   const handleSave = () => {
-    toast({
-      title: 'Preferences saved',
+    toast.success('Preferences saved', {
       description: 'Your notification preferences have been updated.',
     });
   };

@@ -105,7 +105,7 @@ export default function SheetDetail() {
 
   // Re-expand all groups whenever a new sheet loads
   useEffect(() => {
-    if (sheet) setExpandedGroups(new Set(DIFFICULTY_ORDER));
+    if (sheet) queueMicrotask(() => setExpandedGroups(new Set(DIFFICULTY_ORDER)));
   }, [sheet?.id]);
 
   // ── derived stats ────────────────────────────────────────────────────────────
@@ -154,7 +154,11 @@ export default function SheetDetail() {
   const toggleGroup = (diff: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
-      next.has(diff) ? next.delete(diff) : next.add(diff);
+      if (next.has(diff)) {
+        next.delete(diff);
+      } else {
+        next.add(diff);
+      }
       return next;
     });
   };

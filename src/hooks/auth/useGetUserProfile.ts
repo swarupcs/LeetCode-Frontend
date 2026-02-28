@@ -8,7 +8,7 @@ import { setUser, logout } from '@/features/auth/authSlice';
 import type { User, ApiError } from '@/types/auth.types';
 import type { AppDispatch } from '@/app/store';
 
-export const useCurrentUser = () => {
+export const useGetUserProfile = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   const query = useQuery<User, ApiError>({

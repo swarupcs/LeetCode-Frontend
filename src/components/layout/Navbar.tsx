@@ -30,9 +30,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useTheme } from '@/components/ThemeProvider';
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { logout } from '@/features/auth/authSlice';
+import { useTheme } from '../ThemeContext';
 
 const navItems = [
   { label: 'Problems', href: '/problems', icon: ListChecks },
