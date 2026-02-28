@@ -1,15 +1,12 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   ListChecks,
   BookOpen,
   Map,
-  Settings,
   ShieldCheck,
   ChevronLeft,
   Users,
-  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

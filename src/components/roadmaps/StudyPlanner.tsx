@@ -14,8 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { roadmaps, getRoadmapStats, type Roadmap } from '@/data/roadmaps';
+import { roadmaps, getRoadmapStats } from '@/data/roadmaps';
 
 const STORAGE_KEY = 'study-planner';
 

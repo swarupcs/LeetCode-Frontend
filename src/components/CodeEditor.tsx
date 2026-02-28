@@ -13,7 +13,7 @@ import {
 } from '@/components/editor/editorThemes';
 
 // Re-export for consumers
-export { editorThemes };
+// Removed re-export to keep this file component-only for Fast Refresh
 export type { EditorThemeId, EditorThemeMeta };
 
 // ─── Language resolver ───────────────────────────────────────────
