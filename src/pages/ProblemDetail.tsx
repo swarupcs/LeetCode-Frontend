@@ -53,7 +53,9 @@ import type {
   SubmitCodeResponse,
   TestCaseResult,
 } from '@/types/code.types';
-
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/app/store';
+import { toast } from 'sonner';
 
 // ─── Constants ────────────────────────────────────────────────────
 
@@ -84,7 +86,6 @@ interface Submission {
   timestamp: Date;
 }
 
-
 function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (seconds < 5) return 'just now';
@@ -97,8 +98,6 @@ function formatTimeAgo(date: Date): string {
 }
 
 // ─── Shared sub-components ────────────────────────────────────────
-
-
 
 function TestCaseResultCard({
   result,
@@ -271,6 +270,10 @@ export default function ProblemDetailPage() {
   const [editorTheme, setEditorTheme] = useState<EditorThemeId>('algodrill');
   const [activeTab, setActiveTab] = useState('description');
 
+  const user = useSelector((state: RootState) => state.auth);
+
+  const isLoggedIn = user.isAuthenticated;
+
   // Destructure for readability
   const {
     language,
@@ -302,20 +305,20 @@ export default function ProblemDetailPage() {
     useUserSubmissionSpecificProblem(problemId ?? '', true);
 
   // Derive mapped submissions from API data — no setState in an effect
-const persistedSubmissions = useMemo<Submission[]>(() => {
-  return fetchedSubmissions.map((s: SubmissionDetails) => ({
-    id: s.id,
-    status: s.status as Submission['status'],
-    language: s.language,
-    runtime: s.runtime != null ? `${s.runtime}ms` : '—',
-    runtimePercentile: '—',
-    memory: s.memory != null ? `${s.memory} KB` : '—',
-    memoryPercentile: '—',
-    testCasesPassed: 0,
-    totalTestCases: 0,
-    timestamp: new Date(s.createdAt),
-  }));
-}, [fetchedSubmissions]);
+  const persistedSubmissions = useMemo<Submission[]>(() => {
+    return fetchedSubmissions.map((s: SubmissionDetails) => ({
+      id: s.id,
+      status: s.status as Submission['status'],
+      language: s.language,
+      runtime: s.runtime != null ? `${s.runtime}ms` : '—',
+      runtimePercentile: '—',
+      memory: s.memory != null ? `${s.memory} KB` : '—',
+      memoryPercentile: '—',
+      testCasesPassed: 0,
+      totalTestCases: 0,
+      timestamp: new Date(s.createdAt),
+    }));
+  }, [fetchedSubmissions]);
 
   // Merge persisted + new submissions added this session, deduped by id
   const submissions = useMemo<Submission[]>(() => {
@@ -344,6 +347,10 @@ const persistedSubmissions = useMemo<Submission[]>(() => {
   );
 
   const handleRun = useCallback(async () => {
+    if (!isLoggedIn) {
+      toast.error('You must be logged in to run code.');
+      return;
+    }
     if (!problemId) return;
     set({ hasRun: true, submitResult: null, outputTab: 'output' });
     await runProblemMutation({
@@ -351,9 +358,13 @@ const persistedSubmissions = useMemo<Submission[]>(() => {
       language_id: languageIdMap[language],
       problemId,
     });
-  }, [problemId, currentCode, language, runProblemMutation, set]);
+  }, [isLoggedIn, problemId, currentCode, language, runProblemMutation, set]);
 
   const handleSubmit = useCallback(async () => {
+    if (!isLoggedIn) {
+      toast.error('You must be logged in to submit code.');
+      return;
+    }
     if (!problemId) return;
     set({ hasRun: true, outputTab: 'output', submitResult: null });
 
@@ -386,7 +397,15 @@ const persistedSubmissions = useMemo<Submission[]>(() => {
       newSubmissions: [...newSubmissions, newSubmission],
     });
     setActiveTab('submissions');
-  }, [problemId, currentCode, language, submitProblem, set, newSubmissions]);
+  }, [
+    isLoggedIn,
+    problemId,
+    currentCode,
+    language,
+    submitProblem,
+    set,
+    newSubmissions,
+  ]);
 
   const handleReset = useCallback(() => {
     set({
@@ -491,7 +510,7 @@ const persistedSubmissions = useMemo<Submission[]>(() => {
             size='sm'
             onClick={handleRun}
             disabled={isExecuting || isSubmitting}
-            className='text-muted-foreground hover:text-foreground gap-1.5 h-7 text-xs'
+            className='text-muted-foreground hover:text-foreground gap-1.5 h-7 text-xs cursor-pointer'
           >
             {isExecuting ? (
               <Loader2 className='h-3 w-3 animate-spin' />
@@ -505,7 +524,7 @@ const persistedSubmissions = useMemo<Submission[]>(() => {
             size='sm'
             onClick={handleSubmit}
             disabled={isSubmitting || isExecuting}
-            className='bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 h-7 text-xs font-medium'
+            className='bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 h-7 text-xs font-medium cursor-pointer'
           >
             {isSubmitting ? (
               <Loader2 className='h-3 w-3 animate-spin' />
