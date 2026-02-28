@@ -23,14 +23,10 @@ import {
   Users,
   Filter,
   Flame,
-  CheckCircle,
-  TrendingUp,
   Eye,
   ShieldCheck,
-  UserX,
-  UserCheck,
 } from 'lucide-react';
-import { platformUsers, type PlatformUser } from '@/data/users';
+import { platformUsers } from '@/data/users';
 
 const statusConfig = {
   active: {

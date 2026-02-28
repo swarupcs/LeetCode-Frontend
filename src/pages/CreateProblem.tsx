@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -46,8 +46,9 @@ import { toast } from 'sonner';
 import { useCreateProblem } from '@/hooks/problems/useCreateProblem';
 import { useUpdateProblem } from '@/hooks/problems/useUpdateProblem';
 import { useProblem } from '@/hooks/problems/useGetIndividualProblemDetails';
+import type { Problem } from '@/types/problem.types';
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// ─── constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_TEST_CASE: TestCase = {
   id: crypto.randomUUID(),
@@ -55,7 +56,6 @@ const DEFAULT_TEST_CASE: TestCase = {
   expectedOutput: '',
   isHidden: false,
   explanation: '',
-  code: { python: '', javascript: '', java: '' },
 };
 
 const DEFAULT_SOLUTION: SolutionData = {
@@ -68,49 +68,50 @@ const DEFAULT_SOLUTION: SolutionData = {
 
 const DEFAULT_STARTER_CODE = { python: '', javascript: '', java: '' };
 
+// ─── outer shell — handles loading gate ──────────────────────────────────────
+
 export default function CreateProblemPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-
   const isEditing = !!id;
 
-  // ─── hooks ────────────────────────────────────────────────────────────────
-  const { createProblemMutation, isPending: isCreating } = useCreateProblem();
-  const { updateProblemMutation, isPending: isUpdating } = useUpdateProblem();
   const { problem: existingProblem, isLoading: isProblemLoading } = useProblem(
     isEditing ? id : '',
   );
 
-  const isPending = isCreating || isUpdating;
+  // Block rendering until data is ready so lazy initializers see real data
+  if (isEditing && isProblemLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
 
-  // ─── form state ───────────────────────────────────────────────────────────
-  const [title, setTitle] = useState('');
-  const [number, setNumber] = useState<number>(1);
-  const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>(
-    'EASY',
+  return (
+    <ProblemForm
+      existingProblem={existingProblem ?? null}
+      isEditing={isEditing}
+      problemId={id}
+    />
   );
-  const [tags, setTags] = useState<string[]>([]);
-  const [description, setDescription] = useState('');
-  const [constraints, setConstraints] = useState<string[]>([]);
-  const [hints, setHints] = useState('');
-  const [editorial, setEditorial] = useState('');
-  const [companyTags, setCompanyTags] = useState<string[]>([]);
-  const [examples, setExamples] = useState<ExampleItem[]>([
-    { input: '', output: '', explanation: '' },
-  ]);
-  const [starterCode, setStarterCode] =
-    useState<Record<string, string>>(DEFAULT_STARTER_CODE);
+}
 
-  const [referenceSolutions, setReferenceSolutions] = useState<
-    Record<string, string>
-  >({
-    python: '',
-    javascript: '',
-    java: '',
-  });
+// ─── inner form — mounts only when data is available ─────────────────────────
 
-  const [testCases, setTestCases] = useState<TestCase[]>([DEFAULT_TEST_CASE]);
-  const [solution, setSolution] = useState<SolutionData>(DEFAULT_SOLUTION);
+function ProblemForm({
+  existingProblem,
+  isEditing,
+  problemId,
+}: {
+  existingProblem: Problem | null;
+  isEditing: boolean;
+  problemId?: string;
+}) {
+  const navigate = useNavigate();
+  const { createProblemMutation, isPending: isCreating } = useCreateProblem();
+  const { updateProblemMutation, isPending: isUpdating } = useUpdateProblem();
+
+  const isPending = isCreating || isUpdating;
 
   /**
    
@@ -160,59 +161,65 @@ const [solution, setSolution] = useState<SolutionData>(DEFAULT_SOLUTION);
 
    */
 
+  // ─── form state — all lazy initializers, no useEffect needed ─────────────
+  const [title, setTitle] = useState(() => existingProblem?.title ?? '');
+  const [number, setNumber] = useState<number>(
+    () => existingProblem?.problemNumber ?? 1,
+  );
+  const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>(
+    () => existingProblem?.difficulty ?? 'EASY',
+  );
+  const [tags, setTags] = useState<string[]>(() => existingProblem?.tags ?? []);
+  const [description, setDescription] = useState(
+    () => existingProblem?.description ?? '',
+  );
+  const [constraints, setConstraints] = useState<string[]>(() =>
+    existingProblem?.constraints
+      ? existingProblem.constraints.split('\n').filter(Boolean)
+      : [],
+  );
+  const [hints, setHints] = useState(() => existingProblem?.hints ?? '');
+  const [editorial] = useState(() => existingProblem?.editorial ?? '');
+  const [companyTags, setCompanyTags] = useState<string[]>(
+    () => existingProblem?.companyTags ?? [],
+  );
+  const [examples, setExamples] = useState<ExampleItem[]>(() =>
+    Array.isArray(existingProblem?.examples) &&
+    existingProblem.examples.length > 0
+      ? (existingProblem.examples as ExampleItem[])
+      : [{ input: '', output: '', explanation: '' }],
+  );
+  const [starterCode, setStarterCode] = useState<Record<string, string>>(
+    () =>
+      (existingProblem?.codeSnippets as Record<string, string>) ??
+      DEFAULT_STARTER_CODE,
+  );
+  const [referenceSolutions] = useState<Record<string, string>>(
+    () =>
+      (existingProblem?.referenceSolutions as Record<string, string>) ?? {
+        python: '',
+        javascript: '',
+        java: '',
+      },
+  );
+  const [testCases, setTestCases] = useState<TestCase[]>(() => {
+    if (
+      Array.isArray(existingProblem?.testCases) &&
+      existingProblem.testCases.length > 0
+    ) {
+      return existingProblem.testCases.map((tc) => ({
+        id: crypto.randomUUID(),
+        input: tc.input,
+        expectedOutput: tc.expected,
+        isHidden: false,
+        explanation: '',
+      }));
+    }
+    return [DEFAULT_TEST_CASE];
+  });
+  const [solution, setSolution] = useState<SolutionData>(DEFAULT_SOLUTION);
   const [activeSection, setActiveSection] = useState('basics');
   const [solutionView, setSolutionView] = useState<'edit' | 'preview'>('edit');
-
-  // ─── populate form when editing ───────────────────────────────────────────
-  useEffect(() => {
-    if (isEditing && existingProblem) {
-      setTitle(existingProblem.title ?? '');
-      setNumber(existingProblem.problemNumber ?? 1);
-      setDifficulty(existingProblem.difficulty ?? 'EASY');
-      setTags(existingProblem.tags ?? []);
-      setDescription(existingProblem.description ?? '');
-      setConstraints(
-        existingProblem.constraints
-          ? existingProblem.constraints.split('\n').filter(Boolean)
-          : [],
-      );
-      setHints(existingProblem.hints ?? '');
-      setEditorial(existingProblem.editorial ?? '');
-      setCompanyTags(existingProblem.companyTags ?? []);
-      setExamples(
-        Array.isArray(existingProblem.examples) &&
-          existingProblem.examples.length > 0
-          ? (existingProblem.examples as ExampleItem[])
-          : [{ input: '', output: '', explanation: '' }],
-      );
-      setStarterCode(
-        (existingProblem.codeSnippets as Record<string, string>) ??
-          DEFAULT_STARTER_CODE,
-      );
-      setReferenceSolutions(
-        (existingProblem.referenceSolutions as Record<string, string>) ?? {
-          python: '',
-          javascript: '',
-          java: '',
-        },
-      );
-      if (
-        Array.isArray(existingProblem.testCases) &&
-        existingProblem.testCases.length > 0
-      ) {
-        setTestCases(
-          existingProblem.testCases.map((tc) => ({
-            id: crypto.randomUUID(),
-            input: tc.input,
-            expectedOutput: tc.expected,
-            isHidden: false,
-            explanation: '',
-            code: { python: '', javascript: '', java: '' },
-          })),
-        );
-      }
-    }
-  }, [isEditing, existingProblem]);
 
   // ─── derived ──────────────────────────────────────────────────────────────
   const canSave = title.trim() && number > 0 && tags.length > 0 && !isPending;
@@ -255,8 +262,8 @@ const [solution, setSolution] = useState<SolutionData>(DEFAULT_SOLUTION);
     }
 
     try {
-      if (isEditing && id) {
-        await updateProblemMutation({ problemId: id, ...buildPayload() });
+      if (isEditing && problemId) {
+        await updateProblemMutation({ problemId, ...buildPayload() });
         toast.success('Problem updated', {
           description: `"${title}" has been updated successfully.`,
         });
@@ -280,23 +287,14 @@ const [solution, setSolution] = useState<SolutionData>(DEFAULT_SOLUTION);
   };
 
   const handlePreview = () => {
-    if (isEditing && id) {
-      window.open(`/problem/${id}`, '_blank');
+    if (isEditing && problemId) {
+      window.open(`/problem/${problemId}`, '_blank');
     } else {
       toast.warning('Save first', {
         description: 'Save the problem before previewing.',
       });
     }
   };
-
-  // ─── loading state ────────────────────────────────────────────────────────
-  if (isEditing && isProblemLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='h-8 w-8 animate-spin text-primary' />
-      </div>
-    );
-  }
 
   // ─── render ───────────────────────────────────────────────────────────────
   return (

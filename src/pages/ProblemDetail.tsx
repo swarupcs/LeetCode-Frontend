@@ -50,6 +50,7 @@ import { useExecuteProblem } from '@/hooks/problems/useRunProblem';
 import { useSubmitCode } from '@/hooks/problems/useSubmitProblem';
 import { useUserSubmissionSpecificProblem } from '@/hooks/problems/useUserSubmissionSpecificProblem';
 import type {
+  SubmissionDetails,
   SubmitCodeResponse,
   TestCaseResult,
 } from '@/types/code.types';
@@ -84,15 +85,6 @@ interface Submission {
   timestamp: Date;
 }
 
-// Shape of raw submission records returned by the API hook
-interface RawSubmission {
-  id: string;
-  status: string;
-  language: string;
-  runtime?: string;
-  memory?: string;
-  date: string;
-}
 
 function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -282,20 +274,20 @@ export default function ProblemDetailPage() {
     useUserSubmissionSpecificProblem(problemId ?? '', true);
 
   // Derive mapped submissions from API data — no setState in an effect
-  const persistedSubmissions = useMemo<Submission[]>(() => {
-    return (fetchedSubmissions as RawSubmission[]).map((s) => ({
-      id: s.id,
-      status: s.status as Submission['status'],
-      language: s.language,
-      runtime: s.runtime ?? '—',
-      runtimePercentile: '—',
-      memory: s.memory ?? '—',
-      memoryPercentile: '—',
-      testCasesPassed: 0,
-      totalTestCases: 0,
-      timestamp: new Date(s.date),
-    }));
-  }, [fetchedSubmissions]);
+const persistedSubmissions = useMemo<Submission[]>(() => {
+  return fetchedSubmissions.map((s: SubmissionDetails) => ({
+    id: s.id,
+    status: s.status as Submission['status'],
+    language: s.language,
+    runtime: s.runtime != null ? `${s.runtime}ms` : '—',
+    runtimePercentile: '—',
+    memory: s.memory != null ? `${s.memory} KB` : '—',
+    memoryPercentile: '—',
+    testCasesPassed: 0,
+    totalTestCases: 0,
+    timestamp: new Date(s.createdAt),
+  }));
+}, [fetchedSubmissions]);
 
   // Merge persisted + new submissions added this session, deduped by id
   const submissions = useMemo<Submission[]>(() => {

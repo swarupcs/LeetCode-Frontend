@@ -408,7 +408,7 @@ export default function AdminUserDetailPage() {
                   />
                   {user.totalSolved > 0 &&
                     breakdown.reduce<{
-                      elements: JSX.Element[];
+                      elements: React.ReactElement[];
                       offset: number;
                     }>(
                       (acc, d, i) => {

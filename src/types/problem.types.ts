@@ -28,6 +28,7 @@ export interface Problem {
   createdAt: string;
   updatedAt: string;
   isSolved?: boolean;
+  isPublished?: boolean;
 }
 
 export interface GetAllProblemsPayload {

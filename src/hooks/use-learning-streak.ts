@@ -54,12 +54,6 @@ function saveDailyGoal(goal: number) {
 }
 
 /** Derive streak from roadmap-progress changes */
-function deriveFromRoadmapProgress(): { todayCount: number } {
-  // We compute today's count by reading the streak store
-  // The actual recording happens via recordActivity
-  const streak = loadStreak();
-  return { todayCount: streak.todayCompleted };
-}
 
 const MILESTONES = [3, 7, 14, 30] as const;
 
