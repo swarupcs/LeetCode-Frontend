@@ -39,10 +39,11 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Palette } from 'lucide-react';
-import CodeEditor, {
+import CodeEditor from '@/components/CodeEditor';
+import {
   editorThemes,
   type EditorThemeId,
-} from '@/components/CodeEditor';
+} from '@/components/editor/editorThemes';
 import AIAssistantPanel from '@/components/ai/AIAssistantPanel';
 import { useProblem } from '@/hooks/problems/useGetIndividualProblemDetails';
 import { useExecuteProblem } from '@/hooks/problems/useRunProblem';
@@ -52,11 +53,11 @@ import { useUserSubmissionSpecificProblem } from '@/hooks/problems/useUserSubmis
 
 // ─── Constants ────────────────────────────────────────────────────
 
-const languageLabels: Record<string, string> = {
-  python: 'Python',
-  javascript: 'JavaScript',
-  java: 'Java',
-};
+// const languageLabels: Record<string, string> = {
+//   python: 'Python',
+//   javascript: 'JavaScript',
+//   java: 'Java',
+// };
 
 const languageIdMap: Record<string, number> = {
   python: 71,
@@ -98,7 +99,18 @@ function formatTimeAgo(date: Date): string {
 
 // ─── Shared sub-components ────────────────────────────────────────
 
-function TestCaseResultCard({ result }: { result: any }) {
+interface TestCaseResult {
+  testCase: number;
+  passed: boolean;
+  stdout?: string;
+  expected: string;
+  stderr?: string;
+  compile_output?: string;
+  time: string;
+  memory: string;
+}
+
+function TestCaseResultCard({ result }: { result: TestCaseResult }) {
   return (
     <div
       className={`rounded-lg border p-3 ${
@@ -171,7 +183,7 @@ function ResultsPanel({
   allPassed,
   label,
 }: {
-  results: any[];
+  results: TestCaseResult[];
   allPassed: boolean;
   label: string;
 }) {
@@ -200,7 +212,7 @@ function ResultsPanel({
           {results.filter((r) => r.passed).length}/{results.length} passed
         </span>
       </div>
-      {results.map((result: any) => (
+      {results.map((result: TestCaseResult) => (
         <TestCaseResultCard key={result.testCase} result={result} />
       ))}
     </motion.div>
@@ -242,23 +254,23 @@ export default function ProblemDetailPage() {
   const { submissions: fetchedSubmissions, isPending: isLoadingSubmissions } =
     useUserSubmissionSpecificProblem(problemId ?? '', true);
 
-useEffect(() => {
-  if (fetchedSubmissions.length > 0) {
-    const mapped: Submission[] = fetchedSubmissions.map((s: any) => ({
-      id: s.id,
-      status: s.status as Submission['status'],
-      language: s.language,
-      runtime: s.runtime ?? '—',
-      runtimePercentile: '—',
-      memory: s.memory ?? '—',
-      memoryPercentile: '—',
-      testCasesPassed: 0,
-      totalTestCases: 0,
-      timestamp: new Date(s.date),
-    }));
-    setSubmissions(mapped);
-  }
-}, [fetchedSubmissions]);
+  useEffect(() => {
+    if (fetchedSubmissions.length > 0) {
+      const mapped: Submission[] = fetchedSubmissions.map((s: any) => ({
+        id: s.id,
+        status: s.status as Submission['status'],
+        language: s.language,
+        runtime: s.runtime ?? '—',
+        runtimePercentile: '—',
+        memory: s.memory ?? '—',
+        memoryPercentile: '—',
+        testCasesPassed: 0,
+        totalTestCases: 0,
+        timestamp: new Date(s.date),
+      }));
+      setSubmissions(mapped);
+    }
+  }, [fetchedSubmissions]);
 
   // Reset all editor state when navigating to a different problem
   useEffect(() => {
@@ -297,44 +309,44 @@ useEffect(() => {
     });
   };
 
-const handleSubmit = useCallback(async () => {
-  if (!problemId) return;
-  setHasRun(true);
-  setOutputTab('output');
-  setSubmitResult(null);
+  const handleSubmit = useCallback(async () => {
+    if (!problemId) return;
+    setHasRun(true);
+    setOutputTab('output');
+    setSubmitResult(null);
 
-  const result = await submitProblem({
-    source_code: currentCode,
-    language_id: languageIdMap[language],
-    problemId,
-  });
+    const result = await submitProblem({
+      source_code: currentCode,
+      language_id: languageIdMap[language],
+      problemId,
+    });
 
-  setSubmitResult(result);
+    setSubmitResult(result);
 
-  const [passed, total] = (result.submission.testCasesPassed ?? '0/0')
-    .split('/')
-    .map(Number);
+    const [passed, total] = (result.submission.testCasesPassed ?? '0/0')
+      .split('/')
+      .map(Number);
 
-  const newSubmission: Submission = {
-    id: crypto.randomUUID(),
-    status: result.submission.status as Submission['status'],
-    language: result.submission.language,
-    runtime: result.submission.performance.totalTime,
-    runtimePercentile: '—',
-    memory: result.submission.performance.totalMemory,
-    memoryPercentile: '—',
-    testCasesPassed: passed,
-    totalTestCases: total,
-    timestamp: new Date(),
-  };
+    const newSubmission: Submission = {
+      id: crypto.randomUUID(),
+      status: result.submission.status as Submission['status'],
+      language: result.submission.language,
+      runtime: result.submission.performance.totalTime,
+      runtimePercentile: '—',
+      memory: result.submission.performance.totalMemory,
+      memoryPercentile: '—',
+      testCasesPassed: passed,
+      totalTestCases: total,
+      timestamp: new Date(),
+    };
 
-  setSubmissions((prev) => {
-    if (prev.some((s) => s.id === newSubmission.id)) return prev;
-    return [...prev, newSubmission];
-  });
-  setActiveSubmission(newSubmission);
-  setActiveTab('submissions');
-}, [problemId, currentCode, language, submitProblem]);
+    setSubmissions((prev) => {
+      if (prev.some((s) => s.id === newSubmission.id)) return prev;
+      return [...prev, newSubmission];
+    });
+    setActiveSubmission(newSubmission);
+    setActiveTab('submissions');
+  }, [problemId, currentCode, language, submitProblem]);
 
   const handleReset = () => {
     setCode('');
