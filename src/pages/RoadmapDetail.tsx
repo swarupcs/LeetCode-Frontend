@@ -33,7 +33,7 @@ import {
   ChevronsUpDown,
   GraduationCap as CourseIcon,
 } from 'lucide-react';
-import { roadmaps, type RoadmapResource } from '@/data/roadmaps';
+import { roadmaps } from '@/data/roadmaps';
 import { useRoadmapProgress } from '@/hooks/use-roadmap-progress';
 import { useLearningStreak } from '@/hooks/use-learning-streak';
 import {
@@ -48,6 +48,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 
 const iconMap: Record<string, React.ElementType> = {
   Binary,
@@ -248,7 +249,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
 });
       clearMilestone();
     }
-  }, [newMilestone, milestoneMessage, clearMilestone, toast]);
+  }, [newMilestone, milestoneMessage, clearMilestone]);
 
   if (!roadmap) {
     return (
@@ -453,9 +454,6 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                 )
                 .map((s) => s.id);
               const hasCompletedSections = completedSectionIds.length > 0;
-              const allCollapsed = filteredSections.every((s) =>
-                collapsedSections.has(s.id),
-              );
               return (
                 <>
                   {hasCompletedSections && (
@@ -581,8 +579,6 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                     <div className='space-y-2 pl-3 border-l-2 border-border/30 ml-3.5'>
                       {section.topics.map((topic) => {
                         const done = isCompleted(topic.id);
-                        const ResIcon =
-                          resourceIcons[topic.resources[0]?.type] || BookOpen;
                         return (
                           <div
                             key={topic.id}
