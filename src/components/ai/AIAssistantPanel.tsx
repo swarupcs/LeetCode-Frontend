@@ -112,6 +112,9 @@ export default function AIAssistantPanel({
       setIsLoading(true);
       setLoadingAction(action);
 
+      // In a real app, we would send code and language to the AI
+      console.log(`[AI] Analyzing ${language} code for ${problemTitle}...`);
+
       const fullContent =
         action === 'hint'
           ? pickRandom(mockHints)
@@ -161,7 +164,7 @@ export default function AIAssistantPanel({
         }, 15);
       }, 600);
     },
-    [isLoading],
+    [isLoading, problemTitle, language, code],
   );
 
   const handleChatSubmit = useCallback(() => {
@@ -186,6 +189,11 @@ export default function AIAssistantPanel({
     // Simulate AI response
     setIsLoading(true);
     setLoadingAction('chat');
+
+    // In a real app, we would send the code, language, and problemTitle as context
+    console.log(
+      `[AI Chat] User: ${trimmed} | Problem: ${problemTitle} | Code: ${code.slice(0, 50)}...`,
+    );
 
     const fullContent = pickRandom(mockChatResponses);
     const aiMsgId = crypto.randomUUID();
@@ -229,7 +237,7 @@ export default function AIAssistantPanel({
         }
       }, 15);
     }, 600);
-  }, [chatInput, isLoading]);
+  }, [chatInput, isLoading, problemTitle, code, language]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -263,6 +271,9 @@ export default function AIAssistantPanel({
               <Sparkles className='h-6 w-6 text-primary' />
             </div>
             <h3 className='text-sm font-semibold mb-1'>AI Assistant</h3>
+            <p className='text-[10px] text-primary/80 font-medium mb-1 truncate max-w-[200px]'>
+              {problemTitle}
+            </p>
             <p className='text-xs text-muted-foreground mb-6 max-w-[240px]'>
               Ask questions, get hints, or analyze your code — all powered by
               AI.
