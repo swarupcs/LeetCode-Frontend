@@ -347,7 +347,7 @@ export default function ProfilePage() {
   const { progressData, isLoading: loadingProgress } = useGetUserProgressData();
   const { heatMapData, isLoading: loadingHeatMap } = useGetUserHeatMapData();
 
-  console.log("profile", profile)
+  // console.log("profile", profile)
 
   const isLoading =
     loadingProfile || loadingSolved || loadingProgress || loadingHeatMap;
@@ -886,7 +886,7 @@ export default function ProfilePage() {
                                 </div>
                                 <div className='min-w-0'>
                                   <Link
-                                    to={`/problems/${sub.problem}`}
+                                    to={`/problem/${sub.problemId}`}
                                     className='text-sm font-medium hover:text-primary transition-colors truncate block'
                                   >
                                     {sub.problem}

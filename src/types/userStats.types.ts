@@ -52,6 +52,7 @@ export interface LanguageStat {
 
 export interface RecentSubmission {
   problem: string;
+  problemId: string;
   difficulty: string;
   status: string;
   language: string;
