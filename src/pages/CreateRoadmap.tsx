@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,6 @@ import {
   GripVertical,
   Save,
   ArrowLeft,
-  Link as LinkIcon,
   Search,
   ChevronsUpDown,
   ChevronsDownUp,
@@ -31,7 +30,6 @@ import {
 } from 'lucide-react';
 import {
   roadmaps,
-  type Roadmap,
   type RoadmapSection,
   type RoadmapTopic,
   type RoadmapResource,
@@ -137,7 +135,10 @@ export default function CreateRoadmapPage() {
   };
 
   // Search/filter
-  const matchesSearch = (topic: RoadmapTopic) => {
+
+
+const matchesSearch = useCallback(
+  (topic: RoadmapTopic) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -145,15 +146,17 @@ export default function CreateRoadmapPage() {
       topic.description.toLowerCase().includes(q) ||
       topic.subtopics.some((st) => st.name.toLowerCase().includes(q))
     );
-  };
+  },
+  [searchQuery],
+);
 
-  const filteredSectionIndices = useMemo(() => {
-    if (!searchQuery.trim()) return sections.map((_, i) => i);
-    return sections
-      .map((s, i) => ({ section: s, index: i }))
-      .filter(({ section }) => section.topics.some(matchesSearch))
-      .map(({ index }) => index);
-  }, [sections, searchQuery]);
+const filteredSectionIndices = useMemo(() => {
+  if (!searchQuery.trim()) return sections.map((_, i) => i);
+  return sections
+    .map((s, i) => ({ section: s, index: i }))
+    .filter(({ section }) => section.topics.some(matchesSearch))
+    .map(({ index }) => index);
+}, [sections, searchQuery, matchesSearch]);
 
   // Section CRUD
   const addSection = () => {
@@ -366,21 +369,29 @@ export default function CreateRoadmapPage() {
     );
   };
 
-  const toggleSection = (index: number) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      next.has(index) ? next.delete(index) : next.add(index);
-      return next;
-    });
-  };
+const toggleSection = (index: number) => {
+  setExpandedSections((prev) => {
+    const next = new Set(prev);
+    if (next.has(index)) {
+      next.delete(index);
+    } else {
+      next.add(index);
+    }
+    return next;
+  });
+};
 
-  const toggleTopic = (topicId: string) => {
-    setExpandedTopics((prev) => {
-      const next = new Set(prev);
-      next.has(topicId) ? next.delete(topicId) : next.add(topicId);
-      return next;
-    });
-  };
+const toggleTopic = (topicId: string) => {
+  setExpandedTopics((prev) => {
+    const next = new Set(prev);
+    if (next.has(topicId)) {
+      next.delete(topicId);
+    } else {
+      next.add(topicId);
+    }
+    return next;
+  });
+};
 
   // Drag-and-drop state
   const [dragType, setDragType] = useState<'section' | 'topic' | null>(null);

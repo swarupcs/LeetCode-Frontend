@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   ArrowRight,
-  Code2,
   Zap,
   Users,
   BookOpen,

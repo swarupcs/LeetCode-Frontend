@@ -7,9 +7,6 @@ import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import { Code2, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useSignin } from '@/hooks/auth/useSignin';

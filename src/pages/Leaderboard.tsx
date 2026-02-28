@@ -303,7 +303,7 @@ export default function LeaderboardPage() {
                         No users found for "{searchQuery}".
                       </div>
                     ) : (
-                      filtered.map((user, index) => (
+                      filtered.map((user) => (
                         <motion.div
                           key={user.username}
                           variants={fadeUp}
