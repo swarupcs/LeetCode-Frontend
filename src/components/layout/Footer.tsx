@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom';
-import { Code2, Github, Twitter } from 'lucide-react';
+import { Code2, 
+  // Github, 
+  // Twitter 
+} from 'lucide-react';
 
 export function Footer() {
   return (
     <footer className='border-t border-border/50 bg-surface-1/50 mt-auto'>
       <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12'>
         <div className='grid grid-cols-1 md:grid-cols-4 gap-8'>
-          <div className='col-span-1 md:col-span-2'>
+          <div className='col-span-1 md:col-span-3'>
             <Link to='/' className='flex items-center gap-2.5 mb-4'>
               <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20'>
                 <Code2 className='h-4 w-4 text-primary' />
@@ -27,7 +30,10 @@ export function Footer() {
               Platform
             </h4>
             <ul className='space-y-2.5'>
-              {['Problems', 'Sheets', 'Discussions', 'Leaderboard'].map(
+              {['Problems', 'Sheets', 
+              // 'Discussions', 
+              // 'Leaderboard'
+            ].map(
                 (item) => (
                   <li key={item}>
                     <Link
@@ -42,7 +48,7 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
+          {/* <div>
             <h4 className='text-sm font-semibold mb-4 text-foreground'>
               Connect
             </h4>
@@ -60,7 +66,7 @@ export function Footer() {
                 <Twitter className='h-4 w-4' />
               </a>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <div className='mt-10 pt-6 border-t border-border/30 text-center'>

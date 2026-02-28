@@ -35,7 +35,6 @@ import {
   Timer,
   Cpu,
   Hash,
-  Sparkles,
   Loader2,
 } from 'lucide-react';
 import { Palette } from 'lucide-react';
@@ -138,20 +137,47 @@ function TestCaseResultCard({
 
       <div className='font-mono text-xs space-y-1.5'>
         <div className='flex gap-2'>
-          <span className='text-muted-foreground shrink-0'>Input:</span>
-          <span className='text-foreground/80'>{result.input}</span>
-        </div>
-        <div className='flex gap-2'>
           <span className='text-muted-foreground shrink-0'>Expected:</span>
-          <span className='text-foreground/80'>{result.expectedOutput}</span>
+          <span className='text-foreground/80'>{result.expected}</span>{' '}
+          {/* ← was result.expectedOutput */}
         </div>
         <div className='flex gap-2'>
           <span className='text-muted-foreground shrink-0'>Output:</span>
           <span className={result.passed ? 'text-primary' : 'text-destructive'}>
-            {result.actualOutput}
+            {result.stdout} {/* ← was result.actualOutput */}
           </span>
         </div>
+        {result.stderr && (
+          <div className='flex gap-2'>
+            <span className='text-muted-foreground shrink-0'>Error:</span>
+            <span className='text-destructive'>{result.stderr}</span>
+          </div>
+        )}
+        {result.compile_output && (
+          <div className='flex gap-2'>
+            <span className='text-muted-foreground shrink-0'>Compile:</span>
+            <span className='text-destructive'>{result.compile_output}</span>
+          </div>
+        )}
       </div>
+
+      {/* Performance — only show if available */}
+      {(result.time || result.memory) && (
+        <div className='flex gap-3 mt-2 pt-2 border-t border-border/20'>
+          {result.time && (
+            <span className='text-[10px] text-muted-foreground flex items-center gap-1'>
+              <Timer className='h-2.5 w-2.5' />
+              {result.time}
+            </span>
+          )}
+          {result.memory && (
+            <span className='text-[10px] text-muted-foreground flex items-center gap-1'>
+              <Cpu className='h-2.5 w-2.5' />
+              {result.memory}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -234,6 +260,8 @@ export default function ProblemDetailPage() {
     isPending: isExecuting,
     data: executionData,
   } = useExecuteProblem();
+
+  console.log('executionData', executionData);
   const { submitProblem, isPending: isSubmitting } = useSubmitCode();
 
   // ── Editor state ─────────────────────────────────────────────────
@@ -508,13 +536,13 @@ const persistedSubmissions = useMemo<Submission[]>(() => {
                     <BookOpen className='h-3 w-3' />
                     Description
                   </TabsTrigger>
-                  <TabsTrigger
+                  {/* <TabsTrigger
                     value='hints'
                     className='data-[state=active]:bg-surface-2 data-[state=active]:text-foreground text-muted-foreground rounded-md px-3 h-7 text-xs gap-1.5'
                   >
                     <Lightbulb className='h-3 w-3' />
                     Hints
-                  </TabsTrigger>
+                  </TabsTrigger> */}
                   <TabsTrigger
                     value='submissions'
                     className='data-[state=active]:bg-surface-2 data-[state=active]:text-foreground text-muted-foreground rounded-md px-3 h-7 text-xs gap-1.5'
@@ -522,13 +550,13 @@ const persistedSubmissions = useMemo<Submission[]>(() => {
                     <Clock className='h-3 w-3' />
                     Submissions
                   </TabsTrigger>
-                  <TabsTrigger
+                  {/* <TabsTrigger
                     value='ai'
                     className='data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-muted-foreground rounded-md px-3 h-7 text-xs gap-1.5'
                   >
                     <Sparkles className='h-3 w-3' />
                     AI
-                  </TabsTrigger>
+                  </TabsTrigger> */}
                 </TabsList>
               </div>
 

@@ -187,12 +187,12 @@ export function Navbar() {
                     Profile
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className='text-sm cursor-pointer'>
+                {/* <DropdownMenuItem asChild className='text-sm cursor-pointer'>
                   <Link to='/settings' className='flex items-center gap-2'>
                     <Settings className='h-3.5 w-3.5' />
                     Settings
                   </Link>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
 
                 {/* Admin-only link */}
                 {isAdmin && (

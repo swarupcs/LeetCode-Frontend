@@ -11,10 +11,15 @@ export interface SubmitCodePayload {
 }
 
 export interface TestCaseResult {
-  input: string;
-  expectedOutput: string;
-  actualOutput: string;
+  testCase: number;
   passed: boolean;
+  stdout: string; // ← was actualOutput
+  expected: string; // ← was expectedOutput
+  stderr: string | null;
+  compile_output: string | null;
+  status: string;
+  memory?: string;
+  time?: string;
 }
 
 export interface RunCodeResponse {
