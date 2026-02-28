@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/pagination';
 import { Search, Check, ChevronRight, Code2 } from 'lucide-react';
 import { usePagination } from '@/hooks/use-pagination';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '@/hooks/redux'; // ← typed selector hook
 import { useProblems } from '@/hooks/problems/useGetAllProblems';
 
 const difficultyConfig = {
@@ -35,18 +35,18 @@ export default function ProblemsPage() {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const user = useSelector((state) => state.auth);
+  // ✅ Fix 1: use typed selector — state is now RootState, not unknown
+  const user = useAppSelector((state) => state.auth);
 
-  const { problems, isPending, isError } = useProblems(user?.id);
+  const { problems, isPending, isError } = useProblems(user?.id ?? undefined);
 
-  // Use problems from the hook as the source of truth
   const publishedProblems = useMemo(() => problems ?? [], [problems]);
 
   const filteredProblems = useMemo(() => {
     return publishedProblems.filter((p) => {
       const matchesSearch =
         p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.problemNumber.toString().includes(searchQuery) ||
+        String(p.problemNumber ?? '').includes(searchQuery) ||
         p.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesDifficulty =
         difficultyFilter === 'all' ||
@@ -164,7 +164,7 @@ export default function ProblemsPage() {
           <div className='relative flex-1'>
             <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground' />
             <Input
-              placeholder='Search problems by title, number, or tag...'
+              placeholder='Search by title, number, or tag...'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className='pl-10 bg-surface-1 border-border/50 focus:border-primary/50 h-10'
@@ -176,9 +176,9 @@ export default function ProblemsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value='all'>All Levels</SelectItem>
-              <SelectItem value='Easy'>Easy</SelectItem>
-              <SelectItem value='Medium'>Medium</SelectItem>
-              <SelectItem value='Hard'>Hard</SelectItem>
+              <SelectItem value='easy'>Easy</SelectItem>
+              <SelectItem value='medium'>Medium</SelectItem>
+              <SelectItem value='hard'>Hard</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -201,12 +201,11 @@ export default function ProblemsPage() {
           className='glass-card overflow-hidden'
         >
           {/* Table Header */}
-          <div className='hidden sm:grid grid-cols-[40px_1fr_100px_100px_80px] gap-4 px-6 py-3 border-b border-border/50 text-xs font-medium text-muted-foreground uppercase tracking-wider'>
-            <div></div>
+          <div className='hidden sm:grid grid-cols-[40px_1fr_100px_80px] gap-4 px-6 py-3 border-b border-border/50 text-xs font-medium text-muted-foreground uppercase tracking-wider'>
+            <div />
             <div>Problem</div>
             <div>Difficulty</div>
-            <div>Acceptance</div>
-            <div></div>
+            <div />
           </div>
 
           {/* Problem Rows */}
@@ -220,7 +219,7 @@ export default function ProblemsPage() {
               >
                 <Link
                   to={`/problem/${problem.id}`}
-                  className='grid grid-cols-1 sm:grid-cols-[40px_1fr_100px_100px_80px] gap-2 sm:gap-4 items-center px-6 py-4 hover:bg-surface-2/50 transition-colors group'
+                  className='grid grid-cols-1 sm:grid-cols-[40px_1fr_100px_80px] gap-2 sm:gap-4 items-center px-6 py-4 hover:bg-surface-2/50 transition-colors group'
                 >
                   {/* Status */}
                   <div className='hidden sm:flex items-center justify-center'>
@@ -266,13 +265,6 @@ export default function ProblemsPage() {
                     </Badge>
                   </div>
 
-                  {/* Acceptance */}
-                  <div className='text-sm text-muted-foreground'>
-                    {problem.acceptance != null
-                      ? `${problem.acceptance}%`
-                      : '—'}
-                  </div>
-
                   {/* Arrow */}
                   <div className='hidden sm:flex justify-end'>
                     <ChevronRight className='h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors' />
@@ -301,8 +293,9 @@ export default function ProblemsPage() {
             className='mt-6 flex items-center justify-between'
           >
             <p className='text-sm text-muted-foreground'>
-              Showing {startIndex + 1}–{endIndex} of {filteredProblems.length}{' '}
-              problems
+              Showing {startIndex + 1}–
+              {Math.min(endIndex, filteredProblems.length)} of{' '}
+              {filteredProblems.length} problems
             </p>
             <Pagination>
               <PaginationContent>
@@ -325,7 +318,7 @@ export default function ProblemsPage() {
                     <PaginationItem key={page}>
                       <PaginationLink
                         isActive={page === currentPage}
-                        onClick={() => setPage(page)}
+                        onClick={() => setPage(page as number)}
                         className='cursor-pointer'
                       >
                         {page}
