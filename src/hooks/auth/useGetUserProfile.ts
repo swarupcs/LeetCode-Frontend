@@ -5,14 +5,16 @@ import { useEffect } from 'react';
 import { getUserDetails } from '@/services/auth.service';
 import { setUser, logout } from '@/features/auth/authSlice';
 
-import type { User, ApiError } from '@/types/auth.types';
+import type { UserProfile, ApiError } from '@/types/auth.types';
 import type { AppDispatch } from '@/app/store';
+
+export const CURRENT_USER_QUERY_KEY = ['currentUser'] as const;
 
 export const useGetUserProfile = () => {
   const dispatch = useDispatch<AppDispatch>();
 
-  const query = useQuery<User, ApiError>({
-    queryKey: ['currentUser'],
+  const query = useQuery<UserProfile, ApiError>({
+    queryKey: CURRENT_USER_QUERY_KEY,
     queryFn: getUserDetails,
     retry: false,
   });
@@ -38,6 +40,8 @@ export const useGetUserProfile = () => {
       dispatch(logout());
     }
   }, [query.isError, dispatch]);
+
+  // console.log("query", query)
 
   return {
     ...query,

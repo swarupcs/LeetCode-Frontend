@@ -4,9 +4,10 @@ import type {
   SignInPayload,
   AuthResponse,
   ApiError,
-  User,
   UpdateProfilePayload,
   UpdateUserProfileResponse,
+  UserProfile,
+  GetUserDetailsResponse,
 } from '@/types/auth.types';
 import { axiosInstance } from '@/config/axiosConfig';
 
@@ -51,11 +52,14 @@ export const signInRequest = async (
 /**
  * Get Logged-in User
  */
-export const getUserDetails = async (): Promise<User> => {
+export const getUserDetails = async (): Promise<UserProfile> => {
   try {
-    const { data } = await axiosInstance.get<User>('/auth/getUserDetails');
+    const { data } = await axiosInstance.get<GetUserDetailsResponse>(
+      '/auth/getUserDetails',
+    );
+    console.log("data", data)
 
-    return data;
+    return data?.user;
   } catch (error) {
     const err = error as AxiosError<ApiError>;
     throw err.response?.data ?? { message: 'Something went wrong' };
@@ -67,7 +71,7 @@ export const updateUserProfile = async (
 ): Promise<UpdateUserProfileResponse> => {
   try {
     const response = await axiosInstance.patch<UpdateUserProfileResponse>(
-      '/auth/updateProfile',
+      '/auth/updateUserProfile',
       payload,
     );
     return response.data;

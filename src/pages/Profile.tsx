@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   Card,
@@ -10,7 +10,10 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
 import {
   MapPin,
   LinkIcon,
@@ -26,149 +29,62 @@ import {
   Target,
   Edit3,
   ExternalLink,
-  BookOpen,
-  Zap,
+  X,
+  Save,
 } from 'lucide-react';
-import { problems } from '@/data/problems';
 import ContributionGraph from '@/components/ContributionGraph';
 
-// Mock profile data
-const profile = {
-  username: 'alex_coder',
-  displayName: 'Alex Johnson',
-  avatar: null,
-  initials: 'AJ',
-  bio: 'Full-stack developer passionate about algorithms and data structures. Currently preparing for FAANG interviews. Love contributing to open source.',
-  location: 'San Francisco, CA',
-  website: 'https://alexjohnson.dev',
-  github: 'alexjohnson',
-  twitter: 'alex_codes',
-  joinDate: 'Jan 2025',
-  rank: 127,
-  totalSolved: 85,
-  totalAvailable: 250,
-  currentStreak: 12,
-  maxStreak: 23,
-  totalSubmissions: 234,
-  acceptanceRate: 72.4,
-};
+import { useGetUserSolvedStats } from '@/hooks/user-stats/useGetUserSolvedStats';
+import { useGetUserProgressData } from '@/hooks/user-stats/useGetUserProgressData';
+import { useGetUserHeatMapData } from '@/hooks/user-stats/useGetUserHeatMapData';
+import type { UpdateProfilePayload } from '@/types/auth.types';
+import { useUpdateUserProfile } from '@/hooks/auth/useUpdateUserProfile';
+import { useGetUserProfile } from '@/hooks/auth/useGetUserProfile';
 
-const difficultyBreakdown = [
-  {
-    level: 'Easy',
-    solved: 45,
-    total: 80,
-    color: 'bg-[hsl(var(--emerald))]',
-    textColor: 'text-[hsl(var(--emerald))]',
-    ringColor: 'hsl(var(--emerald))',
-  },
-  {
-    level: 'Medium',
-    solved: 32,
-    total: 120,
-    color: 'bg-[hsl(var(--amber))]',
-    textColor: 'text-[hsl(var(--amber))]',
-    ringColor: 'hsl(var(--amber))',
-  },
-  {
-    level: 'Hard',
-    solved: 8,
-    total: 50,
-    color: 'bg-[hsl(var(--rose))]',
-    textColor: 'text-[hsl(var(--rose))]',
-    ringColor: 'hsl(var(--rose))',
-  },
-];
+// ─── Colour tokens ─────────────────────────────────────────────────────────────
+const C = {
+  emerald: '#10b981',
+  amber: '#f59e0b',
+  rose: '#f43f5e',
+  primary: '#22c55e',
+  accent: '#a78bfa',
+  track: 'rgba(255,255,255,0.08)',
+} as const;
 
-const recentSubmissions = [
-  {
-    problem: 'Two Sum',
-    problemId: 1,
-    status: 'Accepted',
-    language: 'Python',
-    runtime: '4ms',
-    memory: '15.2MB',
-    date: '2h ago',
-  },
-  {
-    problem: 'Add Two Numbers',
-    problemId: 2,
-    status: 'Accepted',
-    language: 'JavaScript',
-    runtime: '12ms',
-    memory: '42.1MB',
-    date: '5h ago',
-  },
-  {
-    problem: '3Sum',
-    problemId: 8,
-    status: 'Wrong Answer',
-    language: 'Python',
-    runtime: '-',
-    memory: '-',
-    date: '1d ago',
-  },
-  {
-    problem: 'Valid Parentheses',
-    problemId: 9,
-    status: 'Accepted',
-    language: 'Java',
-    runtime: '1ms',
-    memory: '38.5MB',
-    date: '1d ago',
-  },
-  {
-    problem: 'Merge Two Sorted Lists',
-    problemId: 10,
-    status: 'Time Limit Exceeded',
-    language: 'Python',
-    runtime: '-',
-    memory: '-',
-    date: '2d ago',
-  },
-  {
-    problem: 'Group Anagrams',
-    problemId: 13,
-    status: 'Accepted',
-    language: 'Python',
-    runtime: '8ms',
-    memory: '16.7MB',
-    date: '3d ago',
-  },
-  {
-    problem: 'Maximum Subarray',
-    problemId: 14,
-    status: 'Accepted',
-    language: 'Python',
-    runtime: '3ms',
-    memory: '14.8MB',
-    date: '4d ago',
-  },
-  {
-    problem: 'Climbing Stairs',
-    problemId: 15,
-    status: 'Accepted',
-    language: 'JavaScript',
-    runtime: '0ms',
-    memory: '12.1MB',
-    date: '5d ago',
-  },
-];
+// ─── Progress bar ──────────────────────────────────────────────────────────────
+function ProgressBar({
+  pct,
+  color,
+  height = 6,
+}: {
+  pct: number;
+  color: string;
+  height?: number;
+}) {
+  return (
+    <div
+      style={{
+        height,
+        width: '100%',
+        borderRadius: 9999,
+        backgroundColor: C.track,
+      }}
+    >
+      <div
+        style={{
+          height: '100%',
+          width: `${Math.min(100, Math.max(0, pct))}%`,
+          borderRadius: 9999,
+          backgroundColor: color,
+          transition: 'width 0.7s ease-out',
+        }}
+      />
+    </div>
+  );
+}
 
-const solvedByTopic = [
-  { topic: 'Array', solved: 18, total: 40 },
-  { topic: 'String', solved: 12, total: 30 },
-  { topic: 'Hash Table', solved: 10, total: 25 },
-  { topic: 'Dynamic Programming', solved: 8, total: 35 },
-  { topic: 'Two Pointers', solved: 7, total: 20 },
-  { topic: 'Stack', solved: 6, total: 15 },
-  { topic: 'Linked List', solved: 5, total: 18 },
-  { topic: 'Binary Search', solved: 4, total: 20 },
-  { topic: 'Graph', solved: 3, total: 22 },
-  { topic: 'Tree', solved: 3, total: 25 },
-];
-
-const badges = [
+// ─── Static badges ─────────────────────────────────────────────────────────────
+const BADGES = [
   {
     name: 'First Blood',
     description: 'Solve your first problem',
@@ -207,6 +123,7 @@ const badges = [
   },
 ];
 
+// ─── Animation variants ────────────────────────────────────────────────────────
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.06 } },
@@ -216,15 +133,306 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
+// ─── Edit Profile form state ───────────────────────────────────────────────────
+// Matches the shape we pre-fill from the API response
+interface EditModalInitial {
+  displayName: string | null | undefined;
+  bio: string | null | undefined;
+  location: string | null | undefined;
+  github: string | null | undefined; // username only (from API field `github`)
+  twitter: string | null | undefined; // username only (from API field `twitter`)
+  website: string | null | undefined;
+}
+
+interface EditModalProps {
+  open: boolean;
+  onClose: () => void;
+  initial: EditModalInitial;
+}
+
+function EditProfileModal({ open, onClose, initial }: EditModalProps) {
+  const { updateProfile, isPending } = useUpdateUserProfile();
+
+  // Normalise nulls → empty strings for controlled inputs
+  const [form, setForm] = useState({
+    name: initial.displayName ?? '',
+    bio: initial.bio ?? '',
+    location: initial.location ?? '',
+    githubUrl: initial.github ?? '', // stored as username; API field name is githubUrl
+    twitterUrl: initial.twitter ?? '', // stored as username; API field name is twitterUrl
+    website: initial.website ?? '',
+  });
+
+  const set =
+    (field: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const handleSave = async () => {
+    // Only send fields that have actually changed
+    const changed: UpdateProfilePayload = {};
+    if (form.name !== (initial.displayName ?? '')) changed.name = form.name;
+    if (form.bio !== (initial.bio ?? '')) changed.bio = form.bio;
+    if (form.location !== (initial.location ?? ''))
+      changed.location = form.location;
+    if (form.githubUrl !== (initial.github ?? ''))
+      changed.githubUrl = form.githubUrl;
+    if (form.twitterUrl !== (initial.twitter ?? ''))
+      changed.twitterUrl = form.twitterUrl;
+    if (form.website !== (initial.website ?? ''))
+      changed.website = form.website;
+
+    if (Object.keys(changed).length === 0) {
+      onClose();
+      return;
+    }
+
+    await updateProfile(changed);
+    onClose();
+  };
+
+  if (!open) return null;
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className='fixed inset-0 z-40 bg-black/60 backdrop-blur-sm'
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className='fixed inset-0 z-50 flex items-center justify-center p-4'
+          >
+            <div className='glass-card w-full max-w-lg p-6 rounded-2xl border border-border/50 shadow-2xl'>
+              {/* Header */}
+              <div className='flex items-center justify-between mb-6'>
+                <h2 className='text-lg font-semibold'>Edit Profile</h2>
+                <button
+                  onClick={onClose}
+                  className='text-muted-foreground hover:text-foreground transition-colors'
+                >
+                  <X className='h-5 w-5' />
+                </button>
+              </div>
+
+              {/* Fields */}
+              <div className='space-y-4'>
+                <div>
+                  <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
+                    Display Name
+                  </label>
+                  <Input
+                    value={form.name}
+                    onChange={set('name')}
+                    placeholder='Your name'
+                    className='bg-surface-2 border-border/40 text-sm'
+                  />
+                </div>
+
+                <div>
+                  <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
+                    Bio
+                  </label>
+                  <Textarea
+                    value={form.bio}
+                    onChange={set('bio')}
+                    placeholder='Tell us about yourself…'
+                    rows={3}
+                    className='bg-surface-2 border-border/40 text-sm resize-none'
+                  />
+                </div>
+
+                <div>
+                  <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
+                    Location
+                  </label>
+                  <Input
+                    value={form.location}
+                    onChange={set('location')}
+                    placeholder='City, Country'
+                    className='bg-surface-2 border-border/40 text-sm'
+                  />
+                </div>
+
+                <div className='grid grid-cols-2 gap-3'>
+                  <div>
+                    <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
+                      GitHub username
+                    </label>
+                    <Input
+                      value={form.githubUrl}
+                      onChange={set('githubUrl')}
+                      placeholder='username'
+                      className='bg-surface-2 border-border/40 text-sm'
+                    />
+                  </div>
+                  <div>
+                    <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
+                      Twitter username
+                    </label>
+                    <Input
+                      value={form.twitterUrl}
+                      onChange={set('twitterUrl')}
+                      placeholder='username'
+                      className='bg-surface-2 border-border/40 text-sm'
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
+                    Website
+                  </label>
+                  <Input
+                    value={form.website}
+                    onChange={set('website')}
+                    placeholder='https://yoursite.com'
+                    className='bg-surface-2 border-border/40 text-sm'
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className='flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border/30'>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={onClose}
+                  disabled={isPending}
+                  className='text-muted-foreground'
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size='sm'
+                  onClick={handleSave}
+                  disabled={isPending}
+                  className='bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5'
+                >
+                  {isPending ? (
+                    <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                  ) : (
+                    <Save className='h-3.5 w-3.5' />
+                  )}
+                  {isPending ? 'Saving…' : 'Save Changes'}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
-  const solvedPercentage = (profile.totalSolved / profile.totalAvailable) * 100;
+  // ── Data hooks ──────────────────────────────────────────────────────────────
+  const { user: profile, isLoading: loadingProfile } = useGetUserProfile();
+  const { solvedStats, isLoading: loadingSolved } = useGetUserSolvedStats();
+  const { progressData, isLoading: loadingProgress } = useGetUserProgressData();
+  const { heatMapData, isLoading: loadingHeatMap } = useGetUserHeatMapData();
+
+  console.log("profile", profile)
+
+  const isLoading =
+    loadingProfile || loadingSolved || loadingProgress || loadingHeatMap;
+
+  // ── Derived stats ───────────────────────────────────────────────────────────
+  const easySolved = solvedStats?.difficultyStats.EASY ?? 0;
+  const mediumSolved = solvedStats?.difficultyStats.MEDIUM ?? 0;
+  const hardSolved = solvedStats?.difficultyStats.HARD ?? 0;
+  const easyTotal = solvedStats?.totalDifficultyCounts.EASY ?? 0;
+  const mediumTotal = solvedStats?.totalDifficultyCounts.MEDIUM ?? 0;
+  const hardTotal = solvedStats?.totalDifficultyCounts.HARD ?? 0;
+  const totalSolved = easySolved + mediumSolved + hardSolved;
+
+  const difficultyBreakdown = useMemo(
+    () => [
+      { level: 'Easy', solved: easySolved, total: easyTotal, color: C.emerald },
+      {
+        level: 'Medium',
+        solved: mediumSolved,
+        total: mediumTotal,
+        color: C.amber,
+      },
+      { level: 'Hard', solved: hardSolved, total: hardTotal, color: C.rose },
+    ],
+    [easySolved, mediumSolved, hardSolved, easyTotal, mediumTotal, hardTotal],
+  );
+
+  const topicProgress = useMemo(() => {
+    if (!solvedStats) return [];
+    return Object.entries(solvedStats.tagStats).map(([tag, solved]) => ({
+      topic: tag,
+      solved: solved as number,
+      total: (solvedStats.totalTagCounts[tag] ?? solved) as number,
+    }));
+  }, [solvedStats]);
+
+  const recentSubmissions = progressData?.recentSubmissions ?? [];
+
+  // ── Avatar initials fallback ────────────────────────────────────────────────
+  // e.g. "Swarup Das" → "SD"
+  const initials = profile?.displayName
+    ? profile.displayName
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : (profile?.username?.[0]?.toUpperCase() ?? '?');
+
+  // ── Profile is truthy once loaded; check for missing optional fields ────────
+  const hasSocialInfo = !!(
+    profile?.bio ||
+    profile?.location ||
+    profile?.website ||
+    profile?.github ||
+    profile?.twitter
+  );
+
+  // ── Loading state ───────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen'>
+      {/* Edit Profile Modal — pass API field names directly */}
+      <EditProfileModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        initial={{
+          displayName: profile?.displayName,
+          bio: profile?.bio,
+          location: profile?.location,
+          github: profile?.github, // username, e.g. "swarupd1999"
+          twitter: profile?.twitter, // username
+          website: profile?.website,
+        }}
+      />
+
       <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Profile Header */}
+        {/* ── Profile Header ─────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -234,66 +442,130 @@ export default function ProfilePage() {
             <div className='flex flex-col sm:flex-row items-start gap-6'>
               {/* Avatar */}
               <div className='relative shrink-0'>
-                <div className='h-24 w-24 sm:h-28 sm:w-28 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/20 border-2 border-primary/30 flex items-center justify-center'>
-                  <span className='text-3xl sm:text-4xl font-bold gradient-text'>
-                    {profile.initials}
-                  </span>
+                <div className='h-24 w-24 sm:h-28 sm:w-28 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/20 border-2 border-primary/30 flex items-center justify-center overflow-hidden'>
+                  {profile?.avatarUrl ? (
+                    <img
+                      src={profile.avatarUrl}
+                      alt={profile.displayName ?? profile.username ?? 'User'}
+                      className='w-full h-full object-cover'
+                      referrerPolicy='no-referrer'
+                    />
+                  ) : (
+                    <span className='text-3xl sm:text-4xl font-bold gradient-text'>
+                      {initials}
+                    </span>
+                  )}
                 </div>
+                {/* Online / verified dot */}
                 <div className='absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary border-2 border-background flex items-center justify-center'>
-                  <Check className='h-3 w-3 text-primary-foreground' />
+                  <svg
+                    xmlns='http://www.w3.org/2000/svg'
+                    viewBox='0 0 24 24'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='3'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    className='h-3 w-3 text-primary-foreground'
+                  >
+                    <polyline points='20 6 9 17 4 12' />
+                  </svg>
                 </div>
               </div>
 
               {/* Info */}
               <div className='flex-1 min-w-0'>
-                <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2'>
+                {/* Name + rank */}
+                <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-1'>
                   <h1 className='text-2xl sm:text-3xl font-bold truncate'>
-                    {profile.displayName}
+                    {/* API: displayName = "Swarup Das" */}
+                    {profile?.displayName ?? profile?.username ?? '—'}
                   </h1>
-                  <Badge
-                    variant='outline'
-                    className='w-fit text-xs border-primary/30 text-primary bg-primary/5'
-                  >
-                    #{profile.rank} Global
-                  </Badge>
+                  {profile?.rank != null && (
+                    <Badge
+                      variant='outline'
+                      className='w-fit text-xs border-primary/30 text-primary bg-primary/5'
+                    >
+                      #{profile.rank} Global
+                    </Badge>
+                  )}
                 </div>
-                <p className='text-sm text-muted-foreground mb-1 font-mono'>
-                  @{profile.username}
-                </p>
-                <p className='text-sm text-foreground/80 leading-relaxed mb-4 max-w-2xl'>
-                  {profile.bio}
+
+                {/* @username — API: username = "swarupd1999" */}
+                <p className='text-sm text-muted-foreground mb-3 font-mono'>
+                  @{profile?.username ?? '—'}
                 </p>
 
+                {/* Bio — API: bio (nullable) */}
+                {profile?.bio && (
+                  <p className='text-sm text-foreground/80 leading-relaxed mb-3 max-w-2xl'>
+                    {profile.bio}
+                  </p>
+                )}
+
+                {/* Social / meta row */}
                 <div className='flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground'>
-                  <span className='flex items-center gap-1.5'>
-                    <MapPin className='h-3.5 w-3.5' />
-                    {profile.location}
-                  </span>
-                  <a
-                    href={profile.website}
-                    className='flex items-center gap-1.5 hover:text-primary transition-colors'
-                  >
-                    <LinkIcon className='h-3.5 w-3.5' />
-                    alexjohnson.dev
-                  </a>
-                  <a
-                    href={`https://github.com/${profile.github}`}
-                    className='flex items-center gap-1.5 hover:text-foreground transition-colors'
-                  >
-                    <Github className='h-3.5 w-3.5' />
-                    {profile.github}
-                  </a>
-                  <a
-                    href={`https://twitter.com/${profile.twitter}`}
-                    className='flex items-center gap-1.5 hover:text-foreground transition-colors'
-                  >
-                    <Twitter className='h-3.5 w-3.5' />
-                    {profile.twitter}
-                  </a>
-                  <span className='flex items-center gap-1.5'>
-                    <Calendar className='h-3.5 w-3.5' />
-                    Joined {profile.joinDate}
-                  </span>
+                  {/* API: location (nullable) */}
+                  {profile?.location && (
+                    <span className='flex items-center gap-1.5'>
+                      <MapPin className='h-3.5 w-3.5' />
+                      {profile.location}
+                    </span>
+                  )}
+
+                  {/* API: website (nullable) */}
+                  {profile?.website && (
+                    <a
+                      href={profile.website}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='flex items-center gap-1.5 hover:text-primary transition-colors'
+                    >
+                      <LinkIcon className='h-3.5 w-3.5' />
+                      {profile.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  )}
+
+                  {/* API: github = username string (nullable), not a full URL */}
+                  {profile?.github && (
+                    <a
+                      href={`https://github.com/${profile.github}`}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='flex items-center gap-1.5 hover:text-foreground transition-colors'
+                    >
+                      <Github className='h-3.5 w-3.5' />
+                      {profile.github}
+                    </a>
+                  )}
+
+                  {/* API: twitter = username string (nullable), not a full URL */}
+                  {profile?.twitter && (
+                    <a
+                      href={`https://twitter.com/${profile.twitter}`}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='flex items-center gap-1.5 hover:text-foreground transition-colors'
+                    >
+                      <Twitter className='h-3.5 w-3.5' />
+                      {profile.twitter}
+                    </a>
+                  )}
+
+                  {/* API: joinDate = "Nov 2025" */}
+                  {profile?.joinDate && (
+                    <span className='flex items-center gap-1.5'>
+                      <Calendar className='h-3.5 w-3.5' />
+                      Joined {profile.joinDate}
+                    </span>
+                  )}
+
+                  {/* Empty state prompt */}
+                  {!hasSocialInfo && (
+                    <span className='text-muted-foreground/50 italic'>
+                      No bio yet — click Edit Profile to add one
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -301,6 +573,7 @@ export default function ProfilePage() {
               <Button
                 variant='outline'
                 size='sm'
+                onClick={() => setEditModalOpen(true)}
                 className='border-border/50 text-muted-foreground hover:text-foreground shrink-0 gap-1.5'
               >
                 <Edit3 className='h-3.5 w-3.5' />
@@ -308,39 +581,44 @@ export default function ProfilePage() {
               </Button>
             </div>
 
-            {/* Quick Stats */}
+            {/* Quick stats */}
             <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-border/30'>
-              {[
-                {
-                  label: 'Solved',
-                  value: profile.totalSolved,
-                  icon: CheckCircle,
-                  accent: 'text-primary',
-                },
-                {
-                  label: 'Streak',
-                  value: `${profile.currentStreak}d`,
-                  icon: Flame,
-                  accent: 'text-[hsl(var(--amber))]',
-                },
-                {
-                  label: 'Submissions',
-                  value: profile.totalSubmissions,
-                  icon: Target,
-                  accent: 'text-accent',
-                },
-                {
-                  label: 'Acceptance',
-                  value: `${profile.acceptanceRate}%`,
-                  icon: TrendingUp,
-                  accent: 'text-[hsl(var(--emerald-light))]',
-                },
-              ].map((stat, i) => (
+              {(
+                [
+                  {
+                    label: 'Solved',
+                    value: totalSolved,
+                    icon: CheckCircle,
+                    color: C.primary,
+                  },
+                  {
+                    label: 'Streak',
+                    value: `${solvedStats?.currentStreak ?? 0}d`,
+                    icon: Flame,
+                    color: C.amber,
+                  },
+                  {
+                    label: 'Submissions',
+                    value: solvedStats?.totalSubmissions ?? 0,
+                    icon: Target,
+                    color: C.accent,
+                  },
+                  {
+                    label: 'Acceptance',
+                    value: `${solvedStats?.acceptanceRate ?? 0}%`,
+                    icon: TrendingUp,
+                    color: C.emerald,
+                  },
+                ] as const
+              ).map((stat, i) => (
                 <div
                   key={i}
                   className='flex items-center gap-3 p-3 rounded-lg bg-surface-2/30'
                 >
-                  <stat.icon className={`h-5 w-5 ${stat.accent} shrink-0`} />
+                  <stat.icon
+                    className='h-5 w-5 shrink-0'
+                    style={{ color: stat.color }}
+                  />
                   <div>
                     <div className='text-lg sm:text-xl font-bold'>
                       {stat.value}
@@ -355,7 +633,7 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
-        {/* Tabs */}
+        {/* ── Tabs ───────────────────────────────────────────────────────────── */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -367,30 +645,27 @@ export default function ProfilePage() {
                 value='overview'
                 className='data-[state=active]:bg-surface-3 text-xs gap-1.5 px-3'
               >
-                <Target className='h-3.5 w-3.5' />
-                Overview
+                <Target className='h-3.5 w-3.5' /> Overview
               </TabsTrigger>
               <TabsTrigger
                 value='submissions'
                 className='data-[state=active]:bg-surface-3 text-xs gap-1.5 px-3'
               >
-                <Clock className='h-3.5 w-3.5' />
-                Submissions
+                <Clock className='h-3.5 w-3.5' /> Submissions
               </TabsTrigger>
               <TabsTrigger
                 value='badges'
                 className='data-[state=active]:bg-surface-3 text-xs gap-1.5 px-3'
               >
-                <Award className='h-3.5 w-3.5' />
-                Badges
+                <Award className='h-3.5 w-3.5' /> Badges
               </TabsTrigger>
             </TabsList>
           </motion.div>
 
-          {/* Overview Tab */}
+          {/* ── Overview ───────────────────────────────────────────────────────── */}
           <TabsContent value='overview' className='mt-0'>
             <div className='space-y-6'>
-              {/* Contribution Graph */}
+              {/* Heatmap */}
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -399,15 +674,15 @@ export default function ProfilePage() {
                 <Card className='glass-card border-border/50'>
                   <CardHeader>
                     <CardTitle className='text-base flex items-center gap-2'>
-                      <Flame className='h-4 w-4 text-primary' />
-                      Submission Activity
+                      <Flame className='h-4 w-4 text-primary' /> Submission
+                      Activity
                     </CardTitle>
                     <CardDescription className='text-xs'>
                       Your coding activity over the past year
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ContributionGraph />
+                    <ContributionGraph data={heatMapData ?? []} />
                   </CardContent>
                 </Card>
               </motion.div>
@@ -418,7 +693,7 @@ export default function ProfilePage() {
                 animate='show'
                 className='grid grid-cols-1 lg:grid-cols-3 gap-6'
               >
-                {/* Solved Problems Chart */}
+                {/* Solved donut */}
                 <motion.div variants={item} className='lg:col-span-1'>
                   <Card className='glass-card border-border/50 h-full'>
                     <CardHeader>
@@ -430,55 +705,55 @@ export default function ProfilePage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className='flex flex-col items-center'>
-                      {/* Donut chart */}
+                      {/* Donut */}
                       <div className='relative w-36 h-36 mb-6'>
                         <svg
-                          className='w-36 h-36 transform -rotate-90'
+                          className='w-36 h-36 -rotate-90'
                           viewBox='0 0 144 144'
                         >
                           <circle
                             cx='72'
                             cy='72'
                             r='58'
-                            stroke='hsl(var(--surface-3))'
+                            stroke={C.track}
                             strokeWidth='12'
                             fill='transparent'
                           />
-                          {
+                          {totalSolved > 0 &&
                             difficultyBreakdown.reduce<{
-                              elements: JSX.Element[];
+                              els: React.ReactNode[];
                               offset: number;
                             }>(
-                              (acc, d, i) => {
-                                const circumference = 2 * Math.PI * 58;
-                                const segmentLength =
-                                  (d.solved / profile.totalSolved) *
-                                  circumference;
-                                acc.elements.push(
+                              (acc, d) => {
+                                const circ = 2 * Math.PI * 58;
+                                const seg = (d.solved / totalSolved) * circ;
+                                acc.els.push(
                                   <circle
-                                    key={i}
+                                    key={d.level}
                                     cx='72'
                                     cy='72'
                                     r='58'
-                                    stroke={d.ringColor}
+                                    stroke={d.color}
                                     strokeWidth='12'
                                     fill='transparent'
-                                    strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
+                                    strokeDasharray={`${seg} ${circ - seg}`}
                                     strokeDashoffset={-acc.offset}
                                     strokeLinecap='round'
-                                    className='transition-all duration-700'
+                                    style={{
+                                      transition:
+                                        'stroke-dasharray 0.7s ease-out',
+                                    }}
                                   />,
                                 );
-                                acc.offset += segmentLength;
+                                acc.offset += seg;
                                 return acc;
                               },
-                              { elements: [], offset: 0 },
-                            ).elements
-                          }
+                              { els: [], offset: 0 },
+                            ).els}
                         </svg>
                         <div className='absolute inset-0 flex flex-col items-center justify-center'>
                           <span className='text-2xl font-bold'>
-                            {profile.totalSolved}
+                            {totalSolved}
                           </span>
                           <span className='text-[10px] text-muted-foreground'>
                             solved
@@ -486,26 +761,25 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
-                      {/* Breakdown bars */}
+                      {/* Difficulty bars */}
                       <div className='w-full space-y-3'>
                         {difficultyBreakdown.map((d) => (
                           <div key={d.level}>
                             <div className='flex justify-between text-xs mb-1.5'>
-                              <span className={`${d.textColor} font-medium`}>
+                              <span
+                                className='font-medium'
+                                style={{ color: d.color }}
+                              >
                                 {d.level}
                               </span>
                               <span className='text-muted-foreground tabular-nums'>
                                 {d.solved}/{d.total}
                               </span>
                             </div>
-                            <div className='h-1.5 bg-surface-3 rounded-full overflow-hidden'>
-                              <div
-                                className={`${d.color} h-full rounded-full transition-all duration-700`}
-                                style={{
-                                  width: `${(d.solved / d.total) * 100}%`,
-                                }}
-                              />
-                            </div>
+                            <ProgressBar
+                              pct={d.total > 0 ? (d.solved / d.total) * 100 : 0}
+                              color={d.color}
+                            />
                           </div>
                         ))}
                       </div>
@@ -513,7 +787,7 @@ export default function ProfilePage() {
                   </Card>
                 </motion.div>
 
-                {/* Topics Progress */}
+                {/* Topics */}
                 <motion.div variants={item} className='lg:col-span-2'>
                   <Card className='glass-card border-border/50 h-full'>
                     <CardHeader>
@@ -525,29 +799,48 @@ export default function ProfilePage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4'>
-                        {solvedByTopic.map((topic) => {
-                          const pct = (topic.solved / topic.total) * 100;
-                          return (
-                            <div key={topic.topic}>
-                              <div className='flex justify-between text-xs mb-1.5'>
-                                <span className='text-foreground/90 font-medium'>
-                                  {topic.topic}
-                                </span>
-                                <span className='text-muted-foreground tabular-nums'>
-                                  {topic.solved}/{topic.total}
-                                </span>
-                              </div>
-                              <div className='h-2 bg-surface-3 rounded-full overflow-hidden'>
+                      {topicProgress.length > 0 ? (
+                        <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4'>
+                          {topicProgress.map((t) => {
+                            const pct =
+                              t.total > 0 ? (t.solved / t.total) * 100 : 0;
+                            return (
+                              <div key={t.topic}>
+                                <div className='flex justify-between text-xs mb-1.5'>
+                                  <span className='text-foreground/90 font-medium capitalize'>
+                                    {t.topic}
+                                  </span>
+                                  <span className='text-muted-foreground tabular-nums'>
+                                    {t.solved}/{t.total}
+                                  </span>
+                                </div>
                                 <div
-                                  className='h-full rounded-full transition-all duration-700 bg-gradient-to-r from-primary to-accent'
-                                  style={{ width: `${pct}%` }}
-                                />
+                                  style={{
+                                    height: 8,
+                                    width: '100%',
+                                    borderRadius: 9999,
+                                    backgroundColor: C.track,
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      height: '100%',
+                                      width: `${pct}%`,
+                                      borderRadius: 9999,
+                                      background: `linear-gradient(to right, ${C.primary}, ${C.accent})`,
+                                      transition: 'width 0.7s ease-out',
+                                    }}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className='text-sm text-muted-foreground text-center py-8'>
+                          Solve some problems to see topic progress.
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -570,62 +863,59 @@ export default function ProfilePage() {
                         onClick={() => setActiveTab('submissions')}
                         className='text-xs text-muted-foreground hover:text-foreground gap-1'
                       >
-                        View all
-                        <ExternalLink className='h-3 w-3' />
+                        View all <ExternalLink className='h-3 w-3' />
                       </Button>
                     </CardHeader>
                     <CardContent>
-                      <div className='divide-y divide-border/30'>
-                        {recentSubmissions.slice(0, 5).map((sub, i) => (
-                          <div
-                            key={i}
-                            className='flex items-center justify-between py-3 first:pt-0 last:pb-0'
-                          >
-                            <div className='flex items-center gap-3 min-w-0'>
-                              <div
-                                className={`p-1.5 rounded-md shrink-0 ${
-                                  sub.status === 'Accepted'
-                                    ? 'bg-primary/10'
-                                    : 'bg-destructive/10'
-                                }`}
-                              >
-                                {sub.status === 'Accepted' ? (
-                                  <CheckCircle className='h-4 w-4 text-primary' />
-                                ) : (
-                                  <Code2 className='h-4 w-4 text-destructive' />
+                      {recentSubmissions.length > 0 ? (
+                        <div className='divide-y divide-border/30'>
+                          {recentSubmissions.slice(0, 5).map((sub, i) => (
+                            <div
+                              key={i}
+                              className='flex items-center justify-between py-3 first:pt-0 last:pb-0'
+                            >
+                              <div className='flex items-center gap-3 min-w-0'>
+                                <div
+                                  className={`p-1.5 rounded-md shrink-0 ${sub.status === 'Accepted' ? 'bg-primary/10' : 'bg-destructive/10'}`}
+                                >
+                                  {sub.status === 'Accepted' ? (
+                                    <CheckCircle className='h-4 w-4 text-primary' />
+                                  ) : (
+                                    <Code2 className='h-4 w-4 text-destructive' />
+                                  )}
+                                </div>
+                                <div className='min-w-0'>
+                                  <Link
+                                    to={`/problems/${sub.problem}`}
+                                    className='text-sm font-medium hover:text-primary transition-colors truncate block'
+                                  >
+                                    {sub.problem}
+                                  </Link>
+                                  <div className='text-[11px] text-muted-foreground'>
+                                    {sub.language} · {sub.date}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className='text-right shrink-0 ml-4'>
+                                <div
+                                  className={`text-xs font-medium ${sub.status === 'Accepted' ? 'text-primary' : 'text-destructive'}`}
+                                >
+                                  {sub.status}
+                                </div>
+                                {sub.time && sub.time !== '-' && (
+                                  <div className='text-[10px] text-muted-foreground'>
+                                    {sub.time} · {sub.memory}
+                                  </div>
                                 )}
                               </div>
-                              <div className='min-w-0'>
-                                <Link
-                                  to={`/problem/${sub.problemId}`}
-                                  className='text-sm font-medium hover:text-primary transition-colors truncate block'
-                                >
-                                  {sub.problem}
-                                </Link>
-                                <div className='text-[11px] text-muted-foreground'>
-                                  {sub.language} · {sub.date}
-                                </div>
-                              </div>
                             </div>
-                            <div className='text-right shrink-0 ml-4'>
-                              <div
-                                className={`text-xs font-medium ${
-                                  sub.status === 'Accepted'
-                                    ? 'text-primary'
-                                    : 'text-destructive'
-                                }`}
-                              >
-                                {sub.status}
-                              </div>
-                              {sub.runtime !== '-' && (
-                                <div className='text-[10px] text-muted-foreground'>
-                                  {sub.runtime} · {sub.memory}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className='text-sm text-muted-foreground text-center py-8'>
+                          No submissions yet.
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -633,7 +923,7 @@ export default function ProfilePage() {
             </div>
           </TabsContent>
 
-          {/* Submissions Tab */}
+          {/* ── Submissions Tab ─────────────────────────────────────────────────── */}
           <TabsContent value='submissions' className='mt-0'>
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -658,69 +948,63 @@ export default function ProfilePage() {
                   </div>
 
                   <div className='divide-y divide-border/20'>
-                    {recentSubmissions.map((sub, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                        className='grid grid-cols-1 sm:grid-cols-[1fr_120px_100px_80px_80px_80px] gap-2 sm:gap-3 items-center px-3 py-3 hover:bg-surface-2/30 rounded-lg transition-colors'
-                      >
-                        <Link
-                          to={`/problem/${sub.problemId}`}
-                          className='text-sm font-medium hover:text-primary transition-colors'
+                    {recentSubmissions.length > 0 ? (
+                      recentSubmissions.map((sub, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.04 }}
+                          className='grid grid-cols-1 sm:grid-cols-[1fr_120px_100px_80px_80px_80px] gap-2 sm:gap-3 items-center px-3 py-3 hover:bg-surface-2/30 rounded-lg transition-colors'
                         >
-                          {sub.problem}
-                        </Link>
-                        <div
-                          className={`text-xs font-medium ${
-                            sub.status === 'Accepted'
-                              ? 'text-primary'
-                              : 'text-destructive'
-                          }`}
-                        >
-                          {sub.status}
-                        </div>
-                        <div className='text-xs text-muted-foreground'>
-                          {sub.language}
-                        </div>
-                        <div className='text-xs text-muted-foreground font-mono'>
-                          {sub.runtime}
-                        </div>
-                        <div className='text-xs text-muted-foreground font-mono'>
-                          {sub.memory}
-                        </div>
-                        <div className='text-xs text-muted-foreground'>
-                          {sub.date}
-                        </div>
-                      </motion.div>
-                    ))}
+                          <Link
+                            to={`/problems/${sub.problem}`}
+                            className='text-sm font-medium hover:text-primary transition-colors'
+                          >
+                            {sub.problem}
+                          </Link>
+                          <div
+                            className={`text-xs font-medium ${sub.status === 'Accepted' ? 'text-primary' : 'text-destructive'}`}
+                          >
+                            {sub.status}
+                          </div>
+                          <div className='text-xs text-muted-foreground'>
+                            {sub.language}
+                          </div>
+                          <div className='text-xs text-muted-foreground font-mono'>
+                            {sub.time ?? '—'}
+                          </div>
+                          <div className='text-xs text-muted-foreground font-mono'>
+                            {sub.memory ?? '—'}
+                          </div>
+                          <div className='text-xs text-muted-foreground'>
+                            {sub.date}
+                          </div>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <p className='text-sm text-muted-foreground text-center py-12'>
+                        No submissions yet.
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
           </TabsContent>
 
-          {/* Badges Tab */}
+          {/* ── Badges Tab ──────────────────────────────────────────────────────── */}
           <TabsContent value='badges' className='mt-0'>
             <motion.div variants={container} initial='hidden' animate='show'>
               <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-                {badges.map((badge, i) => (
+                {BADGES.map((badge, i) => (
                   <motion.div key={i} variants={item}>
                     <Card
-                      className={`glass-card border-border/50 transition-all duration-300 ${
-                        badge.earned
-                          ? 'hover:border-primary/30'
-                          : 'opacity-50 grayscale'
-                      }`}
+                      className={`glass-card border-border/50 transition-all duration-300 ${badge.earned ? 'hover:border-primary/30' : 'opacity-50 grayscale'}`}
                     >
                       <CardContent className='p-5 flex items-center gap-4'>
                         <div
-                          className={`h-12 w-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
-                            badge.earned
-                              ? 'bg-primary/10 border border-primary/20'
-                              : 'bg-surface-3 border border-border/30'
-                          }`}
+                          className={`h-12 w-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${badge.earned ? 'bg-primary/10 border border-primary/20' : 'bg-surface-3 border border-border/30'}`}
                         >
                           {badge.icon}
                         </div>
@@ -745,22 +1029,5 @@ export default function ProfilePage() {
         </Tabs>
       </div>
     </div>
-  );
-}
-
-function Check(props: React.SVGProps<SVGSVGElement> & { className?: string }) {
-  return (
-    <svg
-      xmlns='http://www.w3.org/2000/svg'
-      viewBox='0 0 24 24'
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='3'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-      {...props}
-    >
-      <polyline points='20 6 9 17 4 12' />
-    </svg>
   );
 }

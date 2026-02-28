@@ -87,3 +87,10 @@ export type UserDetails = User;
 export interface ApiError {
   message: string;
 }
+
+
+export interface GetUserDetailsResponse {
+  success: boolean;
+  message: string;
+  user: UserProfile;
+}

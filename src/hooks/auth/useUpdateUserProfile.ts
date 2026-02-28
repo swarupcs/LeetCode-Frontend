@@ -1,11 +1,9 @@
 // src/hooks/profile/useUpdateUserProfile.ts
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { UpdateProfilePayload } from '@/types/auth.types';
+import type { UpdateProfilePayload, UserProfile } from '@/types/auth.types';
 import { updateUserProfile } from '@/services/auth.service';
-
-export const USER_PROFILE_KEY = ['userProfile'] as const;
-
+import { CURRENT_USER_QUERY_KEY } from './useGetUserProfile';
 
 export function useUpdateUserProfile() {
   const queryClient = useQueryClient();
@@ -14,36 +12,34 @@ export function useUpdateUserProfile() {
     mutationFn: (payload: UpdateProfilePayload) => updateUserProfile(payload),
 
     onMutate: async (payload) => {
-      await queryClient.cancelQueries({ queryKey: USER_PROFILE_KEY });
-      const previous = queryClient.getQueryData(USER_PROFILE_KEY);
+      await queryClient.cancelQueries({ queryKey: CURRENT_USER_QUERY_KEY });
+      const previous = queryClient.getQueryData<UserProfile>(
+        CURRENT_USER_QUERY_KEY,
+      );
 
-      queryClient.setQueryData(USER_PROFILE_KEY, (old: { user?: Record<string, unknown> } | undefined) => {
-        if (!old?.user) return old;
-        return {
-          ...old,
-          user: {
-            ...old.user,
-            displayName: payload.name ?? old.user.displayName,
-            bio: payload.bio ?? old.user.bio,
-            location: payload.location ?? old.user.location,
-            github: payload.githubUrl ?? old.user.github,
-            twitter: payload.twitterUrl ?? old.user.twitter,
-            website: payload.website ?? old.user.website,
-          },
-        };
-      });
+      if (previous) {
+        queryClient.setQueryData<UserProfile>(CURRENT_USER_QUERY_KEY, {
+          ...previous,
+          displayName: payload.name ?? previous.displayName,
+          bio: payload.bio ?? previous.bio,
+          location: payload.location ?? previous.location,
+          github: payload.githubUrl ?? previous.github,
+          twitter: payload.twitterUrl ?? previous.twitter,
+          website: payload.website ?? previous.website,
+        });
+      }
 
       return { previous };
     },
 
     onError: (_err, _payload, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(USER_PROFILE_KEY, context.previous);
+        queryClient.setQueryData(CURRENT_USER_QUERY_KEY, context.previous);
       }
     },
 
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: USER_PROFILE_KEY });
+      queryClient.invalidateQueries({ queryKey: CURRENT_USER_QUERY_KEY });
     },
   });
 
