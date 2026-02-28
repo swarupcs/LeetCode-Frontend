@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -7,6 +8,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   CheckCircle,
   Flame,
@@ -19,6 +21,15 @@ import {
   PieChart,
   BookOpen,
   Loader2,
+  LogIn,
+  UserPlus,
+  Trophy,
+  Brain,
+  BarChart2,
+  Layers,
+  ArrowRight,
+  Star,
+  Lock,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -31,25 +42,20 @@ import ContributionGraph from '@/components/ContributionGraph';
 import { useGetUserHeatMapData } from '@/hooks/user-stats/useGetUserHeatMapData';
 import { useGetUserSolvedStats } from '@/hooks/user-stats/useGetUserSolvedStats';
 import { useGetUserProgressData } from '@/hooks/user-stats/useGetUserProgressData';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/app/store';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Colour palette
-// We store Tailwind utility classes for elements whose class name is STATIC
-// (safe from JIT purging), and hex values for inline `style={}` fills where
-// the class would be dynamic (and thus purged).
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Colour palette ────────────────────────────────────────────────────────────
 const COLOR = {
-  // hex values — always work in inline style
-  primary: '#22c55e', // adjust to match your theme's --primary
+  primary: '#22c55e',
   accent: '#a78bfa',
   emerald: '#10b981',
   amber: '#f59e0b',
   rose: '#f43f5e',
   cyan: '#06b6d4',
-  track: 'rgba(255,255,255,0.10)', // progress bar track
+  track: 'rgba(255,255,255,0.10)',
 } as const;
 
-// Language → hex colour
 const LANG_COLOR: Record<string, string> = {
   python: COLOR.cyan,
   javascript: COLOR.amber,
@@ -61,9 +67,7 @@ const LANG_COLOR: Record<string, string> = {
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared ProgressBar — plain div + CSS transition (no Framer, no dynamic class)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── ProgressBar ───────────────────────────────────────────────────────────────
 function ProgressBar({
   pct,
   color,
@@ -73,7 +77,6 @@ function ProgressBar({
   color: string;
   height?: number;
 }) {
-  const w = `${Math.min(100, Math.max(0, pct))}%`;
   return (
     <div
       style={{
@@ -86,7 +89,7 @@ function ProgressBar({
     >
       <div
         style={{
-          width: w,
+          width: `${Math.min(100, Math.max(0, pct))}%`,
           height: '100%',
           borderRadius: 9999,
           backgroundColor: color,
@@ -97,19 +100,16 @@ function ProgressBar({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// StatCard
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── StatCard ──────────────────────────────────────────────────────────────────
 interface StatCardProps {
   label: string;
   value: string | number;
   icon: React.ElementType;
-  iconColor: string; // hex
+  iconColor: string;
   sub: string;
-  progress: number; // 0-100
-  barColor: string; // hex
+  progress: number;
+  barColor: string;
 }
-
 function StatCard({
   label,
   value,
@@ -141,17 +141,325 @@ function StatCard({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────────────────────────────────────
-export default function DashboardPage() {
+// ─── Guest Dashboard ───────────────────────────────────────────────────────────
+function GuestDashboard() {
+  const features = [
+    {
+      icon: BarChart2,
+      color: COLOR.primary,
+      title: 'Track Your Progress',
+      desc: 'Visualise solved problems, streaks, and acceptance rates across difficulty levels.',
+    },
+    {
+      icon: Brain,
+      color: COLOR.accent,
+      title: 'Topic Mastery',
+      desc: 'See exactly how strong you are in Arrays, Trees, DP, Graphs and more.',
+    },
+    {
+      icon: Flame,
+      color: COLOR.amber,
+      title: 'Daily Streaks',
+      desc: 'Build consistent habits with streak tracking and a GitHub-style heatmap.',
+    },
+    {
+      icon: Trophy,
+      color: COLOR.rose,
+      title: 'Leaderboards & Badges',
+      desc: 'Compete with peers and earn badges as you hit milestones.',
+    },
+    {
+      icon: Layers,
+      color: COLOR.cyan,
+      title: 'Language Breakdown',
+      desc: 'Analyse which languages you use most across all your submissions.',
+    },
+    {
+      icon: Calendar,
+      color: COLOR.emerald,
+      title: 'Activity Heatmap',
+      desc: 'A full year of coding activity in one glance — just like GitHub.',
+    },
+  ];
+
+  const mockWeekly = [
+    { day: 'Mon', h: 60 },
+    { day: 'Tue', h: 90 },
+    { day: 'Wed', h: 40 },
+    { day: 'Thu', h: 100 },
+    { day: 'Fri', h: 75 },
+    { day: 'Sat', h: 55 },
+    { day: 'Sun', h: 30 },
+  ];
+
+  const mockDifficulty = [
+    { level: 'Easy', pct: 72, color: COLOR.emerald },
+    { level: 'Medium', pct: 45, color: COLOR.amber },
+    { level: 'Hard', pct: 18, color: COLOR.rose },
+  ];
+
+  return (
+    <div className='min-h-screen'>
+      <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Hero */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className='mb-12 text-center'
+        >
+          <div className='inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/5 text-primary text-xs font-medium mb-4'>
+            <Star className='h-3 w-3' />
+            Your personal coding command centre
+          </div>
+          <h1 className='text-4xl sm:text-5xl font-bold mb-4 leading-tight'>
+            Unlock Your <span className='gradient-text'>Full Dashboard</span>
+          </h1>
+          <p className='text-muted-foreground text-base sm:text-lg max-w-xl mx-auto mb-8'>
+            Sign in to track every submission, streak, and skill gap — all in
+            one place.
+          </p>
+          <div className='flex flex-col sm:flex-row items-center justify-center gap-3'>
+            <Link to='/login'>
+              <Button
+                size='lg'
+                className='bg-primary hover:bg-primary/90 text-primary-foreground gap-2 px-6'
+              >
+                <LogIn className='h-4 w-4' />
+                Sign In
+              </Button>
+            </Link>
+            <Link to='/signup'>
+              <Button
+                size='lg'
+                variant='outline'
+                className='border-border/60 gap-2 px-6'
+              >
+                <UserPlus className='h-4 w-4' />
+                Create Account
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Preview (blurred mock) */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className='relative mb-16'
+        >
+          {/* Overlay */}
+          <div className='absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-background/60 backdrop-blur-sm border border-border/30'>
+            <div className='p-3 rounded-full bg-surface-2 border border-border/40 mb-3'>
+              <Lock className='h-6 w-6 text-muted-foreground' />
+            </div>
+            <p className='text-sm font-medium text-muted-foreground'>
+              Sign in to view your live stats
+            </p>
+          </div>
+
+          {/* Blurred mock content */}
+          <div className='pointer-events-none select-none blur-sm opacity-60'>
+            <div className='grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6'>
+              {[
+                {
+                  label: 'Problems Solved',
+                  value: '—',
+                  icon: CheckCircle,
+                  iconColor: COLOR.primary,
+                  progress: 55,
+                  barColor: COLOR.primary,
+                },
+                {
+                  label: 'Current Streak',
+                  value: '—d',
+                  icon: Flame,
+                  iconColor: COLOR.amber,
+                  progress: 70,
+                  barColor: COLOR.amber,
+                },
+                {
+                  label: 'Max Streak',
+                  value: '—d',
+                  icon: Award,
+                  iconColor: COLOR.accent,
+                  progress: 100,
+                  barColor: COLOR.accent,
+                },
+                {
+                  label: 'Acceptance Rate',
+                  value: '—%',
+                  icon: Target,
+                  iconColor: COLOR.emerald,
+                  progress: 65,
+                  barColor: COLOR.emerald,
+                },
+                {
+                  label: 'Easy Solved',
+                  value: '—',
+                  icon: TrendingUp,
+                  iconColor: COLOR.emerald,
+                  progress: 72,
+                  barColor: COLOR.emerald,
+                },
+                {
+                  label: 'Hard Solved',
+                  value: '—',
+                  icon: Zap,
+                  iconColor: COLOR.rose,
+                  progress: 18,
+                  barColor: COLOR.rose,
+                },
+              ].map((c, i) => (
+                <StatCard key={i} sub='' {...c} />
+              ))}
+            </div>
+
+            <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+              {/* Ring + bars */}
+              <Card className='glass-card border-border/50'>
+                <CardHeader>
+                  <CardTitle className='text-lg'>Overall Progress</CardTitle>
+                </CardHeader>
+                <CardContent className='flex flex-col items-center'>
+                  <div className='relative w-32 h-32 mb-5'>
+                    <svg className='w-32 h-32 -rotate-90' viewBox='0 0 144 144'>
+                      <circle
+                        cx='72'
+                        cy='72'
+                        r='58'
+                        stroke='rgba(255,255,255,0.1)'
+                        strokeWidth='10'
+                        fill='transparent'
+                      />
+                      <circle
+                        cx='72'
+                        cy='72'
+                        r='58'
+                        stroke={COLOR.primary}
+                        strokeWidth='10'
+                        fill='transparent'
+                        strokeDasharray='210 364'
+                        strokeLinecap='round'
+                      />
+                    </svg>
+                    <div className='absolute inset-0 flex flex-col items-center justify-center'>
+                      <span className='text-2xl font-bold'>58%</span>
+                    </div>
+                  </div>
+                  <div className='w-full space-y-3'>
+                    {mockDifficulty.map((d) => (
+                      <div key={d.level}>
+                        <div className='flex justify-between text-sm mb-1.5'>
+                          <span
+                            className='font-medium'
+                            style={{ color: d.color }}
+                          >
+                            {d.level}
+                          </span>
+                          <span className='text-muted-foreground'>—/—</span>
+                        </div>
+                        <ProgressBar pct={d.pct} color={d.color} height={8} />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Weekly bars */}
+              <Card className='glass-card border-border/50 lg:col-span-2'>
+                <CardHeader>
+                  <CardTitle className='text-lg'>Activity Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className='flex items-end justify-between gap-2 h-[160px] mb-4'>
+                    {mockWeekly.map((d, i) => (
+                      <div
+                        key={i}
+                        className='flex-1 flex flex-col items-center gap-2'
+                      >
+                        <div
+                          className='w-full max-w-[40px] rounded-t-md'
+                          style={{
+                            height: `${d.h}px`,
+                            backgroundColor: COLOR.primary,
+                            opacity: 0.6,
+                          }}
+                        />
+                        <span className='text-xs text-muted-foreground'>
+                          {d.day}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Feature grid */}
+        <motion.div
+          variants={stagger}
+          initial='hidden'
+          animate='show'
+          className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-12'
+        >
+          {features.map((f, i) => (
+            <motion.div key={i} variants={fadeUp}>
+              <Card className='glass-card border-border/50 hover:border-primary/20 transition-all duration-300 h-full'>
+                <CardContent className='p-5 flex gap-4 items-start'>
+                  <div className='p-2.5 rounded-xl bg-surface-2 border border-border/40 shrink-0 mt-0.5'>
+                    <f.icon className='h-5 w-5' style={{ color: f.color }} />
+                  </div>
+                  <div>
+                    <h3 className='text-sm font-semibold mb-1'>{f.title}</h3>
+                    <p className='text-xs text-muted-foreground leading-relaxed'>
+                      {f.desc}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Bottom CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className='glass-card glow-border p-8 rounded-2xl text-center'
+        >
+          <h2 className='text-2xl font-bold mb-2'>Ready to level up?</h2>
+          <p className='text-muted-foreground text-sm mb-6 max-w-md mx-auto'>
+            Join thousands of engineers who use AlgoDrill to track their
+            progress and land their dream job.
+          </p>
+          <Link to='/signup'>
+            <Button
+              size='lg'
+              className='bg-primary hover:bg-primary/90 text-primary-foreground gap-2 px-8'
+            >
+              Get Started Free
+              <ArrowRight className='h-4 w-4' />
+            </Button>
+          </Link>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Authenticated Dashboard ───────────────────────────────────────────────────
+function AuthenticatedDashboard() {
   const { heatMapData, isLoading: isHeatMapLoading } = useGetUserHeatMapData();
   const { solvedStats, isLoading: isSolvedLoading } = useGetUserSolvedStats();
   const { progressData, isLoading: isProgressLoading } =
     useGetUserProgressData();
   const isLoading = isHeatMapLoading || isSolvedLoading || isProgressLoading;
 
-  // solved stats
   const easySolved = solvedStats?.difficultyStats.EASY ?? 0;
   const mediumSolved = solvedStats?.difficultyStats.MEDIUM ?? 0;
   const hardSolved = solvedStats?.difficultyStats.HARD ?? 0;
@@ -307,7 +615,6 @@ export default function DashboardPage() {
   return (
     <div className='min-h-screen'>
       <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -319,7 +626,7 @@ export default function DashboardPage() {
           </p>
         </motion.div>
 
-        {/* ── Stat Cards ──────────────────────────────────────────────────── */}
+        {/* Stat Cards */}
         <motion.div
           variants={stagger}
           initial='hidden'
@@ -333,7 +640,7 @@ export default function DashboardPage() {
           ))}
         </motion.div>
 
-        {/* ── Overall Progress + Activity ──────────────────────────────────── */}
+        {/* Overall Progress + Activity */}
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8'>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -345,7 +652,6 @@ export default function DashboardPage() {
                 <CardTitle className='text-lg'>Overall Progress</CardTitle>
               </CardHeader>
               <CardContent className='flex flex-col items-center'>
-                {/* Ring */}
                 <div className='relative w-36 h-36 mb-5'>
                   <svg className='w-36 h-36 -rotate-90' viewBox='0 0 160 160'>
                     <circle
@@ -380,8 +686,6 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 </div>
-
-                {/* Difficulty bars */}
                 <div className='w-full space-y-3'>
                   {difficultyData.map((d) => (
                     <div key={d.level}>
@@ -408,7 +712,6 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
 
-          {/* Activity Overview */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -448,7 +751,7 @@ export default function DashboardPage() {
                                   {day.problems}
                                 </span>
                                 <div
-                                  className='w-full max-w-[40px] rounded-t-md cursor-pointer transition-opacity hover:opacity-100'
+                                  className='w-full max-w-[40px] rounded-t-md transition-opacity hover:opacity-100'
                                   style={{
                                     height: `${Math.max(height, 4)}px`,
                                     backgroundColor: COLOR.primary,
@@ -567,7 +870,7 @@ export default function DashboardPage() {
           </motion.div>
         </div>
 
-        {/* ── Topic Progress + Language ────────────────────────────────────── */}
+        {/* Topic Progress + Language */}
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8'>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -578,8 +881,7 @@ export default function DashboardPage() {
             <Card className='glass-card border-border/50 h-full'>
               <CardHeader>
                 <CardTitle className='text-lg flex items-center gap-2'>
-                  <BookOpen className='h-5 w-5 text-primary' />
-                  Topic Progress
+                  <BookOpen className='h-5 w-5 text-primary' /> Topic Progress
                 </CardTitle>
                 <CardDescription>
                   Your progress across different problem categories
@@ -651,7 +953,6 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
 
-          {/* Language Distribution */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -660,8 +961,7 @@ export default function DashboardPage() {
             <Card className='glass-card border-border/50 h-full'>
               <CardHeader className='pb-3'>
                 <CardTitle className='text-lg flex items-center gap-2'>
-                  <PieChart className='h-5 w-5 text-accent' />
-                  Languages
+                  <PieChart className='h-5 w-5 text-accent' /> Languages
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -714,7 +1014,7 @@ export default function DashboardPage() {
           </motion.div>
         </div>
 
-        {/* ── Contribution Heatmap ─────────────────────────────────────────── */}
+        {/* Heatmap */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -724,8 +1024,8 @@ export default function DashboardPage() {
           <Card className='glass-card border-border/50'>
             <CardHeader>
               <CardTitle className='text-lg flex items-center gap-2'>
-                <Calendar className='h-5 w-5 text-primary' />
-                Contribution Heatmap
+                <Calendar className='h-5 w-5 text-primary' /> Contribution
+                Heatmap
               </CardTitle>
               <CardDescription>
                 Your coding activity over the past year
@@ -737,7 +1037,7 @@ export default function DashboardPage() {
           </Card>
         </motion.div>
 
-        {/* ── Recent Submissions ───────────────────────────────────────────── */}
+        {/* Recent Submissions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -779,13 +1079,7 @@ export default function DashboardPage() {
                             {sub.problem}
                           </span>
                           <span
-                            className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                              sub.difficulty === 'Easy'
-                                ? 'difficulty-easy'
-                                : sub.difficulty === 'Medium'
-                                  ? 'difficulty-medium'
-                                  : 'difficulty-hard'
-                            }`}
+                            className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${sub.difficulty === 'Easy' ? 'difficulty-easy' : sub.difficulty === 'Medium' ? 'difficulty-medium' : 'difficulty-hard'}`}
                           >
                             {sub.difficulty}
                           </span>
@@ -822,4 +1116,10 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+// ─── Root export ───────────────────────────────────────────────────────────────
+export default function DashboardPage() {
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  return isAuthenticated ? <AuthenticatedDashboard /> : <GuestDashboard />;
 }
