@@ -15,14 +15,11 @@ import {
   Calendar,
   Award,
   Code2,
-  Clock,
   Zap,
   BarChart3,
   PieChart,
   BookOpen,
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus,
+  Loader2,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -32,180 +29,112 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import ContributionGraph from '@/components/ContributionGraph';
+import { useGetUserHeatMapData } from '@/hooks/user-stats/useGetUserHeatMapData';
+import { useGetUserSolvedStats } from '@/hooks/user-stats/useGetUserSolvedStats';
+import { useGetUserProgressData } from '@/hooks/user-stats/useGetUserProgressData';
 
-// Mock data
-const difficultyData = [
-  {
-    level: 'Easy',
-    solved: 45,
-    total: 80,
-    color: 'bg-[hsl(var(--emerald))]',
-    textColor: 'text-[hsl(var(--emerald))]',
-  },
-  {
-    level: 'Medium',
-    solved: 32,
-    total: 120,
-    color: 'bg-[hsl(var(--amber))]',
-    textColor: 'text-[hsl(var(--amber))]',
-  },
-  {
-    level: 'Hard',
-    solved: 8,
-    total: 50,
-    color: 'bg-[hsl(var(--rose))]',
-    textColor: 'text-[hsl(var(--rose))]',
-  },
-];
 
-const weeklyData = [
-  { day: 'Mon', count: 3 },
-  { day: 'Tue', count: 5 },
-  { day: 'Wed', count: 2 },
-  { day: 'Thu', count: 7 },
-  { day: 'Fri', count: 4 },
-  { day: 'Sat', count: 6 },
-  { day: 'Sun', count: 1 },
-];
-
-const recentSubmissions = [
-  {
-    problem: 'Two Sum',
-    status: 'Accepted',
-    language: 'Python',
-    time: '4ms',
-    memory: '14.2 MB',
-    date: '2h ago',
-    difficulty: 'Easy',
-  },
-  {
-    problem: 'Add Two Numbers',
-    status: 'Accepted',
-    language: 'JavaScript',
-    time: '12ms',
-    memory: '42.1 MB',
-    date: '5h ago',
-    difficulty: 'Medium',
-  },
-  {
-    problem: '3Sum',
-    status: 'Wrong Answer',
-    language: 'Python',
-    time: '-',
-    memory: '-',
-    date: '1d ago',
-    difficulty: 'Medium',
-  },
-  {
-    problem: 'Valid Parentheses',
-    status: 'Accepted',
-    language: 'Java',
-    time: '1ms',
-    memory: '39.8 MB',
-    date: '1d ago',
-    difficulty: 'Easy',
-  },
-  {
-    problem: 'Merge Two Sorted Lists',
-    status: 'Time Limit Exceeded',
-    language: 'Python',
-    time: '-',
-    memory: '-',
-    date: '2d ago',
-    difficulty: 'Easy',
-  },
-  {
-    problem: 'LRU Cache',
-    status: 'Accepted',
-    language: 'Python',
-    time: '89ms',
-    memory: '23.4 MB',
-    date: '3d ago',
-    difficulty: 'Hard',
-  },
-];
-
-// Topic progress data
-const topicProgress = [
-  { topic: 'Arrays & Hashing', solved: 18, total: 25, percentage: 72 },
-  { topic: 'Two Pointers', solved: 12, total: 15, percentage: 80 },
-  { topic: 'Sliding Window', solved: 8, total: 12, percentage: 67 },
-  { topic: 'Stack', solved: 10, total: 14, percentage: 71 },
-  { topic: 'Binary Search', solved: 7, total: 18, percentage: 39 },
-  { topic: 'Linked List', solved: 9, total: 11, percentage: 82 },
-  { topic: 'Trees', solved: 6, total: 20, percentage: 30 },
-  { topic: 'Graphs', solved: 4, total: 22, percentage: 18 },
-  { topic: 'Dynamic Programming', solved: 5, total: 30, percentage: 17 },
-  { topic: 'Backtracking', solved: 3, total: 12, percentage: 25 },
-];
-
-// Language distribution
-const languageStats = [
-  {
-    language: 'Python',
-    count: 48,
-    percentage: 56,
-    color: 'bg-[hsl(var(--cyan))]',
-  },
-  {
-    language: 'JavaScript',
-    count: 22,
-    percentage: 26,
-    color: 'bg-[hsl(var(--amber))]',
-  },
-  {
-    language: 'Java',
-    count: 10,
-    percentage: 12,
-    color: 'bg-[hsl(var(--rose))]',
-  },
-  {
-    language: 'C++',
-    count: 5,
-    percentage: 6,
-    color: 'bg-[hsl(var(--emerald-light))]',
-  },
-];
-
-// Monthly trend data
-const monthlyTrend = [
-  { month: 'Sep', solved: 8, submissions: 15 },
-  { month: 'Oct', solved: 12, submissions: 22 },
-  { month: 'Nov', solved: 15, submissions: 28 },
-  { month: 'Dec', solved: 10, submissions: 18 },
-  { month: 'Jan', solved: 18, submissions: 30 },
-  { month: 'Feb', solved: 22, submissions: 35 },
-];
-
-// Skill ratings
-const skillRatings = [
-  { skill: 'Problem Solving', rating: 72, trend: 'up' as const },
-  { skill: 'Time Complexity', rating: 65, trend: 'up' as const },
-  { skill: 'Space Optimization', rating: 58, trend: 'stable' as const },
-  { skill: 'Code Quality', rating: 80, trend: 'up' as const },
-  { skill: 'Edge Cases', rating: 45, trend: 'down' as const },
-];
-
-const totalSolved = 85;
-const totalAvailable = 250;
-const currentStreak = 12;
-const maxStreak = 23;
-const totalSubmissions = 148;
-const acceptanceRate = 68;
+const LANGUAGE_COLORS: Record<string, string> = {
+  python: 'bg-[hsl(var(--cyan))]',
+  javascript: 'bg-[hsl(var(--amber))]',
+  java: 'bg-[hsl(var(--rose))]',
+  'c++': 'bg-[hsl(var(--emerald))]',
+  typescript: 'bg-[hsl(var(--primary))]',
+};
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
 
 export default function DashboardPage() {
-  const trendIcon = (trend: string) => {
-    if (trend === 'up')
-      return (
-        <ArrowUpRight className='h-3.5 w-3.5 text-[hsl(var(--emerald))]' />
-      );
-    if (trend === 'down')
-      return <ArrowDownRight className='h-3.5 w-3.5 text-[hsl(var(--rose))]' />;
-    return <Minus className='h-3.5 w-3.5 text-muted-foreground' />;
-  };
+  const { heatMapData, isLoading: isHeatMapLoading } = useGetUserHeatMapData();
+  const { solvedStats, isLoading: isSolvedLoading } = useGetUserSolvedStats();
+  const { progressData, isLoading: isProgressLoading } =
+    useGetUserProgressData();
+
+  const isLoading = isHeatMapLoading || isSolvedLoading || isProgressLoading;
+
+  // ── solved stats ─────────────────────────────────────────────────────────
+  const easySolved = solvedStats?.difficultyStats.EASY ?? 0;
+  const mediumSolved = solvedStats?.difficultyStats.MEDIUM ?? 0;
+  const hardSolved = solvedStats?.difficultyStats.HARD ?? 0;
+  const easyTotal = solvedStats?.totalDifficultyCounts.EASY ?? 0;
+  const mediumTotal = solvedStats?.totalDifficultyCounts.MEDIUM ?? 0;
+  const hardTotal = solvedStats?.totalDifficultyCounts.HARD ?? 0;
+  const totalSolved = easySolved + mediumSolved + hardSolved;
+  const totalAvailable = easyTotal + mediumTotal + hardTotal;
+  const currentStreak = solvedStats?.currentStreak ?? 0;
+  const maxStreak = solvedStats?.maxStreak ?? 0;
+  const totalSubmissions = solvedStats?.totalSubmissions ?? 0;
+  const acceptanceRate = solvedStats?.acceptanceRate ?? 0;
+
+  const difficultyData = useMemo(
+    () => [
+      {
+        level: 'Easy',
+        solved: easySolved,
+        total: easyTotal,
+        color: 'bg-[hsl(var(--emerald))]',
+        textColor: 'text-[hsl(var(--emerald))]',
+      },
+      {
+        level: 'Medium',
+        solved: mediumSolved,
+        total: mediumTotal,
+        color: 'bg-[hsl(var(--amber))]',
+        textColor: 'text-[hsl(var(--amber))]',
+      },
+      {
+        level: 'Hard',
+        solved: hardSolved,
+        total: hardTotal,
+        color: 'bg-[hsl(var(--rose))]',
+        textColor: 'text-[hsl(var(--rose))]',
+      },
+    ],
+    [easySolved, mediumSolved, hardSolved, easyTotal, mediumTotal, hardTotal],
+  );
+
+  // ── topic progress from tagStats ─────────────────────────────────────────
+  const topicProgress = useMemo(() => {
+    if (!solvedStats) return [];
+    return Object.entries(solvedStats.tagStats)
+      .map(([tag, solved]) => {
+        const total = solvedStats.totalTagCounts[tag] ?? solved;
+        const percentage = total > 0 ? Math.round((solved / total) * 100) : 0;
+        return { topic: tag, solved, total, percentage };
+      })
+      .sort((a, b) => b.percentage - a.percentage);
+  }, [solvedStats]);
+
+  // ── progress data ─────────────────────────────────────────────────────────
+  const weeklyData = progressData?.weeklyData ?? [];
+  const monthlyTrend = progressData?.monthlyTrend ?? [];
+  const recentSubmissions = progressData?.recentSubmissions ?? [];
+  const languageStats = (progressData?.languageStats ?? []).map((l) => ({
+    ...l,
+    color: LANGUAGE_COLORS[l.language.toLowerCase()] ?? 'bg-primary/70',
+  }));
+
+  // ── weekly summary ────────────────────────────────────────────────────────
+  const weeklyStats = useMemo(() => {
+    if (!weeklyData.length)
+      return { total: 0, avg: '0.0', best: 0, activeDays: 0 };
+    const total = weeklyData.reduce((a, b) => a + b.problems, 0);
+    return {
+      total,
+      avg: (total / weeklyData.length).toFixed(1),
+      best: Math.max(...weeklyData.map((d) => d.problems)),
+      activeDays: weeklyData.filter((d) => d.problems > 0).length,
+    };
+  }, [weeklyData]);
+
+  if (isLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen'>
@@ -256,21 +185,21 @@ export default function DashboardPage() {
               value: `${acceptanceRate}%`,
               icon: Target,
               color: 'text-[hsl(var(--emerald))]',
-              sub: `${totalSubmissions} total`,
+              sub: `${totalSubmissions} submissions`,
             },
             {
-              label: 'Rank',
-              value: '#127',
+              label: 'Easy Solved',
+              value: easySolved,
               icon: TrendingUp,
-              color: 'text-[hsl(var(--emerald-light))]',
-              sub: 'Top 15%',
+              color: 'text-[hsl(var(--emerald))]',
+              sub: `of ${easyTotal}`,
             },
             {
-              label: 'Avg Runtime',
-              value: '24ms',
+              label: 'Hard Solved',
+              value: hardSolved,
               icon: Zap,
-              color: 'text-[hsl(var(--cyan))]',
-              sub: 'Faster than 72%',
+              color: 'text-[hsl(var(--rose))]',
+              sub: `of ${hardTotal}`,
             },
           ].map((stat, i) => (
             <motion.div key={i} variants={fadeUp}>
@@ -295,7 +224,7 @@ export default function DashboardPage() {
         </motion.div>
 
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8'>
-          {/* Progress Ring + Difficulty */}
+          {/* Progress Ring */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -326,21 +255,23 @@ export default function DashboardPage() {
                       stroke='hsl(var(--primary))'
                       strokeWidth='10'
                       fill='transparent'
-                      strokeDasharray={`${(totalSolved / totalAvailable) * 408.4} 408.4`}
+                      strokeDasharray={`${totalAvailable > 0 ? (totalSolved / totalAvailable) * 408.4 : 0} 408.4`}
                       strokeLinecap='round'
                       className='transition-all duration-1000'
                     />
                   </svg>
                   <div className='absolute inset-0 flex flex-col items-center justify-center'>
                     <span className='text-3xl font-bold'>
-                      {Math.round((totalSolved / totalAvailable) * 100)}%
+                      {totalAvailable > 0
+                        ? Math.round((totalSolved / totalAvailable) * 100)
+                        : 0}
+                      %
                     </span>
                     <span className='text-xs text-muted-foreground'>
                       {totalSolved}/{totalAvailable}
                     </span>
                   </div>
                 </div>
-
                 <div className='w-full space-y-3'>
                   {difficultyData.map((d) => (
                     <div key={d.level}>
@@ -355,7 +286,9 @@ export default function DashboardPage() {
                       <div className='h-2 bg-surface-3 rounded-full overflow-hidden'>
                         <div
                           className={`${d.color} h-full rounded-full transition-all duration-700`}
-                          style={{ width: `${(d.solved / d.total) * 100}%` }}
+                          style={{
+                            width: `${d.total > 0 ? (d.solved / d.total) * 100 : 0}%`,
+                          }}
                         />
                       </div>
                     </div>
@@ -365,7 +298,7 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
 
-          {/* Weekly Activity */}
+          {/* Activity Overview */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -374,14 +307,8 @@ export default function DashboardPage() {
           >
             <Card className='glass-card border-border/50 h-full'>
               <CardHeader>
-                <div className='flex items-center justify-between'>
-                  <div>
-                    <CardTitle className='text-lg'>Activity Overview</CardTitle>
-                    <CardDescription>
-                      Submissions & progress trends
-                    </CardDescription>
-                  </div>
-                </div>
+                <CardTitle className='text-lg'>Activity Overview</CardTitle>
+                <CardDescription>Submissions & progress trends</CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue='weekly' className='w-full'>
@@ -391,111 +318,118 @@ export default function DashboardPage() {
                   </TabsList>
 
                   <TabsContent value='weekly'>
-                    <div className='flex items-end justify-between gap-2 h-[180px] mb-4'>
-                      {weeklyData.map((day, i) => {
-                        const maxCount = Math.max(
-                          ...weeklyData.map((d) => d.count),
-                        );
-                        const height =
-                          maxCount > 0 ? (day.count / maxCount) * 150 : 0;
-                        return (
-                          <div
-                            key={i}
-                            className='flex-1 flex flex-col items-center gap-2'
-                          >
-                            <span className='text-xs font-medium text-muted-foreground'>
-                              {day.count}
-                            </span>
-                            <div
-                              className='w-full max-w-[40px] bg-primary/80 rounded-t-md hover:bg-primary transition-all duration-300 cursor-pointer'
-                              style={{ height: `${height}px` }}
-                            />
-                            <span className='text-xs font-medium text-muted-foreground'>
-                              {day.day}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className='grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border/30'>
-                      {[
-                        {
-                          label: 'This Week',
-                          value: weeklyData.reduce((a, b) => a + b.count, 0),
-                        },
-                        {
-                          label: 'Daily Avg',
-                          value: (
-                            weeklyData.reduce((a, b) => a + b.count, 0) / 7
-                          ).toFixed(1),
-                        },
-                        {
-                          label: 'Best Day',
-                          value: Math.max(...weeklyData.map((d) => d.count)),
-                        },
-                        {
-                          label: 'Active Days',
-                          value: weeklyData.filter((d) => d.count > 0).length,
-                        },
-                      ].map((s, i) => (
-                        <div key={i} className='text-center'>
-                          <div className='text-xl font-bold text-primary'>
-                            {s.value}
-                          </div>
-                          <div className='text-xs text-muted-foreground'>
-                            {s.label}
-                          </div>
+                    {weeklyData.length > 0 ? (
+                      <>
+                        <div className='flex items-end justify-between gap-2 h-[180px] mb-4'>
+                          {weeklyData.map((day, i) => {
+                            const maxCount = Math.max(
+                              ...weeklyData.map((d) => d.problems),
+                            );
+                            const height =
+                              maxCount > 0
+                                ? (day.problems / maxCount) * 150
+                                : 0;
+                            return (
+                              <div
+                                key={i}
+                                className='flex-1 flex flex-col items-center gap-2'
+                              >
+                                <span className='text-xs font-medium text-muted-foreground'>
+                                  {day.problems}
+                                </span>
+                                <div
+                                  className='w-full max-w-[40px] bg-primary/80 rounded-t-md hover:bg-primary transition-all duration-300 cursor-pointer'
+                                  style={{ height: `${Math.max(height, 4)}px` }}
+                                />
+                                <span className='text-xs font-medium text-muted-foreground'>
+                                  {day.day}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
+                        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border/30'>
+                          {[
+                            { label: 'This Week', value: weeklyStats.total },
+                            { label: 'Daily Avg', value: weeklyStats.avg },
+                            { label: 'Best Day', value: weeklyStats.best },
+                            {
+                              label: 'Active Days',
+                              value: weeklyStats.activeDays,
+                            },
+                          ].map((s, i) => (
+                            <div key={i} className='text-center'>
+                              <div className='text-xl font-bold text-primary'>
+                                {s.value}
+                              </div>
+                              <div className='text-xs text-muted-foreground'>
+                                {s.label}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className='flex items-center justify-center h-[180px] text-muted-foreground text-sm'>
+                        No activity this week.
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value='monthly'>
-                    <div className='flex items-end justify-between gap-3 h-[180px] mb-4'>
-                      {monthlyTrend.map((m, i) => {
-                        const maxSub = Math.max(
-                          ...monthlyTrend.map((d) => d.submissions),
-                        );
-                        const subH =
-                          maxSub > 0 ? (m.submissions / maxSub) * 150 : 0;
-                        const solvedH =
-                          maxSub > 0 ? (m.solved / maxSub) * 150 : 0;
-                        return (
-                          <div
-                            key={i}
-                            className='flex-1 flex flex-col items-center gap-2'
-                          >
-                            <span className='text-xs font-medium text-muted-foreground'>
-                              {m.solved}
-                            </span>
-                            <div className='w-full max-w-[48px] relative'>
+                    {monthlyTrend.length > 0 ? (
+                      <>
+                        <div className='flex items-end justify-between gap-3 h-[180px] mb-4'>
+                          {monthlyTrend.map((m, i) => {
+                            const maxSub = Math.max(
+                              ...monthlyTrend.map((d) => d.submissions),
+                            );
+                            const subH =
+                              maxSub > 0 ? (m.submissions / maxSub) * 150 : 0;
+                            const solvedH =
+                              maxSub > 0 ? (m.solved / maxSub) * 150 : 0;
+                            return (
                               <div
-                                className='w-full bg-surface-3 rounded-t-md'
-                                style={{ height: `${subH}px` }}
+                                key={i}
+                                className='flex-1 flex flex-col items-center gap-2'
                               >
-                                <div
-                                  className='absolute bottom-0 w-full bg-primary/80 rounded-t-md'
-                                  style={{ height: `${solvedH}px` }}
-                                />
+                                <span className='text-xs font-medium text-muted-foreground'>
+                                  {m.solved}
+                                </span>
+                                <div className='w-full max-w-[48px] relative'>
+                                  <div
+                                    className='w-full bg-surface-3 rounded-t-md'
+                                    style={{ height: `${subH}px` }}
+                                  >
+                                    <div
+                                      className='absolute bottom-0 w-full bg-primary/80 rounded-t-md'
+                                      style={{ height: `${solvedH}px` }}
+                                    />
+                                  </div>
+                                </div>
+                                <span className='text-xs font-medium text-muted-foreground'>
+                                  {m.month}
+                                </span>
                               </div>
-                            </div>
-                            <span className='text-xs font-medium text-muted-foreground'>
-                              {m.month}
-                            </span>
+                            );
+                          })}
+                        </div>
+                        <div className='flex items-center gap-4 pt-4 border-t border-border/30 text-xs text-muted-foreground'>
+                          <div className='flex items-center gap-1.5'>
+                            <div className='w-3 h-3 rounded-sm bg-primary/80' />
+                            <span>Solved</span>
                           </div>
-                        );
-                      })}
-                    </div>
-                    <div className='flex items-center gap-4 pt-4 border-t border-border/30 text-xs text-muted-foreground'>
-                      <div className='flex items-center gap-1.5'>
-                        <div className='w-3 h-3 rounded-sm bg-primary/80' />
-                        <span>Solved</span>
+                          <div className='flex items-center gap-1.5'>
+                            <div className='w-3 h-3 rounded-sm bg-surface-3' />
+                            <span>Total Submissions</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className='flex items-center justify-center h-[180px] text-muted-foreground text-sm'>
+                        No monthly data available.
                       </div>
-                      <div className='flex items-center gap-1.5'>
-                        <div className='w-3 h-3 rounded-sm bg-surface-3' />
-                        <span>Total Submissions</span>
-                      </div>
-                    </div>
+                    )}
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -503,9 +437,8 @@ export default function DashboardPage() {
           </motion.div>
         </div>
 
-        {/* Topic Progress + Language + Skills */}
+        {/* Topic Progress + Language sidebar */}
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8'>
-          {/* Topic Progress */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -523,71 +456,77 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <TooltipProvider delayDuration={200}>
-                  <div className='space-y-3'>
-                    {topicProgress.map((t) => (
-                      <Tooltip key={t.topic}>
-                        <TooltipTrigger asChild>
-                          <div className='group cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-surface-2'>
-                            <div className='flex items-center justify-between text-sm mb-1'>
-                              <span className='font-medium text-foreground/90'>
-                                {t.topic}
-                              </span>
-                              <span className='text-muted-foreground text-xs'>
-                                {t.solved}/{t.total}
-                                <span className='ml-1.5 font-semibold text-foreground/70'>
-                                  {t.percentage}%
+                {topicProgress.length > 0 ? (
+                  <TooltipProvider delayDuration={200}>
+                    <div className='space-y-3'>
+                      {topicProgress.map((t) => (
+                        <Tooltip key={t.topic}>
+                          <TooltipTrigger asChild>
+                            <div className='group cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-surface-2'>
+                              <div className='flex items-center justify-between text-sm mb-1'>
+                                <span className='font-medium text-foreground/90 capitalize'>
+                                  {t.topic}
                                 </span>
-                              </span>
+                                <span className='text-muted-foreground text-xs'>
+                                  {t.solved}/{t.total}
+                                  <span className='ml-1.5 font-semibold text-foreground/70'>
+                                    {t.percentage}%
+                                  </span>
+                                </span>
+                              </div>
+                              <div className='h-2 bg-surface-3 rounded-full overflow-hidden'>
+                                <div
+                                  className={`h-full rounded-full transition-all duration-700 group-hover:brightness-110 ${
+                                    t.percentage >= 70
+                                      ? 'bg-[hsl(var(--emerald))]'
+                                      : t.percentage >= 40
+                                        ? 'bg-[hsl(var(--amber))]'
+                                        : 'bg-[hsl(var(--rose))]'
+                                  }`}
+                                  style={{ width: `${t.percentage}%` }}
+                                />
+                              </div>
                             </div>
-                            <div className='h-2 bg-surface-3 rounded-full overflow-hidden'>
-                              <div
-                                className={`h-full rounded-full transition-all duration-700 group-hover:brightness-110 ${
-                                  t.percentage >= 70
-                                    ? 'bg-[hsl(var(--emerald))]'
-                                    : t.percentage >= 40
-                                      ? 'bg-[hsl(var(--amber))]'
-                                      : 'bg-[hsl(var(--rose))]'
-                                }`}
-                                style={{ width: `${t.percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent
-                          side='left'
-                          className='text-xs space-y-1 max-w-[200px]'
-                        >
-                          <p className='font-semibold'>{t.topic}</p>
-                          <p>
-                            {t.solved} solved out of {t.total} problems
-                          </p>
-                          <p>{t.total - t.solved} remaining to complete</p>
-                          <p className='text-muted-foreground'>
-                            {t.percentage >= 70
-                              ? 'Great progress! 🎉'
-                              : t.percentage >= 40
-                                ? 'Keep practicing! 💪'
-                                : 'Needs more focus 🎯'}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </div>
-                </TooltipProvider>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side='left'
+                            className='text-xs space-y-1 max-w-[200px]'
+                          >
+                            <p className='font-semibold capitalize'>
+                              {t.topic}
+                            </p>
+                            <p>
+                              {t.solved} solved out of {t.total} problems
+                            </p>
+                            <p>{t.total - t.solved} remaining to complete</p>
+                            <p className='text-muted-foreground'>
+                              {t.percentage >= 70
+                                ? 'Great progress! 🎉'
+                                : t.percentage >= 40
+                                  ? 'Keep practicing! 💪'
+                                  : 'Needs more focus 🎯'}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
+                  </TooltipProvider>
+                ) : (
+                  <p className='text-sm text-muted-foreground text-center py-8'>
+                    Solve some problems to see topic progress.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Language + Skills sidebar */}
+          {/* Language Distribution */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className='space-y-6'
           >
-            {/* Language Distribution */}
-            <Card className='glass-card border-border/50'>
+            <Card className='glass-card border-border/50 h-full'>
               <CardHeader className='pb-3'>
                 <CardTitle className='text-lg flex items-center gap-2'>
                   <PieChart className='h-5 w-5 text-accent' />
@@ -595,95 +534,43 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Stacked bar */}
-                <div className='flex h-3 rounded-full overflow-hidden mb-4'>
-                  {languageStats.map((l) => (
-                    <div
-                      key={l.language}
-                      className={`${l.color} transition-all`}
-                      style={{ width: `${l.percentage}%` }}
-                    />
-                  ))}
-                </div>
-                <div className='space-y-2'>
-                  {languageStats.map((l) => (
-                    <div
-                      key={l.language}
-                      className='flex items-center justify-between text-sm'
-                    >
-                      <div className='flex items-center gap-2'>
-                        <div className={`w-2.5 h-2.5 rounded-sm ${l.color}`} />
-                        <span className='text-foreground/80'>{l.language}</span>
-                      </div>
-                      <span className='text-muted-foreground text-xs font-mono'>
-                        {l.count} ({l.percentage}%)
-                      </span>
+                {languageStats.length > 0 ? (
+                  <>
+                    <div className='flex h-3 rounded-full overflow-hidden mb-4'>
+                      {languageStats.map((l) => (
+                        <div
+                          key={l.language}
+                          className={`${l.color} transition-all`}
+                          style={{ width: `${l.percentage}%` }}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Skill Ratings */}
-            <Card className='glass-card border-border/50'>
-              <CardHeader className='pb-3'>
-                <CardTitle className='text-lg flex items-center gap-2'>
-                  <BarChart3 className='h-5 w-5 text-[hsl(var(--amber))]' />
-                  Skill Ratings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <TooltipProvider delayDuration={200}>
-                  <div className='space-y-3'>
-                    {skillRatings.map((s) => (
-                      <Tooltip key={s.skill}>
-                        <TooltipTrigger asChild>
-                          <div className='cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-surface-2 group'>
-                            <div className='flex items-center justify-between text-sm mb-1'>
-                              <span className='text-foreground/80 text-xs'>
-                                {s.skill}
-                              </span>
-                              <div className='flex items-center gap-1'>
-                                {trendIcon(s.trend)}
-                                <span className='text-xs font-mono text-muted-foreground'>
-                                  {s.rating}
-                                </span>
-                              </div>
-                            </div>
-                            <div className='h-1.5 bg-surface-3 rounded-full overflow-hidden'>
-                              <div
-                                className='h-full rounded-full bg-primary/70 transition-all duration-700 group-hover:bg-primary'
-                                style={{ width: `${s.rating}%` }}
-                              />
-                            </div>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent
-                          side='left'
-                          className='text-xs space-y-1 max-w-[200px]'
+                    <div className='space-y-2'>
+                      {languageStats.map((l) => (
+                        <div
+                          key={l.language}
+                          className='flex items-center justify-between text-sm'
                         >
-                          <p className='font-semibold'>{s.skill}</p>
-                          <p>Rating: {s.rating}/100</p>
-                          <p>
-                            Trend:{' '}
-                            {s.trend === 'up'
-                              ? '📈 Improving'
-                              : s.trend === 'down'
-                                ? '📉 Declining'
-                                : '➡️ Stable'}
-                          </p>
-                          <p className='text-muted-foreground'>
-                            {s.rating >= 70
-                              ? 'Strong skill area'
-                              : s.rating >= 50
-                                ? 'Room for improvement'
-                                : 'Focus area recommended'}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </div>
-                </TooltipProvider>
+                          <div className='flex items-center gap-2'>
+                            <div
+                              className={`w-2.5 h-2.5 rounded-sm ${l.color}`}
+                            />
+                            <span className='text-foreground/80'>
+                              {l.language}
+                            </span>
+                          </div>
+                          <span className='text-muted-foreground text-xs font-mono'>
+                            {l.count} ({l.percentage}%)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <p className='text-sm text-muted-foreground text-center py-8'>
+                    No submission data yet.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -707,7 +594,7 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ContributionGraph />
+              <ContributionGraph data={heatMapData} />
             </CardContent>
           </Card>
         </motion.div>
@@ -724,8 +611,7 @@ export default function DashboardPage() {
               <CardDescription>Your latest problem attempts</CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Header row */}
-              <div className='hidden sm:grid sm:grid-cols-[1fr_100px_80px_80px_80px_80px] gap-2 text-xs text-muted-foreground font-medium pb-2 border-b border-border/30 mb-1'>
+              <div className='hidden sm:grid sm:grid-cols-[1fr_120px_90px_80px_80px_80px] gap-2 text-xs text-muted-foreground font-medium pb-2 border-b border-border/30 mb-1'>
                 <span>Problem</span>
                 <span>Status</span>
                 <span>Language</span>
@@ -733,59 +619,65 @@ export default function DashboardPage() {
                 <span>Memory</span>
                 <span className='text-right'>When</span>
               </div>
-              <div className='divide-y divide-border/30'>
-                {recentSubmissions.map((sub, i) => (
-                  <div
-                    key={i}
-                    className='py-3 sm:grid sm:grid-cols-[1fr_100px_80px_80px_80px_80px] sm:gap-2 sm:items-center flex flex-col gap-1.5'
-                  >
-                    <div className='flex items-center gap-2.5'>
-                      <div
-                        className={`p-1 rounded-md ${sub.status === 'Accepted' ? 'bg-primary/10' : 'bg-destructive/10'}`}
-                      >
-                        {sub.status === 'Accepted' ? (
-                          <CheckCircle className='h-3.5 w-3.5 text-primary' />
-                        ) : (
-                          <Code2 className='h-3.5 w-3.5 text-destructive' />
-                        )}
-                      </div>
-                      <div>
-                        <span className='text-sm font-medium'>
-                          {sub.problem}
-                        </span>
-                        <span
-                          className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                            sub.difficulty === 'Easy'
-                              ? 'difficulty-easy'
-                              : sub.difficulty === 'Medium'
-                                ? 'difficulty-medium'
-                                : 'difficulty-hard'
-                          }`}
-                        >
-                          {sub.difficulty}
-                        </span>
-                      </div>
-                    </div>
+              {recentSubmissions.length > 0 ? (
+                <div className='divide-y divide-border/30'>
+                  {recentSubmissions.map((sub, i) => (
                     <div
-                      className={`text-xs font-medium ${sub.status === 'Accepted' ? 'text-primary' : 'text-destructive'}`}
+                      key={i}
+                      className='py-3 sm:grid sm:grid-cols-[1fr_120px_90px_80px_80px_80px] sm:gap-2 sm:items-center flex flex-col gap-1.5'
                     >
-                      {sub.status}
+                      <div className='flex items-center gap-2.5'>
+                        <div
+                          className={`p-1 rounded-md ${sub.status === 'Accepted' ? 'bg-primary/10' : 'bg-destructive/10'}`}
+                        >
+                          {sub.status === 'Accepted' ? (
+                            <CheckCircle className='h-3.5 w-3.5 text-primary' />
+                          ) : (
+                            <Code2 className='h-3.5 w-3.5 text-destructive' />
+                          )}
+                        </div>
+                        <div>
+                          <span className='text-sm font-medium'>
+                            {sub.problem}
+                          </span>
+                          <span
+                            className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                              sub.difficulty === 'Easy'
+                                ? 'difficulty-easy'
+                                : sub.difficulty === 'Medium'
+                                  ? 'difficulty-medium'
+                                  : 'difficulty-hard'
+                            }`}
+                          >
+                            {sub.difficulty}
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        className={`text-xs font-medium ${sub.status === 'Accepted' ? 'text-primary' : 'text-destructive'}`}
+                      >
+                        {sub.status}
+                      </div>
+                      <div className='text-xs text-muted-foreground'>
+                        {sub.language}
+                      </div>
+                      <div className='text-xs text-muted-foreground font-mono'>
+                        {sub.time}
+                      </div>
+                      <div className='text-xs text-muted-foreground font-mono'>
+                        {sub.memory}
+                      </div>
+                      <div className='text-xs text-muted-foreground text-right'>
+                        {sub.date}
+                      </div>
                     </div>
-                    <div className='text-xs text-muted-foreground'>
-                      {sub.language}
-                    </div>
-                    <div className='text-xs text-muted-foreground font-mono'>
-                      {sub.time}
-                    </div>
-                    <div className='text-xs text-muted-foreground font-mono'>
-                      {sub.memory}
-                    </div>
-                    <div className='text-xs text-muted-foreground text-right'>
-                      {sub.date}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className='text-sm text-muted-foreground text-center py-8'>
+                  No submissions yet. Start solving problems!
+                </p>
+              )}
             </CardContent>
           </Card>
         </motion.div>

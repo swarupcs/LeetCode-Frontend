@@ -11,32 +11,8 @@ interface ContributionDay {
   count: number;
 }
 
-function generateMockData(): ContributionDay[] {
-  const days: ContributionDay[] = [];
-  const now = new Date();
-  // Go back ~52 weeks (364 days)
-  for (let i = 363; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    // Weight recent days higher for realism
-    const recencyBoost = Math.max(0, 1 - i / 364);
-    const rand = Math.random();
-    let count = 0;
-    if (rand < 0.3 + recencyBoost * 0.2) {
-      count = 0;
-    } else if (rand < 0.6) {
-      count = Math.ceil(Math.random() * 2);
-    } else if (rand < 0.85) {
-      count = Math.ceil(Math.random() * 4 + 2);
-    } else {
-      count = Math.ceil(Math.random() * 6 + 4);
-    }
-    days.push({
-      date: date.toISOString().split('T')[0],
-      count,
-    });
-  }
-  return days;
+interface ContributionGraphProps {
+  data: ContributionDay[];
 }
 
 const CELL_SIZE = 13;
@@ -64,35 +40,58 @@ function getIntensityClass(count: number): string {
   return 'bg-primary';
 }
 
-export default function ContributionGraph() {
-  const data = useMemo(() => generateMockData(), []);
+export default function ContributionGraph({ data }: ContributionGraphProps) {
+  // Build a complete 364-day grid ending today,
+  // filling any missing dates from the API with count = 0.
+  const filledData = useMemo(() => {
+    // Build a lookup map from the API data
+    const map: Record<string, number> = {};
+    data.forEach((d) => {
+      map[d.date] = d.count;
+    });
 
-  // Group data into weeks (columns), each week has up to 7 days (rows: Sun-Sat)
+    // Generate exactly 364 days ending today (oldest → newest)
+    const days: ContributionDay[] = [];
+    const today = new Date();
+    for (let i = 363; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      days.push({ date: dateStr, count: map[dateStr] ?? 0 });
+    }
+    return days;
+  }, [data]);
+
+  // Group data into weeks (columns of 7 days, Sun-Sat)
   const weeks = useMemo(() => {
     const result: (ContributionDay | null)[][] = [];
     let currentWeek: (ContributionDay | null)[] = [];
 
-    // Pad first week with nulls for alignment
-    const firstDayOfWeek = new Date(data[0].date).getDay();
+    // Pad the first week so day 0 of data lands on the correct weekday
+    const firstDate = new Date(filledData[0].date);
+    // getDay(): 0=Sun,1=Mon,...,6=Sat
+    const firstDayOfWeek = firstDate.getDay();
     for (let i = 0; i < firstDayOfWeek; i++) {
       currentWeek.push(null);
     }
 
-    for (const day of data) {
+    for (const day of filledData) {
       currentWeek.push(day);
       if (currentWeek.length === 7) {
         result.push(currentWeek);
         currentWeek = [];
       }
     }
+    // Push the last partial week (pad with nulls at end)
     if (currentWeek.length > 0) {
+      while (currentWeek.length < 7) currentWeek.push(null);
       result.push(currentWeek);
     }
 
     return result;
-  }, [data]);
+  }, [filledData]);
 
-  // Month labels with their starting week index
+  // Compute month label positions
   const monthMarkers = useMemo(() => {
     const markers: { label: string; weekIndex: number }[] = [];
     let lastMonth = -1;
@@ -111,10 +110,8 @@ export default function ContributionGraph() {
     return markers;
   }, [weeks]);
 
-  const totalSubmissions = data.reduce((sum, d) => sum + d.count, 0);
-  const activeDays = data.filter((d) => d.count > 0).length;
-
-  const gridWidth = weeks.length * (CELL_SIZE + CELL_GAP);
+  const totalSubmissions = filledData.reduce((sum, d) => sum + d.count, 0);
+  const activeDays = filledData.filter((d) => d.count > 0).length;
 
   return (
     <div className='space-y-4'>
@@ -138,25 +135,6 @@ export default function ContributionGraph() {
       <div className='overflow-x-auto pb-2'>
         <TooltipProvider delayDuration={100}>
           <div className='inline-block'>
-            {/* Month labels */}
-            <div
-              className='flex ml-[30px] mb-1.5'
-              style={{ gap: `${CELL_GAP}px` }}
-            >
-              {monthMarkers.map((marker, i) => (
-                <div
-                  key={i}
-                  className='text-[10px] text-muted-foreground'
-                  style={{
-                    position: 'relative',
-                    left: `${marker.weekIndex * (CELL_SIZE + CELL_GAP)}px`,
-                    ...(i > 0 ? { position: 'absolute' as const } : {}),
-                  }}
-                >
-                  {/* Render via absolute positioning */}
-                </div>
-              ))}
-            </div>
             <div className='relative' style={{ paddingTop: '16px' }}>
               {/* Month labels absolutely positioned */}
               {monthMarkers.map((marker, i) => (
@@ -173,7 +151,7 @@ export default function ContributionGraph() {
               ))}
 
               <div className='flex gap-0'>
-                {/* Day labels */}
+                {/* Day-of-week labels */}
                 <div
                   className='flex flex-col justify-between mr-2 shrink-0'
                   style={{
@@ -190,7 +168,7 @@ export default function ContributionGraph() {
                   ))}
                 </div>
 
-                {/* Grid */}
+                {/* Cell grid */}
                 <div className='flex' style={{ gap: `${CELL_GAP}px` }}>
                   {weeks.map((week, weekIdx) => (
                     <div
@@ -213,14 +191,13 @@ export default function ContributionGraph() {
                                 {day.count !== 1 ? 's' : ''}
                               </span>
                               <span className='text-muted-foreground ml-1.5'>
-                                {new Date(day.date).toLocaleDateString(
-                                  'en-US',
-                                  {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                  },
-                                )}
+                                {new Date(
+                                  day.date + 'T00:00:00',
+                                ).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}
                               </span>
                             </TooltipContent>
                           </Tooltip>
@@ -231,14 +208,6 @@ export default function ContributionGraph() {
                           />
                         ),
                       )}
-                      {/* Pad remaining days in last week */}
-                      {week.length < 7 &&
-                        Array.from({ length: 7 - week.length }).map((_, i) => (
-                          <div
-                            key={`pad-${i}`}
-                            style={{ width: CELL_SIZE, height: CELL_SIZE }}
-                          />
-                        ))}
                     </div>
                   ))}
                 </div>
