@@ -1,3 +1,7 @@
+
+
+// ─── src/App.tsx ──────────────────────────────────────────────────────────────
+
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
@@ -5,6 +9,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import Index from './pages/Index';
 import Problems from './pages/Problems';
 import Login from './pages/Login';
@@ -33,7 +38,6 @@ import NotFound from './pages/NotFound';
 import { Toaster } from 'sonner';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-
 import { store, persistor } from '@/app/store';
 
 const queryClient = new QueryClient();
@@ -48,14 +52,12 @@ function AppLayout() {
       <Navbar />
       <main className='flex-1'>
         <Routes>
+          {/* ── Public routes ── */}
           <Route path='/' element={<Index />} />
           <Route path='/problems' element={<Problems />} />
           <Route path='/problem/:id' element={<ProblemDetail />} />
           <Route path='/login' element={<Login />} />
           <Route path='/signup' element={<Signup />} />
-          <Route path='/dashboard' element={<Dashboard />} />
-          <Route path='/profile' element={<Profile />} />
-          <Route path='/settings' element={<Settings />} />
           <Route path='/leaderboard' element={<Leaderboard />} />
           <Route path='/sheets' element={<Sheets />} />
           <Route path='/sheets/:id' element={<SheetDetail />} />
@@ -64,8 +66,36 @@ function AppLayout() {
           <Route path='/discussions' element={<Discussions />} />
           <Route path='/discussions/:id' element={<DiscussionDetail />} />
 
-          {/* Admin routes with shared layout */}
-          <Route path='/admin' element={<AdminLayout />}>
+          {/* ── Public with guest fallback UI (no redirect) ── */}
+          <Route path='/dashboard' element={<Dashboard />} />
+
+          {/* ── Protected: must be logged in ── */}
+          <Route
+            path='/profile'
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path='/settings'
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ── Protected: must be ADMIN ── */}
+          <Route
+            path='/admin'
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<AdminDashboard />} />
             <Route path='problems' element={<AdminProblems />} />
             <Route path='problems/create' element={<CreateProblem />} />

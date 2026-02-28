@@ -1,13 +1,7 @@
-import { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useEffect, useRef, useState } from 'react';
+import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   CheckCircle,
@@ -21,15 +15,14 @@ import {
   PieChart,
   BookOpen,
   Loader2,
-  LogIn,
-  UserPlus,
   Trophy,
   Brain,
   BarChart2,
   Layers,
   ArrowRight,
-  Star,
   Lock,
+  Activity,
+  Hash,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -45,37 +38,64 @@ import { useGetUserProgressData } from '@/hooks/user-stats/useGetUserProgressDat
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/app/store';
 
-// ─── Colour palette ────────────────────────────────────────────────────────────
-const COLOR = {
+// ─── Palette ──────────────────────────────────────────────────────────────────
+const C = {
   primary: '#22c55e',
   accent: '#a78bfa',
   emerald: '#10b981',
   amber: '#f59e0b',
   rose: '#f43f5e',
   cyan: '#06b6d4',
-  track: 'rgba(255,255,255,0.10)',
+  track: 'rgba(255,255,255,0.07)',
 } as const;
 
 const LANG_COLOR: Record<string, string> = {
-  python: COLOR.cyan,
-  javascript: COLOR.amber,
-  java: COLOR.rose,
-  'c++': COLOR.emerald,
-  typescript: COLOR.primary,
+  python: C.cyan,
+  javascript: C.amber,
+  java: C.rose,
+  'c++': C.emerald,
+  typescript: C.primary,
 };
 
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
+// ─── Animated counter ─────────────────────────────────────────────────────────
+function AnimatedNumber({
+  value,
+  suffix = '',
+}: {
+  value: number;
+  suffix?: string;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+  const motionVal = useMotionValue(0);
+  const spring = useSpring(motionVal, { stiffness: 60, damping: 18 });
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (inView) motionVal.set(value);
+  }, [inView, value, motionVal]);
+  useEffect(
+    () => spring.on('change', (v) => setDisplay(Math.round(v))),
+    [spring],
+  );
+  return (
+    <span ref={ref}>
+      {display}
+      {suffix}
+    </span>
+  );
+}
 
-// ─── ProgressBar ───────────────────────────────────────────────────────────────
-function ProgressBar({
+// ─── Glowing progress bar ─────────────────────────────────────────────────────
+function GlowBar({
   pct,
   color,
-  height = 6,
+  height = 5,
+  glow = true,
 }: {
   pct: number;
   color: string;
   height?: number;
+  glow?: boolean;
 }) {
   return (
     <div
@@ -83,495 +103,459 @@ function ProgressBar({
         width: '100%',
         height,
         borderRadius: 9999,
+        backgroundColor: C.track,
         overflow: 'hidden',
-        backgroundColor: COLOR.track,
       }}
     >
-      <div
+      <motion.div
+        initial={{ width: 0 }}
+        whileInView={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+        transition={{ duration: 1, ease: 'easeOut' }}
+        viewport={{ once: true }}
         style={{
-          width: `${Math.min(100, Math.max(0, pct))}%`,
           height: '100%',
           borderRadius: 9999,
           backgroundColor: color,
-          transition: 'width 0.75s ease-out',
+          boxShadow: glow ? `0 0 8px ${color}80` : 'none',
         }}
       />
     </div>
   );
 }
 
-// ─── StatCard ──────────────────────────────────────────────────────────────────
+// ─── Stat card ────────────────────────────────────────────────────────────────
 interface StatCardProps {
   label: string;
-  value: string | number;
+  value: number;
   icon: React.ElementType;
-  iconColor: string;
+  color: string;
   sub: string;
   progress: number;
-  barColor: string;
+  suffix?: string;
 }
 function StatCard({
   label,
   value,
   icon: Icon,
-  iconColor,
+  color,
   sub,
   progress,
-  barColor,
+  suffix = '',
 }: StatCardProps) {
   return (
-    <Card className='glass-card border-border/50 h-full'>
-      <CardContent className='p-5 flex flex-col h-full'>
-        <div className='mb-3'>
-          <div className='p-2 rounded-lg bg-surface-2 w-fit'>
-            <Icon className='h-4 w-4' style={{ color: iconColor }} />
+    <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
+      <Card className='glass-card border-border/40 h-full overflow-hidden relative'>
+        <div
+          className='absolute top-0 left-0 right-0 h-[2px]'
+          style={{
+            backgroundColor: color,
+            opacity: 0.7,
+            boxShadow: `0 0 10px ${color}`,
+          }}
+        />
+        <CardContent className='p-4 flex flex-col gap-2'>
+          <div className='flex items-center justify-between'>
+            <div
+              className='p-1.5 rounded-md'
+              style={{
+                backgroundColor: `${color}18`,
+                border: `1px solid ${color}30`,
+              }}
+            >
+              <Icon className='h-3.5 w-3.5' style={{ color }} />
+            </div>
+            <span className='text-[10px] text-muted-foreground font-mono'>
+              {sub}
+            </span>
           </div>
-        </div>
-        <div className='text-2xl font-bold'>{value}</div>
-        <div className='text-xs text-muted-foreground mt-0.5'>{label}</div>
-        <div className='text-[10px] text-muted-foreground/70 mt-1'>{sub}</div>
-        <div className='mt-auto pt-3 space-y-1'>
-          <ProgressBar pct={progress} color={barColor} height={6} />
-          <div className='text-[10px] text-muted-foreground/60 text-right'>
-            {Math.round(Math.min(100, Math.max(0, progress)))}%
+          <div className='text-2xl font-black tabular-nums' style={{ color }}>
+            <AnimatedNumber value={value} suffix={suffix} />
           </div>
-        </div>
-      </CardContent>
-    </Card>
+          <div className='text-[11px] text-muted-foreground'>{label}</div>
+          <GlowBar pct={progress} color={color} height={3} />
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
-// ─── Guest Dashboard ───────────────────────────────────────────────────────────
+// ─── Section heading ──────────────────────────────────────────────────────────
+function SectionHeading({
+  icon: Icon,
+  title,
+  sub,
+  color = C.primary,
+}: {
+  icon: React.ElementType;
+  title: string;
+  sub?: string;
+  color?: string;
+}) {
+  return (
+    <div className='flex items-center gap-3 mb-5'>
+      <div
+        className='p-2 rounded-xl'
+        style={{
+          backgroundColor: `${color}15`,
+          border: `1px solid ${color}25`,
+        }}
+      >
+        <Icon className='h-4 w-4' style={{ color }} />
+      </div>
+      <div>
+        <h2 className='text-sm font-bold'>{title}</h2>
+        {sub && <p className='text-[11px] text-muted-foreground'>{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Guest Dashboard ──────────────────────────────────────────────────────────
 function GuestDashboard() {
   const features = [
     {
       icon: BarChart2,
-      color: COLOR.primary,
-      title: 'Track Your Progress',
-      desc: 'Visualise solved problems, streaks, and acceptance rates across difficulty levels.',
+      color: C.primary,
+      title: 'Live Progress Tracking',
+      desc: 'Difficulty breakdowns, acceptance rates, and streaks mapped in real time.',
     },
     {
       icon: Brain,
-      color: COLOR.accent,
-      title: 'Topic Mastery',
-      desc: 'See exactly how strong you are in Arrays, Trees, DP, Graphs and more.',
+      color: C.accent,
+      title: 'Topic Mastery Radar',
+      desc: 'Pinpoint weak spots across Arrays, DP, Graphs, Trees and 20+ categories.',
     },
     {
       icon: Flame,
-      color: COLOR.amber,
-      title: 'Daily Streaks',
-      desc: 'Build consistent habits with streak tracking and a GitHub-style heatmap.',
+      color: C.amber,
+      title: 'Streak Engine',
+      desc: 'Daily streak counter with a GitHub-style heatmap to build consistency.',
     },
     {
       icon: Trophy,
-      color: COLOR.rose,
-      title: 'Leaderboards & Badges',
-      desc: 'Compete with peers and earn badges as you hit milestones.',
+      color: C.rose,
+      title: 'Badges & Leaderboard',
+      desc: 'Earn milestone badges and climb the global leaderboard.',
     },
     {
       icon: Layers,
-      color: COLOR.cyan,
+      color: C.cyan,
       title: 'Language Breakdown',
-      desc: 'Analyse which languages you use most across all your submissions.',
+      desc: 'Python vs JS vs Java split across all your submissions.',
     },
     {
-      icon: Calendar,
-      color: COLOR.emerald,
-      title: 'Activity Heatmap',
-      desc: 'A full year of coding activity in one glance — just like GitHub.',
+      icon: Activity,
+      color: C.emerald,
+      title: 'Submission Analytics',
+      desc: 'Runtime percentiles, memory usage, and trend lines per problem.',
     },
   ];
 
-  const mockWeekly = [
-    { day: 'Mon', h: 60 },
-    { day: 'Tue', h: 90 },
-    { day: 'Wed', h: 40 },
-    { day: 'Thu', h: 100 },
-    { day: 'Fri', h: 75 },
-    { day: 'Sat', h: 55 },
-    { day: 'Sun', h: 30 },
-  ];
-
-  const mockDifficulty = [
-    { level: 'Easy', pct: 72, color: COLOR.emerald },
-    { level: 'Medium', pct: 45, color: COLOR.amber },
-    { level: 'Hard', pct: 18, color: COLOR.rose },
+  const mockBars = [45, 80, 30, 95, 60, 75, 20];
+  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const mockStats = [
+    { label: 'Solved', val: 247, color: C.primary, pct: 62 },
+    { label: 'Streak', val: 23, color: C.amber, pct: 77 },
+    { label: 'Accept', val: 81, color: C.emerald, pct: 81 },
+    { label: 'Hard', val: 34, color: C.rose, pct: 34 },
   ];
 
   return (
-    <div className='min-h-screen'>
-      <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Hero */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className='mb-12 text-center'
-        >
-          <div className='inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/5 text-primary text-xs font-medium mb-4'>
-            <Star className='h-3 w-3' />
-            Your personal coding command centre
-          </div>
-          <h1 className='text-4xl sm:text-5xl font-bold mb-4 leading-tight'>
-            Unlock Your <span className='gradient-text'>Full Dashboard</span>
-          </h1>
-          <p className='text-muted-foreground text-base sm:text-lg max-w-xl mx-auto mb-8'>
-            Sign in to track every submission, streak, and skill gap — all in
-            one place.
-          </p>
-          <div className='flex flex-col sm:flex-row items-center justify-center gap-3'>
-            <Link to='/login'>
-              <Button
-                size='lg'
-                className='bg-primary hover:bg-primary/90 text-primary-foreground gap-2 px-6'
+    <div className='min-h-screen relative overflow-hidden'>
+      {/* Ambient blobs */}
+      <div className='pointer-events-none absolute inset-0 overflow-hidden'>
+        <div
+          className='absolute -top-60 -left-60 w-[700px] h-[700px] rounded-full opacity-[0.05]'
+          style={{
+            background: `radial-gradient(circle, ${C.primary}, transparent 70%)`,
+          }}
+        />
+        <div
+          className='absolute top-1/2 -right-60 w-[500px] h-[500px] rounded-full opacity-[0.04]'
+          style={{
+            background: `radial-gradient(circle, ${C.accent}, transparent 70%)`,
+          }}
+        />
+        {/* Dot grid */}
+        <div
+          className='absolute inset-0 opacity-[0.03]'
+          style={{
+            backgroundImage: `radial-gradient(circle, ${C.primary} 1px, transparent 1px)`,
+            backgroundSize: '40px 40px',
+          }}
+        />
+      </div>
+
+      <div className='relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14'>
+        {/* ── Hero split layout ─────────────────────────────────────────── */}
+        <div className='grid lg:grid-cols-2 gap-14 items-center mb-24'>
+          {/* Left: copy */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.55 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className='inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-mono mb-7'
+              style={{
+                borderColor: `${C.primary}40`,
+                backgroundColor: `${C.primary}08`,
+                color: C.primary,
+              }}
+            >
+              <span
+                className='w-1.5 h-1.5 rounded-full animate-pulse'
+                style={{ backgroundColor: C.primary }}
+              />
+              DASHBOARD LOCKED — SIGN IN TO ACCESS
+            </motion.div>
+
+            <h1 className='text-5xl sm:text-6xl font-black leading-[1.05] tracking-tight mb-5'>
+              Your coding
+              <br />
+              <span
+                style={{
+                  background: `linear-gradient(130deg, ${C.primary} 0%, ${C.cyan} 50%, ${C.accent} 100%)`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
               >
-                <LogIn className='h-4 w-4' />
-                Sign In
-              </Button>
-            </Link>
+                command room.
+              </span>
+            </h1>
+
+            <p className='text-muted-foreground leading-relaxed mb-9 max-w-md'>
+              Every rep tracked. Every weak spot exposed. Every streak
+              celebrated. Sign in and see your real numbers.
+            </p>
+          </motion.div>
+
+          {/* Right: blurred preview */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.55, delay: 0.15 }}
+            className='relative'
+          >
+            {/* Lock overlay */}
+            <div
+              className='absolute inset-0 z-20 rounded-2xl flex flex-col items-center justify-center'
+              style={{
+                background: 'rgba(0,0,0,0.45)',
+                backdropFilter: 'blur(3px)',
+                border: '1px solid rgba(255,255,255,0.07)',
+              }}
+            >
+              <motion.div
+                animate={{ scale: [1, 1.06, 1] }}
+                transition={{ duration: 2.8, repeat: Infinity }}
+                className='p-4 rounded-2xl mb-3'
+                style={{
+                  backgroundColor: `${C.primary}15`,
+                  border: `1px solid ${C.primary}35`,
+                  boxShadow: `0 0 32px ${C.primary}25`,
+                }}
+              >
+                <Lock className='h-7 w-7' style={{ color: C.primary }} />
+              </motion.div>
+              <p className='text-sm font-bold'>Sign in to unlock live stats</p>
+              <p className='text-xs text-muted-foreground mt-1'>
+                Your real numbers are waiting
+              </p>
+            </div>
+
+            {/* Blurred mock */}
+            <div
+              className='blur-sm opacity-50 pointer-events-none select-none rounded-2xl p-5 border border-border/15'
+              style={{ background: 'rgba(255,255,255,0.02)' }}
+            >
+              <div className='grid grid-cols-2 gap-3 mb-4'>
+                {mockStats.map((s, i) => (
+                  <div
+                    key={i}
+                    className='rounded-xl p-3'
+                    style={{
+                      backgroundColor: `${s.color}10`,
+                      border: `1px solid ${s.color}20`,
+                    }}
+                  >
+                    <div
+                      className='text-2xl font-black'
+                      style={{ color: s.color }}
+                    >
+                      {s.val}
+                    </div>
+                    <div className='text-[10px] text-muted-foreground mb-2'>
+                      {s.label}
+                    </div>
+                    <div
+                      className='h-1 rounded-full overflow-hidden'
+                      style={{ backgroundColor: C.track }}
+                    >
+                      <div
+                        className='h-full rounded-full'
+                        style={{ width: `${s.pct}%`, backgroundColor: s.color }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div
+                className='rounded-xl p-4'
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <div className='text-[10px] text-muted-foreground font-mono mb-3 uppercase tracking-widest'>
+                  Weekly Activity
+                </div>
+                <div className='flex items-end gap-2 h-24'>
+                  {mockBars.map((h, i) => (
+                    <div
+                      key={i}
+                      className='flex-1 flex flex-col items-center gap-1.5'
+                    >
+                      <div
+                        className='w-full rounded-t'
+                        style={{
+                          height: `${h}%`,
+                          backgroundColor: C.primary,
+                          opacity: 0.65,
+                        }}
+                      />
+                      <span className='text-[9px] text-muted-foreground font-mono'>
+                        {days[i]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* ── Feature grid ─────────────────────────────────────────────────── */}
+        <div className='mb-20'>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className='text-center mb-10'
+          >
+            <h2 className='text-2xl font-black mb-2'>
+              Six tools. One dashboard.
+            </h2>
+            <p className='text-muted-foreground text-sm'>
+              Everything you need to go from random grinding to deliberate
+              growth.
+            </p>
+          </motion.div>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+            {features.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.07 }}
+                whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              >
+                <div
+                  className='h-full rounded-xl p-5 border cursor-default transition-all duration-300'
+                  style={{
+                    borderColor: 'rgba(255,255,255,0.06)',
+                    background: 'rgba(255,255,255,0.02)',
+                  }}
+                  onMouseEnter={(e) => {
+                    const el = e.currentTarget as HTMLDivElement;
+                    el.style.borderColor = `${f.color}30`;
+                    el.style.background = `${f.color}06`;
+                  }}
+                  onMouseLeave={(e) => {
+                    const el = e.currentTarget as HTMLDivElement;
+                    el.style.borderColor = 'rgba(255,255,255,0.06)';
+                    el.style.background = 'rgba(255,255,255,0.02)';
+                  }}
+                >
+                  <div className='flex gap-4 items-start'>
+                    <div
+                      className='p-2.5 rounded-xl shrink-0 mt-0.5'
+                      style={{
+                        backgroundColor: `${f.color}15`,
+                        border: `1px solid ${f.color}25`,
+                      }}
+                    >
+                      <f.icon className='h-5 w-5' style={{ color: f.color }} />
+                    </div>
+                    <div>
+                      <h3 className='text-sm font-bold mb-1.5'>{f.title}</h3>
+                      <p className='text-xs text-muted-foreground leading-relaxed'>
+                        {f.desc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Bottom CTA ────────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className='relative rounded-2xl overflow-hidden p-12 text-center'
+          style={{
+            border: `1px solid ${C.primary}25`,
+            background: `linear-gradient(135deg, ${C.primary}08, ${C.accent}05, ${C.cyan}05)`,
+          }}
+        >
+          <div
+            className='absolute inset-0 pointer-events-none'
+            style={{
+              background: `radial-gradient(ellipse at 50% 0%, ${C.primary}14, transparent 65%)`,
+            }}
+          />
+          <div className='relative'>
+            <div className='text-5xl mb-5'>🏆</div>
+            <h2 className='text-3xl font-black mb-3'>Ready to dominate?</h2>
+            <p className='text-muted-foreground mb-8 max-w-sm mx-auto'>
+              Join engineers who track every rep, celebrate every streak, and
+              crush every weak spot.
+            </p>
             <Link to='/signup'>
               <Button
                 size='lg'
-                variant='outline'
-                className='border-border/60 gap-2 px-6'
+                className='gap-2 font-black px-12 text-base'
+                style={{
+                  background: `linear-gradient(135deg, ${C.primary}, ${C.emerald})`,
+                  color: '#000',
+                  border: 'none',
+                  boxShadow: `0 0 40px ${C.primary}55`,
+                }}
               >
-                <UserPlus className='h-4 w-4' />
-                Create Account
+                Get Started Free <ArrowRight className='h-5 w-5' />
               </Button>
             </Link>
           </div>
-        </motion.div>
-
-        {/* Preview (blurred mock) */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className='relative mb-16'
-        >
-          {/* Overlay */}
-          <div className='absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-background/60 backdrop-blur-sm border border-border/30'>
-            <div className='p-3 rounded-full bg-surface-2 border border-border/40 mb-3'>
-              <Lock className='h-6 w-6 text-muted-foreground' />
-            </div>
-            <p className='text-sm font-medium text-muted-foreground'>
-              Sign in to view your live stats
-            </p>
-          </div>
-
-          {/* Blurred mock content */}
-          <div className='pointer-events-none select-none blur-sm opacity-60'>
-            <div className='grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6'>
-              {[
-                {
-                  label: 'Problems Solved',
-                  value: '—',
-                  icon: CheckCircle,
-                  iconColor: COLOR.primary,
-                  progress: 55,
-                  barColor: COLOR.primary,
-                },
-                {
-                  label: 'Current Streak',
-                  value: '—d',
-                  icon: Flame,
-                  iconColor: COLOR.amber,
-                  progress: 70,
-                  barColor: COLOR.amber,
-                },
-                {
-                  label: 'Max Streak',
-                  value: '—d',
-                  icon: Award,
-                  iconColor: COLOR.accent,
-                  progress: 100,
-                  barColor: COLOR.accent,
-                },
-                {
-                  label: 'Acceptance Rate',
-                  value: '—%',
-                  icon: Target,
-                  iconColor: COLOR.emerald,
-                  progress: 65,
-                  barColor: COLOR.emerald,
-                },
-                {
-                  label: 'Easy Solved',
-                  value: '—',
-                  icon: TrendingUp,
-                  iconColor: COLOR.emerald,
-                  progress: 72,
-                  barColor: COLOR.emerald,
-                },
-                {
-                  label: 'Hard Solved',
-                  value: '—',
-                  icon: Zap,
-                  iconColor: COLOR.rose,
-                  progress: 18,
-                  barColor: COLOR.rose,
-                },
-              ].map((c, i) => (
-                <StatCard key={i} sub='' {...c} />
-              ))}
-            </div>
-
-            <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-              {/* Ring + bars */}
-              <Card className='glass-card border-border/50'>
-                <CardHeader>
-                  <CardTitle className='text-lg'>Overall Progress</CardTitle>
-                </CardHeader>
-                <CardContent className='flex flex-col items-center'>
-                  <div className='relative w-32 h-32 mb-5'>
-                    <svg className='w-32 h-32 -rotate-90' viewBox='0 0 144 144'>
-                      <circle
-                        cx='72'
-                        cy='72'
-                        r='58'
-                        stroke='rgba(255,255,255,0.1)'
-                        strokeWidth='10'
-                        fill='transparent'
-                      />
-                      <circle
-                        cx='72'
-                        cy='72'
-                        r='58'
-                        stroke={COLOR.primary}
-                        strokeWidth='10'
-                        fill='transparent'
-                        strokeDasharray='210 364'
-                        strokeLinecap='round'
-                      />
-                    </svg>
-                    <div className='absolute inset-0 flex flex-col items-center justify-center'>
-                      <span className='text-2xl font-bold'>58%</span>
-                    </div>
-                  </div>
-                  <div className='w-full space-y-3'>
-                    {mockDifficulty.map((d) => (
-                      <div key={d.level}>
-                        <div className='flex justify-between text-sm mb-1.5'>
-                          <span
-                            className='font-medium'
-                            style={{ color: d.color }}
-                          >
-                            {d.level}
-                          </span>
-                          <span className='text-muted-foreground'>—/—</span>
-                        </div>
-                        <ProgressBar pct={d.pct} color={d.color} height={8} />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Weekly bars */}
-              <Card className='glass-card border-border/50 lg:col-span-2'>
-                <CardHeader>
-                  <CardTitle className='text-lg'>Activity Overview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='flex items-end justify-between gap-2 h-[160px] mb-4'>
-                    {mockWeekly.map((d, i) => (
-                      <div
-                        key={i}
-                        className='flex-1 flex flex-col items-center gap-2'
-                      >
-                        <div
-                          className='w-full max-w-[40px] rounded-t-md'
-                          style={{
-                            height: `${d.h}px`,
-                            backgroundColor: COLOR.primary,
-                            opacity: 0.6,
-                          }}
-                        />
-                        <span className='text-xs text-muted-foreground'>
-                          {d.day}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Feature grid */}
-        <motion.div
-          variants={stagger}
-          initial='hidden'
-          animate='show'
-          className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-12'
-        >
-          {features.map((f, i) => (
-            <motion.div key={i} variants={fadeUp}>
-              <Card className='glass-card border-border/50 hover:border-primary/20 transition-all duration-300 h-full'>
-                <CardContent className='p-5 flex gap-4 items-start'>
-                  <div className='p-2.5 rounded-xl bg-surface-2 border border-border/40 shrink-0 mt-0.5'>
-                    <f.icon className='h-5 w-5' style={{ color: f.color }} />
-                  </div>
-                  <div>
-                    <h3 className='text-sm font-semibold mb-1'>{f.title}</h3>
-                    <p className='text-xs text-muted-foreground leading-relaxed'>
-                      {f.desc}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className='glass-card glow-border p-8 rounded-2xl text-center'
-        >
-          <h2 className='text-2xl font-bold mb-2'>Ready to level up?</h2>
-          <p className='text-muted-foreground text-sm mb-6 max-w-md mx-auto'>
-            Join thousands of engineers who use AlgoDrill to track their
-            progress and land their dream job.
-          </p>
-          <Link to='/signup'>
-            <Button
-              size='lg'
-              className='bg-primary hover:bg-primary/90 text-primary-foreground gap-2 px-8'
-            >
-              Get Started Free
-              <ArrowRight className='h-4 w-4' />
-            </Button>
-          </Link>
         </motion.div>
       </div>
     </div>
   );
 }
 
-// ─── Authenticated Dashboard ───────────────────────────────────────────────────
+// ─── Authenticated Dashboard ──────────────────────────────────────────────────
 function AuthenticatedDashboard() {
-  const { heatMapData, isLoading: isHeatMapLoading } = useGetUserHeatMapData();
-  const { solvedStats, isLoading: isSolvedLoading } = useGetUserSolvedStats();
-  const { progressData, isLoading: isProgressLoading } =
-    useGetUserProgressData();
-  const isLoading = isHeatMapLoading || isSolvedLoading || isProgressLoading;
+  const { heatMapData, isLoading: l1 } = useGetUserHeatMapData();
+  const { solvedStats, isLoading: l2 } = useGetUserSolvedStats();
+  const { progressData, isLoading: l3 } = useGetUserProgressData();
 
-  const easySolved = solvedStats?.difficultyStats.EASY ?? 0;
-  const mediumSolved = solvedStats?.difficultyStats.MEDIUM ?? 0;
-  const hardSolved = solvedStats?.difficultyStats.HARD ?? 0;
-  const easyTotal = solvedStats?.totalDifficultyCounts.EASY ?? 0;
-  const mediumTotal = solvedStats?.totalDifficultyCounts.MEDIUM ?? 0;
-  const hardTotal = solvedStats?.totalDifficultyCounts.HARD ?? 0;
-  const totalSolved = easySolved + mediumSolved + hardSolved;
-  const totalAvailable = easyTotal + mediumTotal + hardTotal;
-  const currentStreak = solvedStats?.currentStreak ?? 0;
-  const maxStreak = solvedStats?.maxStreak ?? 0;
-  const totalSubmissions = solvedStats?.totalSubmissions ?? 0;
-  const acceptanceRate = solvedStats?.acceptanceRate ?? 0;
-
-  const statCards: StatCardProps[] = useMemo(
-    () => [
-      {
-        label: 'Problems Solved',
-        value: totalSolved,
-        icon: CheckCircle,
-        iconColor: COLOR.primary,
-        sub: `of ${totalAvailable}`,
-        progress: totalAvailable > 0 ? (totalSolved / totalAvailable) * 100 : 0,
-        barColor: COLOR.primary,
-      },
-      {
-        label: 'Current Streak',
-        value: `${currentStreak}d`,
-        icon: Flame,
-        iconColor: COLOR.amber,
-        sub: 'Keep going!',
-        progress: maxStreak > 0 ? (currentStreak / maxStreak) * 100 : 0,
-        barColor: COLOR.amber,
-      },
-      {
-        label: 'Max Streak',
-        value: `${maxStreak}d`,
-        icon: Award,
-        iconColor: COLOR.accent,
-        sub: 'Personal best',
-        progress: maxStreak > 0 ? 100 : 0,
-        barColor: COLOR.accent,
-      },
-      {
-        label: 'Acceptance Rate',
-        value: `${acceptanceRate}%`,
-        icon: Target,
-        iconColor: COLOR.emerald,
-        sub: `${totalSubmissions} submissions`,
-        progress: acceptanceRate,
-        barColor:
-          acceptanceRate >= 70
-            ? COLOR.emerald
-            : acceptanceRate >= 40
-              ? COLOR.amber
-              : COLOR.rose,
-      },
-      {
-        label: 'Easy Solved',
-        value: easySolved,
-        icon: TrendingUp,
-        iconColor: COLOR.emerald,
-        sub: `of ${easyTotal}`,
-        progress: easyTotal > 0 ? (easySolved / easyTotal) * 100 : 0,
-        barColor: COLOR.emerald,
-      },
-      {
-        label: 'Hard Solved',
-        value: hardSolved,
-        icon: Zap,
-        iconColor: COLOR.rose,
-        sub: `of ${hardTotal}`,
-        progress: hardTotal > 0 ? (hardSolved / hardTotal) * 100 : 0,
-        barColor: COLOR.rose,
-      },
-    ],
-    [
-      totalSolved,
-      totalAvailable,
-      currentStreak,
-      maxStreak,
-      acceptanceRate,
-      totalSubmissions,
-      easySolved,
-      easyTotal,
-      hardSolved,
-      hardTotal,
-    ],
-  );
-
-  const difficultyData = useMemo(
-    () => [
-      {
-        level: 'Easy',
-        solved: easySolved,
-        total: easyTotal,
-        color: COLOR.emerald,
-      },
-      {
-        level: 'Medium',
-        solved: mediumSolved,
-        total: mediumTotal,
-        color: COLOR.amber,
-      },
-      {
-        level: 'Hard',
-        solved: hardSolved,
-        total: hardTotal,
-        color: COLOR.rose,
-      },
-    ],
-    [easySolved, mediumSolved, hardSolved, easyTotal, mediumTotal, hardTotal],
-  );
+  const weeklyData = progressData?.weeklyData ?? [];
 
   const topicProgress = useMemo(() => {
     if (!solvedStats) return [];
@@ -583,14 +567,6 @@ function AuthenticatedDashboard() {
       })
       .sort((a, b) => b.pct - a.pct);
   }, [solvedStats]);
-
-  const weeklyData = progressData?.weeklyData ?? [];
-  const monthlyTrend = progressData?.monthlyTrend ?? [];
-  const recentSubmissions = progressData?.recentSubmissions ?? [];
-  const languageStats = (progressData?.languageStats ?? []).map((l) => ({
-    ...l,
-    color: LANG_COLOR[l.language.toLowerCase()] ?? COLOR.primary,
-  }));
 
   const weeklyStats = useMemo(() => {
     if (!weeklyData.length)
@@ -604,84 +580,227 @@ function AuthenticatedDashboard() {
     };
   }, [weeklyData]);
 
-  if (isLoading) {
+  if (l1 || l2 || l3)
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+        <div className='flex flex-col items-center gap-3'>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+          >
+            <Loader2 className='h-8 w-8' style={{ color: C.primary }} />
+          </motion.div>
+          <p className='text-xs text-muted-foreground font-mono tracking-wider'>
+            LOADING STATS…
+          </p>
+        </div>
       </div>
     );
-  }
+
+  const easySolved = solvedStats?.difficultyStats.EASY ?? 0;
+  const mediumSolved = solvedStats?.difficultyStats.MEDIUM ?? 0;
+  const hardSolved = solvedStats?.difficultyStats.HARD ?? 0;
+  const easyTotal = solvedStats?.totalDifficultyCounts.EASY ?? 0;
+  const mediumTotal = solvedStats?.totalDifficultyCounts.MEDIUM ?? 0;
+  const hardTotal = solvedStats?.totalDifficultyCounts.HARD ?? 0;
+  const totalSolved = easySolved + mediumSolved + hardSolved;
+  const totalAvailable = easyTotal + mediumTotal + hardTotal;
+  const currentStreak = solvedStats?.currentStreak ?? 0;
+  const maxStreak = solvedStats?.maxStreak ?? 0;
+  const totalSubs = solvedStats?.totalSubmissions ?? 0;
+  const acceptRate = solvedStats?.acceptanceRate ?? 0;
+  const overallPct =
+    totalAvailable > 0 ? Math.round((totalSolved / totalAvailable) * 100) : 0;
+  const circumference = 2 * Math.PI * 65;
+
+  const statCards = [
+    {
+      label: 'Problems Solved',
+      value: totalSolved,
+      color: C.primary,
+      icon: CheckCircle,
+      sub: `of ${totalAvailable}`,
+      progress: totalAvailable > 0 ? (totalSolved / totalAvailable) * 100 : 0,
+    },
+    {
+      label: 'Current Streak',
+      value: currentStreak,
+      color: C.amber,
+      icon: Flame,
+      sub: 'days active',
+      progress: maxStreak > 0 ? (currentStreak / maxStreak) * 100 : 0,
+      suffix: 'd',
+    },
+    {
+      label: 'Max Streak',
+      value: maxStreak,
+      color: C.accent,
+      icon: Award,
+      sub: 'personal best',
+      progress: 100,
+      suffix: 'd',
+    },
+    {
+      label: 'Acceptance Rate',
+      value: acceptRate,
+      color: C.emerald,
+      icon: Target,
+      sub: `${totalSubs} submissions`,
+      progress: acceptRate,
+      suffix: '%',
+    },
+    {
+      label: 'Easy Solved',
+      value: easySolved,
+      color: C.emerald,
+      icon: TrendingUp,
+      sub: `of ${easyTotal}`,
+      progress: easyTotal > 0 ? (easySolved / easyTotal) * 100 : 0,
+    },
+    {
+      label: 'Hard Solved',
+      value: hardSolved,
+      color: C.rose,
+      icon: Zap,
+      sub: `of ${hardTotal}`,
+      progress: hardTotal > 0 ? (hardSolved / hardTotal) * 100 : 0,
+    },
+  ];
+
+  const difficultyData = [
+    { level: 'Easy', solved: easySolved, total: easyTotal, color: C.emerald },
+    {
+      level: 'Medium',
+      solved: mediumSolved,
+      total: mediumTotal,
+      color: C.amber,
+    },
+    { level: 'Hard', solved: hardSolved, total: hardTotal, color: C.rose },
+  ];
+
+  const monthlyTrend = progressData?.monthlyTrend ?? [];
+  const recentSubmissions = progressData?.recentSubmissions ?? [];
+  const languageStats = (progressData?.languageStats ?? []).map((l) => ({
+    ...l,
+    color: LANG_COLOR[l.language.toLowerCase()] ?? C.primary,
+  }));
 
   return (
-    <div className='min-h-screen'>
-      <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
+    <div className='min-h-screen relative'>
+      {/* Top ambient glow */}
+      <div
+        className='pointer-events-none absolute top-0 left-0 right-0 h-80 opacity-[0.04]'
+        style={{
+          background: `radial-gradient(ellipse at 50% -20%, ${C.primary}, transparent 70%)`,
+        }}
+      />
+      {/* Dot grid */}
+      <div
+        className='pointer-events-none absolute inset-0 opacity-[0.02]'
+        style={{
+          backgroundImage: `radial-gradient(circle, ${C.primary} 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
+        }}
+      />
+
+      <div className='relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className='mb-8'
+          className='flex items-end justify-between mb-8'
         >
-          <h1 className='text-3xl font-bold mb-2'>Dashboard</h1>
-          <p className='text-muted-foreground'>
-            Track your progress and stay consistent
-          </p>
+          <div>
+            <div className='flex items-center gap-2 mb-1'>
+              <span
+                className='w-2 h-2 rounded-full animate-pulse'
+                style={{
+                  backgroundColor: C.primary,
+                  boxShadow: `0 0 6px ${C.primary}`,
+                }}
+              />
+              <span className='text-[10px] text-muted-foreground font-mono uppercase tracking-[0.2em]'>
+                Live Dashboard
+              </span>
+            </div>
+            <h1 className='text-4xl font-black tracking-tight'>
+              Command Centre
+            </h1>
+          </div>
+          <div className='hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground font-mono'>
+            <Hash className='h-3 w-3' />
+            {totalSubs.toLocaleString()} submissions
+          </div>
         </motion.div>
 
-        {/* Stat Cards */}
-        <motion.div
-          variants={stagger}
-          initial='hidden'
-          animate='show'
-          className='grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8'
-        >
-          {statCards.map((card, i) => (
-            <motion.div key={i} variants={fadeUp}>
-              <StatCard {...card} />
+        {/* ── Stat cards ─────────────────────────────────────────────────── */}
+        <div className='grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6'>
+          {statCards.map((c, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07 }}
+            >
+              <StatCard {...c} />
             </motion.div>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Overall Progress + Activity */}
-        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8'>
+        {/* ── Row 1: Ring + Activity ──────────────────────────────────────── */}
+        <div className='grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5'>
+          {/* Ring card */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className='lg:col-span-2'
           >
-            <Card className='glass-card border-border/50 h-full'>
-              <CardHeader>
-                <CardTitle className='text-lg'>Overall Progress</CardTitle>
-              </CardHeader>
-              <CardContent className='flex flex-col items-center'>
-                <div className='relative w-36 h-36 mb-5'>
-                  <svg className='w-36 h-36 -rotate-90' viewBox='0 0 160 160'>
+            <Card className='glass-card border-border/40 h-full'>
+              <CardContent className='p-6 flex flex-col items-center'>
+                <SectionHeading
+                  icon={Target}
+                  title='Overall Progress'
+                  sub='All difficulties combined'
+                />
+                <div className='relative w-44 h-44 mb-6'>
+                  <svg className='w-44 h-44 -rotate-90' viewBox='0 0 160 160'>
                     <circle
                       cx='80'
                       cy='80'
                       r='65'
-                      stroke='rgba(255,255,255,0.1)'
+                      stroke='rgba(255,255,255,0.06)'
                       strokeWidth='10'
                       fill='transparent'
                     />
-                    <circle
+                    <motion.circle
                       cx='80'
                       cy='80'
                       r='65'
-                      stroke={COLOR.primary}
+                      stroke={C.primary}
                       strokeWidth='10'
                       fill='transparent'
-                      strokeDasharray={`${totalAvailable > 0 ? (totalSolved / totalAvailable) * 408.4 : 0} 408.4`}
                       strokeLinecap='round'
-                      style={{ transition: 'stroke-dasharray 1s ease-out' }}
+                      initial={{ strokeDasharray: `0 ${circumference}` }}
+                      animate={{
+                        strokeDasharray: `${(overallPct / 100) * circumference} ${circumference}`,
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        ease: 'easeOut',
+                        delay: 0.3,
+                      }}
+                      style={{ filter: `drop-shadow(0 0 8px ${C.primary}90)` }}
                     />
                   </svg>
                   <div className='absolute inset-0 flex flex-col items-center justify-center'>
-                    <span className='text-3xl font-bold'>
-                      {totalAvailable > 0
-                        ? Math.round((totalSolved / totalAvailable) * 100)
-                        : 0}
-                      %
+                    <span
+                      className='text-4xl font-black'
+                      style={{ color: C.primary }}
+                    >
+                      <AnimatedNumber value={overallPct} suffix='%' />
                     </span>
-                    <span className='text-xs text-muted-foreground'>
+                    <span className='text-xs text-muted-foreground font-mono'>
                       {totalSolved}/{totalAvailable}
                     </span>
                   </div>
@@ -689,21 +808,18 @@ function AuthenticatedDashboard() {
                 <div className='w-full space-y-3'>
                   {difficultyData.map((d) => (
                     <div key={d.level}>
-                      <div className='flex justify-between text-sm mb-1.5'>
-                        <span
-                          className='font-medium'
-                          style={{ color: d.color }}
-                        >
+                      <div className='flex justify-between text-xs mb-1.5'>
+                        <span className='font-bold' style={{ color: d.color }}>
                           {d.level}
                         </span>
-                        <span className='text-muted-foreground'>
+                        <span className='text-muted-foreground font-mono tabular-nums'>
                           {d.solved}/{d.total}
                         </span>
                       </div>
-                      <ProgressBar
+                      <GlowBar
                         pct={d.total > 0 ? (d.solved / d.total) * 100 : 0}
                         color={d.color}
-                        height={8}
+                        height={6}
                       />
                     </div>
                   ))}
@@ -712,155 +828,180 @@ function AuthenticatedDashboard() {
             </Card>
           </motion.div>
 
+          {/* Activity */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className='lg:col-span-2'
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.25 }}
+            className='lg:col-span-3'
           >
-            <Card className='glass-card border-border/50 h-full'>
-              <CardHeader>
-                <CardTitle className='text-lg'>Activity Overview</CardTitle>
-                <CardDescription>Submissions & progress trends</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue='weekly' className='w-full'>
-                  <TabsList className='mb-4'>
-                    <TabsTrigger value='weekly'>This Week</TabsTrigger>
-                    <TabsTrigger value='monthly'>Monthly</TabsTrigger>
+            <Card className='glass-card border-border/40 h-full'>
+              <CardContent className='p-6 h-full flex flex-col'>
+                <SectionHeading
+                  icon={Activity}
+                  title='Activity Overview'
+                  sub='Submissions & trends'
+                />
+                <Tabs defaultValue='weekly' className='flex-1 flex flex-col'>
+                  <TabsList className='bg-surface-2/50 border border-border/30 mb-5 w-fit'>
+                    <TabsTrigger
+                      value='weekly'
+                      className='text-xs data-[state=active]:text-primary'
+                    >
+                      This Week
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value='monthly'
+                      className='text-xs data-[state=active]:text-primary'
+                    >
+                      Monthly
+                    </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value='weekly'>
+                  <TabsContent
+                    value='weekly'
+                    className='flex-1 flex flex-col m-0'
+                  >
                     {weeklyData.length > 0 ? (
                       <>
-                        <div className='flex items-end justify-between gap-2 h-[180px] mb-4'>
+                        <div className='flex items-end justify-between gap-2 h-[140px] mb-5'>
                           {weeklyData.map((day, i) => {
-                            const maxCount = Math.max(
+                            const maxC = Math.max(
                               ...weeklyData.map((d) => d.problems),
                             );
-                            const height =
-                              maxCount > 0
-                                ? (day.problems / maxCount) * 150
-                                : 0;
+                            const h =
+                              maxC > 0 ? (day.problems / maxC) * 110 : 0;
                             return (
                               <div
                                 key={i}
-                                className='flex-1 flex flex-col items-center gap-2'
+                                className='flex-1 flex flex-col items-center gap-2 group'
                               >
-                                <span className='text-xs font-medium text-muted-foreground'>
+                                <span className='text-[10px] font-mono text-muted-foreground group-hover:text-primary transition-colors'>
                                   {day.problems}
                                 </span>
-                                <div
-                                  className='w-full max-w-[40px] rounded-t-md transition-opacity hover:opacity-100'
+                                <motion.div
+                                  className='w-full max-w-[36px] rounded-t-md'
+                                  initial={{ height: 0 }}
+                                  animate={{ height: `${Math.max(h, 3)}px` }}
+                                  transition={{
+                                    delay: 0.3 + i * 0.06,
+                                    duration: 0.5,
+                                  }}
+                                  whileHover={{
+                                    boxShadow: `0 0 14px ${C.primary}70`,
+                                    opacity: 1,
+                                  }}
                                   style={{
-                                    height: `${Math.max(height, 4)}px`,
-                                    backgroundColor: COLOR.primary,
-                                    opacity: 0.75,
+                                    backgroundColor: C.primary,
+                                    opacity: 0.65,
                                   }}
                                 />
-                                <span className='text-xs font-medium text-muted-foreground'>
+                                <span className='text-[10px] text-muted-foreground font-mono'>
                                   {day.day}
                                 </span>
                               </div>
                             );
                           })}
                         </div>
-                        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border/30'>
+                        <div className='grid grid-cols-4 gap-3 pt-4 border-t border-border/20 mt-auto'>
                           {[
-                            { label: 'This Week', value: weeklyStats.total },
-                            { label: 'Daily Avg', value: weeklyStats.avg },
-                            { label: 'Best Day', value: weeklyStats.best },
-                            {
-                              label: 'Active Days',
-                              value: weeklyStats.activeDays,
-                            },
-                          ].map((s, i) => (
-                            <div key={i} className='text-center'>
-                              <div className='text-xl font-bold text-primary'>
-                                {s.value}
+                            ['This Week', weeklyStats.total],
+                            ['Daily Avg', weeklyStats.avg],
+                            ['Best Day', weeklyStats.best],
+                            ['Active Days', weeklyStats.activeDays],
+                          ].map(([l, v]) => (
+                            <div key={String(l)} className='text-center'>
+                              <div
+                                className='text-lg font-black tabular-nums'
+                                style={{ color: C.primary }}
+                              >
+                                {v}
                               </div>
-                              <div className='text-xs text-muted-foreground'>
-                                {s.label}
+                              <div className='text-[10px] text-muted-foreground'>
+                                {l}
                               </div>
                             </div>
                           ))}
                         </div>
                       </>
                     ) : (
-                      <div className='flex items-center justify-center h-[180px] text-muted-foreground text-sm'>
+                      <div className='flex-1 flex items-center justify-center text-sm text-muted-foreground'>
                         No activity this week.
                       </div>
                     )}
                   </TabsContent>
 
-                  <TabsContent value='monthly'>
+                  <TabsContent
+                    value='monthly'
+                    className='flex-1 flex flex-col m-0'
+                  >
                     {monthlyTrend.length > 0 ? (
                       <>
-                        <div className='flex items-end justify-between gap-3 h-[180px] mb-4'>
+                        <div className='flex items-end justify-between gap-2 h-[140px] mb-5'>
                           {monthlyTrend.map((m, i) => {
-                            const maxSub = Math.max(
+                            const maxS = Math.max(
                               ...monthlyTrend.map((d) => d.submissions),
                             );
-                            const subH =
-                              maxSub > 0 ? (m.submissions / maxSub) * 150 : 0;
-                            const solvedH =
-                              maxSub > 0 ? (m.solved / maxSub) * 150 : 0;
                             return (
                               <div
                                 key={i}
                                 className='flex-1 flex flex-col items-center gap-2'
                               >
-                                <span className='text-xs font-medium text-muted-foreground'>
+                                <span className='text-[10px] font-mono text-muted-foreground'>
                                   {m.solved}
                                 </span>
-                                <div className='w-full max-w-[48px] relative'>
-                                  <div
-                                    className='w-full rounded-t-md'
-                                    style={{
-                                      height: `${subH}px`,
-                                      backgroundColor: COLOR.track,
+                                <div
+                                  className='w-full max-w-[36px] relative rounded-t overflow-hidden'
+                                  style={{
+                                    height: `${maxS > 0 ? (m.submissions / maxS) * 110 : 3}px`,
+                                    backgroundColor: 'rgba(255,255,255,0.06)',
+                                  }}
+                                >
+                                  <motion.div
+                                    className='absolute bottom-0 w-full'
+                                    initial={{ height: 0 }}
+                                    animate={{
+                                      height: `${maxS > 0 ? (m.solved / maxS) * 100 : 0}%`,
                                     }}
-                                  >
-                                    <div
-                                      className='absolute bottom-0 w-full rounded-t-md'
-                                      style={{
-                                        height: `${solvedH}px`,
-                                        backgroundColor: COLOR.primary,
-                                        opacity: 0.8,
-                                      }}
-                                    />
-                                  </div>
+                                    transition={{
+                                      delay: 0.3 + i * 0.04,
+                                      duration: 0.5,
+                                    }}
+                                    style={{
+                                      backgroundColor: C.primary,
+                                      opacity: 0.8,
+                                    }}
+                                  />
                                 </div>
-                                <span className='text-xs font-medium text-muted-foreground'>
+                                <span className='text-[10px] text-muted-foreground font-mono'>
                                   {m.month}
                                 </span>
                               </div>
                             );
                           })}
                         </div>
-                        <div className='flex items-center gap-4 pt-4 border-t border-border/30 text-xs text-muted-foreground'>
+                        <div className='flex gap-5 pt-4 border-t border-border/20 mt-auto text-xs text-muted-foreground'>
                           <div className='flex items-center gap-1.5'>
                             <div
-                              className='w-3 h-3 rounded-sm'
-                              style={{
-                                backgroundColor: COLOR.primary,
-                                opacity: 0.8,
-                              }}
+                              className='w-3 h-2 rounded'
+                              style={{ backgroundColor: C.primary }}
                             />
                             <span>Solved</span>
                           </div>
                           <div className='flex items-center gap-1.5'>
                             <div
-                              className='w-3 h-3 rounded-sm'
-                              style={{ backgroundColor: COLOR.track }}
+                              className='w-3 h-2 rounded'
+                              style={{
+                                backgroundColor: 'rgba(255,255,255,0.1)',
+                              }}
                             />
-                            <span>Total Submissions</span>
+                            <span>Submissions</span>
                           </div>
                         </div>
                       </>
                     ) : (
-                      <div className='flex items-center justify-center h-[180px] text-muted-foreground text-sm'>
-                        No monthly data available.
+                      <div className='flex-1 flex items-center justify-center text-sm text-muted-foreground'>
+                        No monthly data.
                       </div>
                     )}
                   </TabsContent>
@@ -870,73 +1011,72 @@ function AuthenticatedDashboard() {
           </motion.div>
         </div>
 
-        {/* Topic Progress + Language */}
-        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8'>
+        {/* ── Row 2: Topics + Languages ───────────────────────────────────── */}
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5'>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             className='lg:col-span-2'
           >
-            <Card className='glass-card border-border/50 h-full'>
-              <CardHeader>
-                <CardTitle className='text-lg flex items-center gap-2'>
-                  <BookOpen className='h-5 w-5 text-primary' /> Topic Progress
-                </CardTitle>
-                <CardDescription>
-                  Your progress across different problem categories
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            <Card className='glass-card border-border/40 h-full'>
+              <CardContent className='p-6'>
+                <SectionHeading
+                  icon={BookOpen}
+                  title='Topic Mastery'
+                  sub='Progress across all categories'
+                  color={C.accent}
+                />
                 {topicProgress.length > 0 ? (
-                  <TooltipProvider delayDuration={200}>
-                    <div className='space-y-3'>
+                  <TooltipProvider delayDuration={150}>
+                    <div className='space-y-2'>
                       {topicProgress.map((t) => {
-                        const barColor =
+                        const bar =
                           t.pct >= 70
-                            ? COLOR.emerald
+                            ? C.emerald
                             : t.pct >= 40
-                              ? COLOR.amber
-                              : COLOR.rose;
+                              ? C.amber
+                              : C.rose;
                         return (
                           <Tooltip key={t.topic}>
                             <TooltipTrigger asChild>
-                              <div className='group cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-surface-2'>
-                                <div className='flex items-center justify-between text-sm mb-1.5'>
-                                  <span className='font-medium text-foreground/90 capitalize'>
+                              <div className='group cursor-pointer rounded-lg px-3 py-2 -mx-3 hover:bg-surface-2/40 transition-colors'>
+                                <div className='flex justify-between text-xs mb-1.5'>
+                                  <span className='font-semibold capitalize'>
                                     {t.topic}
                                   </span>
-                                  <span className='text-muted-foreground text-xs'>
-                                    {t.solved}/{t.total}
-                                    <span className='ml-1.5 font-semibold text-foreground/70'>
+                                  <span className='font-mono text-muted-foreground tabular-nums'>
+                                    {t.solved}/{t.total}{' '}
+                                    <span
+                                      className='font-bold'
+                                      style={{ color: bar }}
+                                    >
                                       {t.pct}%
                                     </span>
                                   </span>
                                 </div>
-                                <ProgressBar
+                                <GlowBar
                                   pct={t.pct}
-                                  color={barColor}
-                                  height={8}
+                                  color={bar}
+                                  height={5}
+                                  glow={t.pct >= 70}
                                 />
                               </div>
                             </TooltipTrigger>
                             <TooltipContent
                               side='left'
-                              className='text-xs space-y-1 max-w-[200px]'
+                              className='text-xs space-y-1'
                             >
-                              <p className='font-semibold capitalize'>
-                                {t.topic}
+                              <p className='font-bold capitalize'>{t.topic}</p>
+                              <p className='text-muted-foreground'>
+                                {t.total - t.solved} remaining
                               </p>
                               <p>
-                                {t.solved} solved out of {t.total} problems
-                              </p>
-                              <p>{t.total - t.solved} remaining to complete</p>
-                              <p className='text-muted-foreground'>
                                 {t.pct >= 70
-                                  ? 'Great progress! 🎉'
+                                  ? '🎉 Crushing it'
                                   : t.pct >= 40
-                                    ? 'Keep practicing! 💪'
-                                    : 'Needs more focus 🎯'}
+                                    ? '💪 Keep going'
+                                    : '🎯 Needs focus'}
                               </p>
                             </TooltipContent>
                           </Tooltip>
@@ -946,7 +1086,7 @@ function AuthenticatedDashboard() {
                   </TooltipProvider>
                 ) : (
                   <p className='text-sm text-muted-foreground text-center py-8'>
-                    Solve some problems to see topic progress.
+                    Solve problems to see topic progress.
                   </p>
                 )}
               </CardContent>
@@ -955,58 +1095,69 @@ function AuthenticatedDashboard() {
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
           >
-            <Card className='glass-card border-border/50 h-full'>
-              <CardHeader className='pb-3'>
-                <CardTitle className='text-lg flex items-center gap-2'>
-                  <PieChart className='h-5 w-5 text-accent' /> Languages
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+            <Card className='glass-card border-border/40 h-full'>
+              <CardContent className='p-6'>
+                <SectionHeading
+                  icon={PieChart}
+                  title='Languages'
+                  color={C.cyan}
+                />
                 {languageStats.length > 0 ? (
                   <>
-                    <div
-                      className='flex h-3 rounded-full overflow-hidden mb-4'
-                      style={{ backgroundColor: COLOR.track }}
-                    >
+                    <div className='flex h-2.5 rounded-full overflow-hidden mb-5 gap-0.5'>
                       {languageStats.map((l) => (
-                        <div
+                        <motion.div
                           key={l.language}
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${l.percentage}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.9 }}
                           style={{
-                            width: `${l.percentage}%`,
                             backgroundColor: l.color,
-                            transition: 'width 0.5s ease',
+                            boxShadow: `0 0 6px ${l.color}70`,
                           }}
                         />
                       ))}
                     </div>
-                    <div className='space-y-2'>
+                    <div className='space-y-3'>
                       {languageStats.map((l) => (
                         <div
                           key={l.language}
-                          className='flex items-center justify-between text-sm'
+                          className='flex items-center justify-between'
                         >
-                          <div className='flex items-center gap-2'>
+                          <div className='flex items-center gap-2.5'>
                             <div
-                              className='w-2.5 h-2.5 rounded-sm'
-                              style={{ backgroundColor: l.color }}
+                              className='w-2 h-2 rounded-full'
+                              style={{
+                                backgroundColor: l.color,
+                                boxShadow: `0 0 5px ${l.color}`,
+                              }}
                             />
-                            <span className='text-foreground/80'>
+                            <span className='text-sm font-medium'>
                               {l.language}
                             </span>
                           </div>
-                          <span className='text-muted-foreground text-xs font-mono'>
-                            {l.count} ({l.percentage}%)
-                          </span>
+                          <div>
+                            <span
+                              className='text-xs font-mono font-bold'
+                              style={{ color: l.color }}
+                            >
+                              {l.percentage}%
+                            </span>
+                            <span className='text-[10px] text-muted-foreground font-mono ml-2'>
+                              {l.count}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
                   </>
                 ) : (
                   <p className='text-sm text-muted-foreground text-center py-8'>
-                    No submission data yet.
+                    No data yet.
                   </p>
                 )}
               </CardContent>
@@ -1014,101 +1165,126 @@ function AuthenticatedDashboard() {
           </motion.div>
         </div>
 
-        {/* Heatmap */}
+        {/* ── Heatmap ─────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className='mb-8'
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className='mb-5'
         >
-          <Card className='glass-card border-border/50'>
-            <CardHeader>
-              <CardTitle className='text-lg flex items-center gap-2'>
-                <Calendar className='h-5 w-5 text-primary' /> Contribution
-                Heatmap
-              </CardTitle>
-              <CardDescription>
-                Your coding activity over the past year
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <Card className='glass-card border-border/40'>
+            <CardContent className='p-6'>
+              <SectionHeading
+                icon={Calendar}
+                title='Contribution Heatmap'
+                sub='Coding activity over the past year'
+              />
               <ContributionGraph data={heatMapData} />
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Recent Submissions */}
+        {/* ── Recent Submissions ──────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
         >
-          <Card className='glass-card border-border/50'>
-            <CardHeader>
-              <CardTitle className='text-lg'>Recent Submissions</CardTitle>
-              <CardDescription>Your latest problem attempts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className='hidden sm:grid sm:grid-cols-[1fr_120px_90px_80px_80px_80px] gap-2 text-xs text-muted-foreground font-medium pb-2 border-b border-border/30 mb-1'>
-                <span>Problem</span>
-                <span>Status</span>
-                <span>Language</span>
-                <span>Runtime</span>
-                <span>Memory</span>
-                <span className='text-right'>When</span>
-              </div>
+          <Card className='glass-card border-border/40'>
+            <CardContent className='p-6'>
+              <SectionHeading
+                icon={Code2}
+                title='Recent Submissions'
+                sub='Latest problem attempts'
+                color={C.accent}
+              />
               {recentSubmissions.length > 0 ? (
-                <div className='divide-y divide-border/30'>
-                  {recentSubmissions.map((sub, i) => (
-                    <div
-                      key={i}
-                      className='py-3 sm:grid sm:grid-cols-[1fr_120px_90px_80px_80px_80px] sm:gap-2 sm:items-center flex flex-col gap-1.5'
-                    >
-                      <div className='flex items-center gap-2.5'>
-                        <div
-                          className={`p-1 rounded-md ${sub.status === 'Accepted' ? 'bg-primary/10' : 'bg-destructive/10'}`}
+                <>
+                  <div className='hidden sm:grid grid-cols-[1fr_120px_90px_80px_80px_80px] gap-3 px-3 py-2 text-[10px] font-mono text-muted-foreground uppercase tracking-widest border-b border-border/20 mb-1'>
+                    <span>Problem</span>
+                    <span>Status</span>
+                    <span>Lang</span>
+                    <span>Runtime</span>
+                    <span>Memory</span>
+                    <span className='text-right'>When</span>
+                  </div>
+                  <div className='divide-y divide-border/15'>
+                    {recentSubmissions.map((sub, i) => {
+                      const ok = sub.status === 'Accepted';
+                      return (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.04 }}
+                          className='sm:grid sm:grid-cols-[1fr_120px_90px_80px_80px_80px] gap-3 items-center px-3 py-3 rounded-lg hover:bg-surface-2/30 transition-colors flex flex-col'
                         >
-                          {sub.status === 'Accepted' ? (
-                            <CheckCircle className='h-3.5 w-3.5 text-primary' />
-                          ) : (
-                            <Code2 className='h-3.5 w-3.5 text-destructive' />
-                          )}
-                        </div>
-                        <div>
-                          <span className='text-sm font-medium'>
-                            {sub.problem}
-                          </span>
-                          <span
-                            className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${sub.difficulty === 'Easy' ? 'difficulty-easy' : sub.difficulty === 'Medium' ? 'difficulty-medium' : 'difficulty-hard'}`}
+                          <div className='flex items-center gap-2.5'>
+                            <div
+                              className='p-1 rounded shrink-0'
+                              style={{
+                                backgroundColor: ok
+                                  ? `${C.primary}15`
+                                  : `${C.rose}15`,
+                              }}
+                            >
+                              {ok ? (
+                                <CheckCircle
+                                  className='h-3.5 w-3.5'
+                                  style={{ color: C.primary }}
+                                />
+                              ) : (
+                                <Code2
+                                  className='h-3.5 w-3.5'
+                                  style={{ color: C.rose }}
+                                />
+                              )}
+                            </div>
+                            <div>
+                              <span className='text-sm font-medium'>
+                                {sub.problem}
+                              </span>
+                              <span
+                                className={`ml-2 text-[10px] px-1.5 py-0.5 rounded font-mono ${sub.difficulty === 'Easy' ? 'difficulty-easy' : sub.difficulty === 'Medium' ? 'difficulty-medium' : 'difficulty-hard'}`}
+                              >
+                                {sub.difficulty}
+                              </span>
+                            </div>
+                          </div>
+                          <div
+                            className='text-xs font-bold font-mono'
+                            style={{ color: ok ? C.primary : C.rose }}
                           >
-                            {sub.difficulty}
-                          </span>
-                        </div>
-                      </div>
-                      <div
-                        className={`text-xs font-medium ${sub.status === 'Accepted' ? 'text-primary' : 'text-destructive'}`}
-                      >
-                        {sub.status}
-                      </div>
-                      <div className='text-xs text-muted-foreground'>
-                        {sub.language}
-                      </div>
-                      <div className='text-xs text-muted-foreground font-mono'>
-                        {sub.time}
-                      </div>
-                      <div className='text-xs text-muted-foreground font-mono'>
-                        {sub.memory}
-                      </div>
-                      <div className='text-xs text-muted-foreground text-right'>
-                        {sub.date}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                            {sub.status}
+                          </div>
+                          <div className='text-xs text-muted-foreground font-mono'>
+                            {sub.language}
+                          </div>
+                          <div className='text-xs text-muted-foreground font-mono'>
+                            {sub.time}
+                          </div>
+                          <div className='text-xs text-muted-foreground font-mono'>
+                            {sub.memory}
+                          </div>
+                          <div className='text-xs text-muted-foreground font-mono text-right'>
+                            {sub.date}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </>
               ) : (
-                <p className='text-sm text-muted-foreground text-center py-8'>
-                  No submissions yet. Start solving problems!
-                </p>
+                <div className='text-center py-14'>
+                  <div className='text-4xl mb-4'>⚡</div>
+                  <p className='text-sm font-medium text-muted-foreground'>
+                    No submissions yet.
+                  </p>
+                  <p className='text-xs text-muted-foreground/60 mt-1'>
+                    Start solving to see your history here.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -1118,7 +1294,7 @@ function AuthenticatedDashboard() {
   );
 }
 
-// ─── Root export ───────────────────────────────────────────────────────────────
+// ─── Root ─────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   return isAuthenticated ? <AuthenticatedDashboard /> : <GuestDashboard />;
