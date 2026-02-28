@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import {
   Tooltip,
   TooltipContent,
@@ -15,8 +15,6 @@ interface ContributionGraphProps {
   data: ContributionDay[];
 }
 
-const CELL_SIZE = 13;
-const CELL_GAP = 3;
 const MONTH_LABELS = [
   'Jan',
   'Feb',
@@ -32,6 +30,9 @@ const MONTH_LABELS = [
   'Dec',
 ];
 
+const DAY_LABEL_WIDTH = 28; // px reserved for Mon/Wed/Fri labels
+const GAP = 3; // gap between cells
+
 function getIntensityClass(count: number): string {
   if (count === 0) return 'bg-surface-3/60';
   if (count <= 2) return 'bg-primary/25';
@@ -41,16 +42,26 @@ function getIntensityClass(count: number): string {
 }
 
 export default function ContributionGraph({ data }: ContributionGraphProps) {
-  // Build a complete 364-day grid ending today,
-  // filling any missing dates from the API with count = 0.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Observe container width changes
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width);
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Fill missing dates with count = 0
   const filledData = useMemo(() => {
-    // Build a lookup map from the API data
     const map: Record<string, number> = {};
     data.forEach((d) => {
       map[d.date] = d.count;
     });
 
-    // Generate exactly 364 days ending today (oldest → newest)
     const days: ContributionDay[] = [];
     const today = new Date();
     for (let i = 363; i >= 0; i--) {
@@ -62,18 +73,13 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
     return days;
   }, [data]);
 
-  // Group data into weeks (columns of 7 days, Sun-Sat)
+  // Group into Sun-Sat weeks (columns)
   const weeks = useMemo(() => {
     const result: (ContributionDay | null)[][] = [];
     let currentWeek: (ContributionDay | null)[] = [];
 
-    // Pad the first week so day 0 of data lands on the correct weekday
-    const firstDate = new Date(filledData[0].date);
-    // getDay(): 0=Sun,1=Mon,...,6=Sat
-    const firstDayOfWeek = firstDate.getDay();
-    for (let i = 0; i < firstDayOfWeek; i++) {
-      currentWeek.push(null);
-    }
+    const firstDayOfWeek = new Date(filledData[0].date + 'T00:00:00').getDay();
+    for (let i = 0; i < firstDayOfWeek; i++) currentWeek.push(null);
 
     for (const day of filledData) {
       currentWeek.push(day);
@@ -82,23 +88,29 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
         currentWeek = [];
       }
     }
-    // Push the last partial week (pad with nulls at end)
     if (currentWeek.length > 0) {
       while (currentWeek.length < 7) currentWeek.push(null);
       result.push(currentWeek);
     }
-
     return result;
   }, [filledData]);
 
-  // Compute month label positions
+  // Derive cell size from container width so the graph fills it exactly
+  const cellSize = useMemo(() => {
+    if (!containerWidth || !weeks.length) return 13;
+    const totalGaps = (weeks.length - 1) * GAP;
+    const availableWidth = containerWidth - DAY_LABEL_WIDTH - totalGaps;
+    return Math.max(8, Math.floor(availableWidth / weeks.length));
+  }, [containerWidth, weeks.length]);
+
+  // Month label positions
   const monthMarkers = useMemo(() => {
     const markers: { label: string; weekIndex: number }[] = [];
     let lastMonth = -1;
     weeks.forEach((week, weekIdx) => {
       for (const day of week) {
         if (day) {
-          const month = new Date(day.date).getMonth();
+          const month = new Date(day.date + 'T00:00:00').getMonth();
           if (month !== lastMonth) {
             lastMonth = month;
             markers.push({ label: MONTH_LABELS[month], weekIndex: weekIdx });
@@ -112,10 +124,11 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
 
   const totalSubmissions = filledData.reduce((sum, d) => sum + d.count, 0);
   const activeDays = filledData.filter((d) => d.count > 0).length;
+  const gridHeight = 7 * cellSize + 6 * GAP;
 
   return (
-    <div className='space-y-4'>
-      {/* Stats row */}
+    <div className='space-y-3 w-full'>
+      {/* Stats */}
       <div className='flex items-center gap-6 text-xs text-muted-foreground'>
         <span>
           <span className='text-foreground font-semibold tabular-nums'>
@@ -131,58 +144,63 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
         </span>
       </div>
 
-      {/* Graph */}
-      <div className='overflow-x-auto pb-2'>
-        <TooltipProvider delayDuration={100}>
-          <div className='inline-block'>
-            <div className='relative' style={{ paddingTop: '16px' }}>
-              {/* Month labels absolutely positioned */}
-              {monthMarkers.map((marker, i) => (
-                <span
-                  key={i}
-                  className='absolute text-[10px] text-muted-foreground select-none'
-                  style={{
-                    top: 0,
-                    left: `${30 + marker.weekIndex * (CELL_SIZE + CELL_GAP)}px`,
-                  }}
-                >
-                  {marker.label}
-                </span>
-              ))}
+      {/* Measure container width */}
+      <div ref={containerRef} className='w-full'>
+        {containerWidth > 0 && (
+          <TooltipProvider delayDuration={100}>
+            <div className='w-full'>
+              {/* Month labels */}
+              <div
+                className='relative h-4 mb-1'
+                style={{ paddingLeft: DAY_LABEL_WIDTH }}
+              >
+                {monthMarkers.map((marker, i) => (
+                  <span
+                    key={i}
+                    className='absolute text-[10px] text-muted-foreground select-none'
+                    style={{
+                      left:
+                        DAY_LABEL_WIDTH + marker.weekIndex * (cellSize + GAP),
+                    }}
+                  >
+                    {marker.label}
+                  </span>
+                ))}
+              </div>
 
-              <div className='flex gap-0'>
-                {/* Day-of-week labels */}
+              {/* Day labels + grid row */}
+              <div className='flex w-full'>
+                {/* Mon / Wed / Fri labels */}
                 <div
-                  className='flex flex-col justify-between mr-2 shrink-0'
-                  style={{
-                    height: `${7 * (CELL_SIZE + CELL_GAP) - CELL_GAP}px`,
-                  }}
+                  className='flex flex-col justify-between shrink-0'
+                  style={{ width: DAY_LABEL_WIDTH, height: gridHeight }}
                 >
                   {['', 'Mon', '', 'Wed', '', 'Fri', ''].map((label, i) => (
                     <span
                       key={i}
-                      className='text-[10px] text-muted-foreground leading-none h-[13px] flex items-center'
+                      className='text-[10px] text-muted-foreground leading-none flex items-center'
+                      style={{ height: cellSize }}
                     >
                       {label}
                     </span>
                   ))}
                 </div>
 
-                {/* Cell grid */}
-                <div className='flex' style={{ gap: `${CELL_GAP}px` }}>
+                {/* Cell columns — flex-1 so they fill remaining width */}
+                <div className='flex flex-1' style={{ gap: GAP }}>
                   {weeks.map((week, weekIdx) => (
                     <div
                       key={weekIdx}
-                      className='flex flex-col'
-                      style={{ gap: `${CELL_GAP}px` }}
+                      className='flex flex-col flex-1'
+                      style={{ gap: GAP }}
                     >
                       {week.map((day, dayIdx) =>
                         day ? (
                           <Tooltip key={dayIdx}>
                             <TooltipTrigger asChild>
                               <div
-                                className={`rounded-[3px] transition-colors hover:ring-1 hover:ring-foreground/30 cursor-pointer ${getIntensityClass(day.count)}`}
-                                style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                                className={`rounded-[3px] transition-colors hover:ring-1 hover:ring-foreground/30 cursor-pointer w-full ${getIntensityClass(day.count)}`}
+                                style={{ height: cellSize }}
                               />
                             </TooltipTrigger>
                             <TooltipContent side='top' className='text-xs'>
@@ -204,7 +222,8 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
                         ) : (
                           <div
                             key={dayIdx}
-                            style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                            className='w-full'
+                            style={{ height: cellSize }}
                           />
                         ),
                       )}
@@ -213,8 +232,8 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
                 </div>
               </div>
             </div>
-          </div>
-        </TooltipProvider>
+          </TooltipProvider>
+        )}
       </div>
 
       {/* Legend */}

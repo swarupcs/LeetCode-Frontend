@@ -16,7 +16,6 @@ import {
   Award,
   Code2,
   Zap,
-  BarChart3,
   PieChart,
   BookOpen,
   Loader2,
