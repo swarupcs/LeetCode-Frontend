@@ -49,6 +49,15 @@ export const signInRequest = async (
   }
 };
 
+export const logoutRequest = async (): Promise<void> => {
+  try {
+    await axiosInstance.post('/auth/logout');
+  } catch (error) {
+    const err = error as AxiosError<ApiError>;
+    throw err.response?.data ?? { message: 'Something went wrong' };
+  }
+};
+
 /**
  * Get Logged-in User
  */

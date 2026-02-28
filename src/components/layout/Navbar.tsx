@@ -1,6 +1,6 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import type { RootState } from '@/app/store';
 
 import { Button } from '@/components/ui/button';
@@ -32,8 +32,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { logout } from '@/features/auth/authSlice';
+// import { logout } from '@/features/auth/authSlice';
 import { useTheme } from '../ThemeContext';
+import { useLogout } from '@/hooks/auth/useLogout';
 
 const navItems = [
   { label: 'Problems', href: '/problems', icon: ListChecks },
@@ -46,8 +47,6 @@ const navItems = [
 
 export function Navbar() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, setTheme } = useTheme();
 
@@ -56,11 +55,12 @@ export function Navbar() {
   );
   const isAdmin = role === 'ADMIN';
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
-    setMobileOpen(false);
-  };
+  const { logoutMutation, isPending } = useLogout();
+
+const handleLogout = () => {
+  setMobileOpen(false);
+  logoutMutation();
+};
 
   const cycleTheme = () => {
     if (theme === 'dark') setTheme('light');
@@ -215,6 +215,7 @@ export function Navbar() {
                 <DropdownMenuSeparator className='bg-border/30' />
                 <DropdownMenuItem
                   onClick={handleLogout}
+                  disabled={isPending}
                   className='text-sm text-destructive cursor-pointer flex items-center gap-2'
                 >
                   <LogOut className='h-3.5 w-3.5' />
