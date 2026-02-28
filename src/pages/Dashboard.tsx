@@ -32,27 +32,126 @@ import { useGetUserHeatMapData } from '@/hooks/user-stats/useGetUserHeatMapData'
 import { useGetUserSolvedStats } from '@/hooks/user-stats/useGetUserSolvedStats';
 import { useGetUserProgressData } from '@/hooks/user-stats/useGetUserProgressData';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Colour palette
+// We store Tailwind utility classes for elements whose class name is STATIC
+// (safe from JIT purging), and hex values for inline `style={}` fills where
+// the class would be dynamic (and thus purged).
+// ─────────────────────────────────────────────────────────────────────────────
+const COLOR = {
+  // hex values — always work in inline style
+  primary: '#22c55e', // adjust to match your theme's --primary
+  accent: '#a78bfa',
+  emerald: '#10b981',
+  amber: '#f59e0b',
+  rose: '#f43f5e',
+  cyan: '#06b6d4',
+  track: 'rgba(255,255,255,0.10)', // progress bar track
+} as const;
 
-const LANGUAGE_COLORS: Record<string, string> = {
-  python: 'bg-[hsl(var(--cyan))]',
-  javascript: 'bg-[hsl(var(--amber))]',
-  java: 'bg-[hsl(var(--rose))]',
-  'c++': 'bg-[hsl(var(--emerald))]',
-  typescript: 'bg-[hsl(var(--primary))]',
+// Language → hex colour
+const LANG_COLOR: Record<string, string> = {
+  python: COLOR.cyan,
+  javascript: COLOR.amber,
+  java: COLOR.rose,
+  'c++': COLOR.emerald,
+  typescript: COLOR.primary,
 };
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared ProgressBar — plain div + CSS transition (no Framer, no dynamic class)
+// ─────────────────────────────────────────────────────────────────────────────
+function ProgressBar({
+  pct,
+  color,
+  height = 6,
+}: {
+  pct: number;
+  color: string;
+  height?: number;
+}) {
+  const w = `${Math.min(100, Math.max(0, pct))}%`;
+  return (
+    <div
+      style={{
+        width: '100%',
+        height,
+        borderRadius: 9999,
+        overflow: 'hidden',
+        backgroundColor: COLOR.track,
+      }}
+    >
+      <div
+        style={{
+          width: w,
+          height: '100%',
+          borderRadius: 9999,
+          backgroundColor: color,
+          transition: 'width 0.75s ease-out',
+        }}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// StatCard
+// ─────────────────────────────────────────────────────────────────────────────
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+  iconColor: string; // hex
+  sub: string;
+  progress: number; // 0-100
+  barColor: string; // hex
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  iconColor,
+  sub,
+  progress,
+  barColor,
+}: StatCardProps) {
+  return (
+    <Card className='glass-card border-border/50 h-full'>
+      <CardContent className='p-5 flex flex-col h-full'>
+        <div className='mb-3'>
+          <div className='p-2 rounded-lg bg-surface-2 w-fit'>
+            <Icon className='h-4 w-4' style={{ color: iconColor }} />
+          </div>
+        </div>
+        <div className='text-2xl font-bold'>{value}</div>
+        <div className='text-xs text-muted-foreground mt-0.5'>{label}</div>
+        <div className='text-[10px] text-muted-foreground/70 mt-1'>{sub}</div>
+        <div className='mt-auto pt-3 space-y-1'>
+          <ProgressBar pct={progress} color={barColor} height={6} />
+          <div className='text-[10px] text-muted-foreground/60 text-right'>
+            {Math.round(Math.min(100, Math.max(0, progress)))}%
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { heatMapData, isLoading: isHeatMapLoading } = useGetUserHeatMapData();
   const { solvedStats, isLoading: isSolvedLoading } = useGetUserSolvedStats();
   const { progressData, isLoading: isProgressLoading } =
     useGetUserProgressData();
-
   const isLoading = isHeatMapLoading || isSolvedLoading || isProgressLoading;
 
-  // ── solved stats ─────────────────────────────────────────────────────────
+  // solved stats
   const easySolved = solvedStats?.difficultyStats.EASY ?? 0;
   const mediumSolved = solvedStats?.difficultyStats.MEDIUM ?? 0;
   const hardSolved = solvedStats?.difficultyStats.HARD ?? 0;
@@ -66,55 +165,125 @@ export default function DashboardPage() {
   const totalSubmissions = solvedStats?.totalSubmissions ?? 0;
   const acceptanceRate = solvedStats?.acceptanceRate ?? 0;
 
+  const statCards: StatCardProps[] = useMemo(
+    () => [
+      {
+        label: 'Problems Solved',
+        value: totalSolved,
+        icon: CheckCircle,
+        iconColor: COLOR.primary,
+        sub: `of ${totalAvailable}`,
+        progress: totalAvailable > 0 ? (totalSolved / totalAvailable) * 100 : 0,
+        barColor: COLOR.primary,
+      },
+      {
+        label: 'Current Streak',
+        value: `${currentStreak}d`,
+        icon: Flame,
+        iconColor: COLOR.amber,
+        sub: 'Keep going!',
+        progress: maxStreak > 0 ? (currentStreak / maxStreak) * 100 : 0,
+        barColor: COLOR.amber,
+      },
+      {
+        label: 'Max Streak',
+        value: `${maxStreak}d`,
+        icon: Award,
+        iconColor: COLOR.accent,
+        sub: 'Personal best',
+        progress: maxStreak > 0 ? 100 : 0,
+        barColor: COLOR.accent,
+      },
+      {
+        label: 'Acceptance Rate',
+        value: `${acceptanceRate}%`,
+        icon: Target,
+        iconColor: COLOR.emerald,
+        sub: `${totalSubmissions} submissions`,
+        progress: acceptanceRate,
+        barColor:
+          acceptanceRate >= 70
+            ? COLOR.emerald
+            : acceptanceRate >= 40
+              ? COLOR.amber
+              : COLOR.rose,
+      },
+      {
+        label: 'Easy Solved',
+        value: easySolved,
+        icon: TrendingUp,
+        iconColor: COLOR.emerald,
+        sub: `of ${easyTotal}`,
+        progress: easyTotal > 0 ? (easySolved / easyTotal) * 100 : 0,
+        barColor: COLOR.emerald,
+      },
+      {
+        label: 'Hard Solved',
+        value: hardSolved,
+        icon: Zap,
+        iconColor: COLOR.rose,
+        sub: `of ${hardTotal}`,
+        progress: hardTotal > 0 ? (hardSolved / hardTotal) * 100 : 0,
+        barColor: COLOR.rose,
+      },
+    ],
+    [
+      totalSolved,
+      totalAvailable,
+      currentStreak,
+      maxStreak,
+      acceptanceRate,
+      totalSubmissions,
+      easySolved,
+      easyTotal,
+      hardSolved,
+      hardTotal,
+    ],
+  );
+
   const difficultyData = useMemo(
     () => [
       {
         level: 'Easy',
         solved: easySolved,
         total: easyTotal,
-        color: 'bg-[hsl(var(--emerald))]',
-        textColor: 'text-[hsl(var(--emerald))]',
+        color: COLOR.emerald,
       },
       {
         level: 'Medium',
         solved: mediumSolved,
         total: mediumTotal,
-        color: 'bg-[hsl(var(--amber))]',
-        textColor: 'text-[hsl(var(--amber))]',
+        color: COLOR.amber,
       },
       {
         level: 'Hard',
         solved: hardSolved,
         total: hardTotal,
-        color: 'bg-[hsl(var(--rose))]',
-        textColor: 'text-[hsl(var(--rose))]',
+        color: COLOR.rose,
       },
     ],
     [easySolved, mediumSolved, hardSolved, easyTotal, mediumTotal, hardTotal],
   );
 
-  // ── topic progress from tagStats ─────────────────────────────────────────
   const topicProgress = useMemo(() => {
     if (!solvedStats) return [];
     return Object.entries(solvedStats.tagStats)
       .map(([tag, solved]) => {
         const total = solvedStats.totalTagCounts[tag] ?? solved;
-        const percentage = total > 0 ? Math.round((solved / total) * 100) : 0;
-        return { topic: tag, solved, total, percentage };
+        const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
+        return { topic: tag, solved, total, pct };
       })
-      .sort((a, b) => b.percentage - a.percentage);
+      .sort((a, b) => b.pct - a.pct);
   }, [solvedStats]);
 
-  // ── progress data ─────────────────────────────────────────────────────────
   const weeklyData = progressData?.weeklyData ?? [];
   const monthlyTrend = progressData?.monthlyTrend ?? [];
   const recentSubmissions = progressData?.recentSubmissions ?? [];
   const languageStats = (progressData?.languageStats ?? []).map((l) => ({
     ...l,
-    color: LANGUAGE_COLORS[l.language.toLowerCase()] ?? 'bg-primary/70',
+    color: LANG_COLOR[l.language.toLowerCase()] ?? COLOR.primary,
   }));
 
-  // ── weekly summary ────────────────────────────────────────────────────────
   const weeklyStats = useMemo(() => {
     if (!weeklyData.length)
       return { total: 0, avg: '0.0', best: 0, activeDays: 0 };
@@ -150,80 +319,22 @@ export default function DashboardPage() {
           </p>
         </motion.div>
 
-        {/* Stats Cards */}
+        {/* ── Stat Cards ──────────────────────────────────────────────────── */}
         <motion.div
           variants={stagger}
           initial='hidden'
           animate='show'
           className='grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8'
         >
-          {[
-            {
-              label: 'Problems Solved',
-              value: totalSolved,
-              icon: CheckCircle,
-              color: 'text-primary',
-              sub: `of ${totalAvailable}`,
-            },
-            {
-              label: 'Current Streak',
-              value: `${currentStreak}d`,
-              icon: Flame,
-              color: 'text-[hsl(var(--amber))]',
-              sub: 'Keep going!',
-            },
-            {
-              label: 'Max Streak',
-              value: `${maxStreak}d`,
-              icon: Award,
-              color: 'text-accent',
-              sub: 'Personal best',
-            },
-            {
-              label: 'Acceptance Rate',
-              value: `${acceptanceRate}%`,
-              icon: Target,
-              color: 'text-[hsl(var(--emerald))]',
-              sub: `${totalSubmissions} submissions`,
-            },
-            {
-              label: 'Easy Solved',
-              value: easySolved,
-              icon: TrendingUp,
-              color: 'text-[hsl(var(--emerald))]',
-              sub: `of ${easyTotal}`,
-            },
-            {
-              label: 'Hard Solved',
-              value: hardSolved,
-              icon: Zap,
-              color: 'text-[hsl(var(--rose))]',
-              sub: `of ${hardTotal}`,
-            },
-          ].map((stat, i) => (
+          {statCards.map((card, i) => (
             <motion.div key={i} variants={fadeUp}>
-              <Card className='glass-card border-border/50 h-full'>
-                <CardContent className='p-5'>
-                  <div className='flex items-start justify-between mb-3'>
-                    <div className='p-2 rounded-lg bg-surface-2'>
-                      <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                    </div>
-                  </div>
-                  <div className='text-2xl font-bold'>{stat.value}</div>
-                  <div className='text-xs text-muted-foreground mt-0.5'>
-                    {stat.label}
-                  </div>
-                  <div className='text-[10px] text-muted-foreground/70 mt-1'>
-                    {stat.sub}
-                  </div>
-                </CardContent>
-              </Card>
+              <StatCard {...card} />
             </motion.div>
           ))}
         </motion.div>
 
+        {/* ── Overall Progress + Activity ──────────────────────────────────── */}
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8'>
-          {/* Progress Ring */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -234,16 +345,14 @@ export default function DashboardPage() {
                 <CardTitle className='text-lg'>Overall Progress</CardTitle>
               </CardHeader>
               <CardContent className='flex flex-col items-center'>
+                {/* Ring */}
                 <div className='relative w-36 h-36 mb-5'>
-                  <svg
-                    className='w-36 h-36 transform -rotate-90'
-                    viewBox='0 0 160 160'
-                  >
+                  <svg className='w-36 h-36 -rotate-90' viewBox='0 0 160 160'>
                     <circle
                       cx='80'
                       cy='80'
                       r='65'
-                      stroke='hsl(var(--surface-3))'
+                      stroke='rgba(255,255,255,0.1)'
                       strokeWidth='10'
                       fill='transparent'
                     />
@@ -251,12 +360,12 @@ export default function DashboardPage() {
                       cx='80'
                       cy='80'
                       r='65'
-                      stroke='hsl(var(--primary))'
+                      stroke={COLOR.primary}
                       strokeWidth='10'
                       fill='transparent'
                       strokeDasharray={`${totalAvailable > 0 ? (totalSolved / totalAvailable) * 408.4 : 0} 408.4`}
                       strokeLinecap='round'
-                      className='transition-all duration-1000'
+                      style={{ transition: 'stroke-dasharray 1s ease-out' }}
                     />
                   </svg>
                   <div className='absolute inset-0 flex flex-col items-center justify-center'>
@@ -271,25 +380,27 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 </div>
+
+                {/* Difficulty bars */}
                 <div className='w-full space-y-3'>
                   {difficultyData.map((d) => (
                     <div key={d.level}>
                       <div className='flex justify-between text-sm mb-1.5'>
-                        <span className={`${d.textColor} font-medium`}>
+                        <span
+                          className='font-medium'
+                          style={{ color: d.color }}
+                        >
                           {d.level}
                         </span>
                         <span className='text-muted-foreground'>
                           {d.solved}/{d.total}
                         </span>
                       </div>
-                      <div className='h-2 bg-surface-3 rounded-full overflow-hidden'>
-                        <div
-                          className={`${d.color} h-full rounded-full transition-all duration-700`}
-                          style={{
-                            width: `${d.total > 0 ? (d.solved / d.total) * 100 : 0}%`,
-                          }}
-                        />
-                      </div>
+                      <ProgressBar
+                        pct={d.total > 0 ? (d.solved / d.total) * 100 : 0}
+                        color={d.color}
+                        height={8}
+                      />
                     </div>
                   ))}
                 </div>
@@ -337,8 +448,12 @@ export default function DashboardPage() {
                                   {day.problems}
                                 </span>
                                 <div
-                                  className='w-full max-w-[40px] bg-primary/80 rounded-t-md hover:bg-primary transition-all duration-300 cursor-pointer'
-                                  style={{ height: `${Math.max(height, 4)}px` }}
+                                  className='w-full max-w-[40px] rounded-t-md cursor-pointer transition-opacity hover:opacity-100'
+                                  style={{
+                                    height: `${Math.max(height, 4)}px`,
+                                    backgroundColor: COLOR.primary,
+                                    opacity: 0.75,
+                                  }}
                                 />
                                 <span className='text-xs font-medium text-muted-foreground'>
                                   {day.day}
@@ -397,12 +512,19 @@ export default function DashboardPage() {
                                 </span>
                                 <div className='w-full max-w-[48px] relative'>
                                   <div
-                                    className='w-full bg-surface-3 rounded-t-md'
-                                    style={{ height: `${subH}px` }}
+                                    className='w-full rounded-t-md'
+                                    style={{
+                                      height: `${subH}px`,
+                                      backgroundColor: COLOR.track,
+                                    }}
                                   >
                                     <div
-                                      className='absolute bottom-0 w-full bg-primary/80 rounded-t-md'
-                                      style={{ height: `${solvedH}px` }}
+                                      className='absolute bottom-0 w-full rounded-t-md'
+                                      style={{
+                                        height: `${solvedH}px`,
+                                        backgroundColor: COLOR.primary,
+                                        opacity: 0.8,
+                                      }}
                                     />
                                   </div>
                                 </div>
@@ -415,11 +537,20 @@ export default function DashboardPage() {
                         </div>
                         <div className='flex items-center gap-4 pt-4 border-t border-border/30 text-xs text-muted-foreground'>
                           <div className='flex items-center gap-1.5'>
-                            <div className='w-3 h-3 rounded-sm bg-primary/80' />
+                            <div
+                              className='w-3 h-3 rounded-sm'
+                              style={{
+                                backgroundColor: COLOR.primary,
+                                opacity: 0.8,
+                              }}
+                            />
                             <span>Solved</span>
                           </div>
                           <div className='flex items-center gap-1.5'>
-                            <div className='w-3 h-3 rounded-sm bg-surface-3' />
+                            <div
+                              className='w-3 h-3 rounded-sm'
+                              style={{ backgroundColor: COLOR.track }}
+                            />
                             <span>Total Submissions</span>
                           </div>
                         </div>
@@ -436,7 +567,7 @@ export default function DashboardPage() {
           </motion.div>
         </div>
 
-        {/* Topic Progress + Language sidebar */}
+        {/* ── Topic Progress + Language ────────────────────────────────────── */}
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8'>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -458,56 +589,57 @@ export default function DashboardPage() {
                 {topicProgress.length > 0 ? (
                   <TooltipProvider delayDuration={200}>
                     <div className='space-y-3'>
-                      {topicProgress.map((t) => (
-                        <Tooltip key={t.topic}>
-                          <TooltipTrigger asChild>
-                            <div className='group cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-surface-2'>
-                              <div className='flex items-center justify-between text-sm mb-1'>
-                                <span className='font-medium text-foreground/90 capitalize'>
-                                  {t.topic}
-                                </span>
-                                <span className='text-muted-foreground text-xs'>
-                                  {t.solved}/{t.total}
-                                  <span className='ml-1.5 font-semibold text-foreground/70'>
-                                    {t.percentage}%
+                      {topicProgress.map((t) => {
+                        const barColor =
+                          t.pct >= 70
+                            ? COLOR.emerald
+                            : t.pct >= 40
+                              ? COLOR.amber
+                              : COLOR.rose;
+                        return (
+                          <Tooltip key={t.topic}>
+                            <TooltipTrigger asChild>
+                              <div className='group cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-surface-2'>
+                                <div className='flex items-center justify-between text-sm mb-1.5'>
+                                  <span className='font-medium text-foreground/90 capitalize'>
+                                    {t.topic}
                                   </span>
-                                </span>
-                              </div>
-                              <div className='h-2 bg-surface-3 rounded-full overflow-hidden'>
-                                <div
-                                  className={`h-full rounded-full transition-all duration-700 group-hover:brightness-110 ${
-                                    t.percentage >= 70
-                                      ? 'bg-[hsl(var(--emerald))]'
-                                      : t.percentage >= 40
-                                        ? 'bg-[hsl(var(--amber))]'
-                                        : 'bg-[hsl(var(--rose))]'
-                                  }`}
-                                  style={{ width: `${t.percentage}%` }}
+                                  <span className='text-muted-foreground text-xs'>
+                                    {t.solved}/{t.total}
+                                    <span className='ml-1.5 font-semibold text-foreground/70'>
+                                      {t.pct}%
+                                    </span>
+                                  </span>
+                                </div>
+                                <ProgressBar
+                                  pct={t.pct}
+                                  color={barColor}
+                                  height={8}
                                 />
                               </div>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side='left'
-                            className='text-xs space-y-1 max-w-[200px]'
-                          >
-                            <p className='font-semibold capitalize'>
-                              {t.topic}
-                            </p>
-                            <p>
-                              {t.solved} solved out of {t.total} problems
-                            </p>
-                            <p>{t.total - t.solved} remaining to complete</p>
-                            <p className='text-muted-foreground'>
-                              {t.percentage >= 70
-                                ? 'Great progress! 🎉'
-                                : t.percentage >= 40
-                                  ? 'Keep practicing! 💪'
-                                  : 'Needs more focus 🎯'}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side='left'
+                              className='text-xs space-y-1 max-w-[200px]'
+                            >
+                              <p className='font-semibold capitalize'>
+                                {t.topic}
+                              </p>
+                              <p>
+                                {t.solved} solved out of {t.total} problems
+                              </p>
+                              <p>{t.total - t.solved} remaining to complete</p>
+                              <p className='text-muted-foreground'>
+                                {t.pct >= 70
+                                  ? 'Great progress! 🎉'
+                                  : t.pct >= 40
+                                    ? 'Keep practicing! 💪'
+                                    : 'Needs more focus 🎯'}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
                     </div>
                   </TooltipProvider>
                 ) : (
@@ -535,12 +667,18 @@ export default function DashboardPage() {
               <CardContent>
                 {languageStats.length > 0 ? (
                   <>
-                    <div className='flex h-3 rounded-full overflow-hidden mb-4'>
+                    <div
+                      className='flex h-3 rounded-full overflow-hidden mb-4'
+                      style={{ backgroundColor: COLOR.track }}
+                    >
                       {languageStats.map((l) => (
                         <div
                           key={l.language}
-                          className={`${l.color} transition-all`}
-                          style={{ width: `${l.percentage}%` }}
+                          style={{
+                            width: `${l.percentage}%`,
+                            backgroundColor: l.color,
+                            transition: 'width 0.5s ease',
+                          }}
                         />
                       ))}
                     </div>
@@ -552,7 +690,8 @@ export default function DashboardPage() {
                         >
                           <div className='flex items-center gap-2'>
                             <div
-                              className={`w-2.5 h-2.5 rounded-sm ${l.color}`}
+                              className='w-2.5 h-2.5 rounded-sm'
+                              style={{ backgroundColor: l.color }}
                             />
                             <span className='text-foreground/80'>
                               {l.language}
@@ -575,7 +714,7 @@ export default function DashboardPage() {
           </motion.div>
         </div>
 
-        {/* Contribution Heatmap */}
+        {/* ── Contribution Heatmap ─────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -598,7 +737,7 @@ export default function DashboardPage() {
           </Card>
         </motion.div>
 
-        {/* Recent Submissions */}
+        {/* ── Recent Submissions ───────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
