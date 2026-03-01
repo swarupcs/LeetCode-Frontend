@@ -5,9 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Code2, Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import {
+  Code2,
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Loader2,
+} from 'lucide-react';
 import { useSignup } from '@/hooks/auth/useSignup';
-import { Loader2 } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { loginSuccess } from '@/features/auth/authSlice';
+import type { AppDispatch } from '@/app/store';
+
+
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -16,26 +29,39 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-const { signupMutation, isPending} =
-  useSignup();
-
+  const { signupMutation, isPending } = useSignup();
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const handleSubmit = async(e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      await signupMutation({
-        name,
-        email,
-        password,
-      });
+      const data = await signupMutation({ name, email, password });
+
+      // data should be the response from your API: { success, message, user }
+      if (data?.user) {
+        dispatch(
+          loginSuccess({
+            user: data.user.name,
+            role: data.user.role,
+            id: data.user.id,
+            username: data.user.username,
+            email: data.user.email,
+          }),
+        );
+      }
 
       navigate('/dashboard');
-      
     } catch (error) {
       console.error('Signup failed', error);
     }
+  };
+
+  const handleGoogleSignup = () => {
+    const backendUrl =
+      import.meta.env.VITE_BACKEND_API_URL;
+    window.location.href = `${backendUrl}/auth/google`;
   };
 
   return (
@@ -184,6 +210,7 @@ const { signupMutation, isPending} =
               <Button
                 type='button'
                 variant='outline'
+                onClick={handleGoogleSignup}
                 className='w-full h-11 border-border/50 text-foreground hover:bg-surface-2'
               >
                 <svg className='mr-2 h-4 w-4' viewBox='0 0 24 24'>

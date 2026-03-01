@@ -1,5 +1,3 @@
-
-
 // ─── src/App.tsx ──────────────────────────────────────────────────────────────
 
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -10,35 +8,37 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
-import Index from './pages/Index';
-import Problems from './pages/Problems';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import ProblemDetail from './pages/ProblemDetail';
-import Profile from './pages/Profile';
-import Settings from './pages/Settings';
-import Leaderboard from './pages/Leaderboard';
-import Sheets from './pages/Sheets';
-import SheetDetail from './pages/SheetDetail';
-import Roadmaps from './pages/Roadmaps';
-import RoadmapDetail from './pages/RoadmapDetail';
-import Discussions from './pages/Discussions';
-import DiscussionDetail from '@/pages/DiscussionDetail';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminProblems from './pages/AdminProblems';
-import AdminSheets from './pages/AdminSheets';
-import AdminRoadmaps from './pages/AdminRoadmaps';
-import AdminUsers from './pages/AdminUsers';
-import AdminUserDetail from './pages/AdminUserDetail';
-import CreateProblem from './pages/CreateProblem';
-import CreateSheet from './pages/CreateSheet';
-import CreateRoadmap from './pages/CreateRoadmap';
-import NotFound from './pages/NotFound';
+
 import { Toaster } from 'sonner';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from '@/app/store';
+import GoogleCallback from './Pages/GoogleCallback';
+import Index from './Pages/Index';
+import ProblemsPage from './Pages/Problems';
+import ProblemDetailPage from './Pages/ProblemDetail';
+import LoginPage from './Pages/Login';
+import SignupPage from './Pages/Signup';
+import LeaderboardPage from './Pages/Leaderboard';
+import SheetsPage from './Pages/Sheets';
+import SheetDetail from './Pages/SheetDetail';
+import RoadmapsPage from './Pages/Roadmaps';
+import RoadmapDetailPage from './Pages/RoadmapDetail';
+import DiscussionsPage from './Pages/Discussions';
+import DiscussionDetail from './Pages/DiscussionDetail';
+import DashboardPage from './Pages/Dashboard';
+import ProfilePage from './Pages/Profile';
+import SettingsPage from './Pages/Settings';
+import AdminDashboard from './Pages/AdminDashboard';
+import AdminProblemsPage from './Pages/AdminProblems';
+import CreateProblemPage from './Pages/CreateProblem';
+import AdminSheetsPage from './Pages/AdminSheets';
+import CreateSheetPage from './Pages/CreateSheet';
+import AdminRoadmapsPage from './Pages/AdminRoadmaps';
+import CreateRoadmapPage from './Pages/CreateRoadmap';
+import AdminUsersPage from './Pages/AdminUsers';
+import AdminUserDetailPage from './Pages/AdminUserDetail';
+import NotFound from './Pages/NotFound';
 
 const queryClient = new QueryClient();
 
@@ -54,27 +54,29 @@ function AppLayout() {
         <Routes>
           {/* ── Public routes ── */}
           <Route path='/' element={<Index />} />
-          <Route path='/problems' element={<Problems />} />
-          <Route path='/problem/:id' element={<ProblemDetail />} />
-          <Route path='/login' element={<Login />} />
-          <Route path='/signup' element={<Signup />} />
-          <Route path='/leaderboard' element={<Leaderboard />} />
-          <Route path='/sheets' element={<Sheets />} />
+          <Route path='/problems' element={<ProblemsPage />} />
+          <Route path='/problem/:id' element={<ProblemDetailPage />} />
+          <Route path='/login' element={<LoginPage />} />
+          <Route path='/signup' element={<SignupPage />} />
+          <Route path='/leaderboard' element={<LeaderboardPage />} />
+          <Route path='/sheets' element={<SheetsPage />} />
           <Route path='/sheets/:id' element={<SheetDetail />} />
-          <Route path='/roadmaps' element={<Roadmaps />} />
-          <Route path='/roadmaps/:slug' element={<RoadmapDetail />} />
-          <Route path='/discussions' element={<Discussions />} />
+          <Route path='/roadmaps' element={<RoadmapsPage />} />
+          <Route path='/roadmaps/:slug' element={<RoadmapDetailPage />} />
+          <Route path='/discussions' element={<DiscussionsPage />} />
           <Route path='/discussions/:id' element={<DiscussionDetail />} />
 
+          <Route path='/auth/google/callback' element={<GoogleCallback />} />
+
           {/* ── Public with guest fallback UI (no redirect) ── */}
-          <Route path='/dashboard' element={<Dashboard />} />
+          <Route path='/dashboard' element={<DashboardPage />} />
 
           {/* ── Protected: must be logged in ── */}
           <Route
             path='/profile'
             element={
               <ProtectedRoute>
-                <Profile />
+                <ProfilePage />
               </ProtectedRoute>
             }
           />
@@ -82,7 +84,7 @@ function AppLayout() {
             path='/settings'
             element={
               <ProtectedRoute>
-                <Settings />
+                <SettingsPage />
               </ProtectedRoute>
             }
           />
@@ -97,17 +99,17 @@ function AppLayout() {
             }
           >
             <Route index element={<AdminDashboard />} />
-            <Route path='problems' element={<AdminProblems />} />
-            <Route path='problems/create' element={<CreateProblem />} />
-            <Route path='problems/edit/:id' element={<CreateProblem />} />
-            <Route path='sheets' element={<AdminSheets />} />
-            <Route path='sheets/create' element={<CreateSheet />} />
-            <Route path='sheets/edit/:id' element={<CreateSheet />} />
-            <Route path='roadmaps' element={<AdminRoadmaps />} />
-            <Route path='roadmaps/create' element={<CreateRoadmap />} />
-            <Route path='roadmaps/edit/:id' element={<CreateRoadmap />} />
-            <Route path='users' element={<AdminUsers />} />
-            <Route path='users/:id' element={<AdminUserDetail />} />
+            <Route path='problems' element={<AdminProblemsPage />} />
+            <Route path='problems/create' element={<CreateProblemPage />} />
+            <Route path='problems/edit/:id' element={<CreateProblemPage />} />
+            <Route path='sheets' element={<AdminSheetsPage />} />
+            <Route path='sheets/create' element={<CreateSheetPage />} />
+            <Route path='sheets/edit/:id' element={<CreateSheetPage />} />
+            <Route path='roadmaps' element={<AdminRoadmapsPage />} />
+            <Route path='roadmaps/create' element={<CreateRoadmapPage />} />
+            <Route path='roadmaps/edit/:id' element={<CreateRoadmapPage />} />
+            <Route path='users' element={<AdminUsersPage />} />
+            <Route path='users/:id' element={<AdminUserDetailPage />} />
           </Route>
 
           <Route path='*' element={<NotFound />} />

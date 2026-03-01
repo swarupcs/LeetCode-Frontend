@@ -4,12 +4,21 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
-import { Code2, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+  Code2,
+  Mail,
+  Lock,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Loader2,
+} from 'lucide-react';
 import { useSignin } from '@/hooks/auth/useSignin';
+import { useDispatch } from 'react-redux';
+import { loginSuccess } from '@/features/auth/authSlice';
+import type { AppDispatch } from '@/app/store';
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,29 +26,42 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const { signinMutation, isPending, isSuccess, isError, data, error } =
-    useSignin();
-
-    // console.log({ isPending, isSuccess, isError, data, error });
+  const { signinMutation, isPending } = useSignin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      await signinMutation({
-        email,
-        password,
-      });
+      const data = await signinMutation({ email, password });
 
-      console.log({ isPending, isSuccess, isError, data, error });
+      // data should be the response from your API: { success, message, user }
+      if (data?.user) {
+        dispatch(
+          loginSuccess({
+            user: data.user.name,
+            role: data.user.role,
+            id: data.user.id,
+            username: data.user.username,
+            email: data.user.email,
+          }),
+        );
+      }
 
       navigate('/dashboard');
     } catch (error) {
-      // no need to toast here
-      // your hook already handles toast in onError
       console.error('Login failed', error);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    // Redirect to backend Google OAuth endpoint.
+    // The backend will handle the OAuth flow and redirect back to
+    // /problem-set?success=google_login on success (per your googleAuthCallback).
+    // We intercept that on a dedicated callback route — see GoogleCallback.tsx.
+    const backendUrl = import.meta.env.VITE_BACKEND_API_URL;
+    window.location.href = `${backendUrl}/auth/google`;
   };
 
   return (
@@ -135,10 +157,20 @@ export default function LoginPage() {
 
               <Button
                 type='submit'
+                disabled={isPending || !email || !password}
                 className='w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold'
               >
-                Sign In
-                <ArrowRight className='ml-2 h-4 w-4' />
+                {isPending ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight className='ml-2 h-4 w-4' />
+                  </>
+                )}
               </Button>
 
               <div className='relative my-6'>
@@ -155,6 +187,7 @@ export default function LoginPage() {
               <Button
                 type='button'
                 variant='outline'
+                onClick={handleGoogleLogin}
                 className='w-full h-11 border-border/50 text-foreground hover:bg-surface-2'
               >
                 <svg className='mr-2 h-4 w-4' viewBox='0 0 24 24'>
