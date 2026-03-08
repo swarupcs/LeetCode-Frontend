@@ -1,9 +1,10 @@
+import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Clock, MessageSquare, Eye, Trash2 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Clock, MessageSquare, Trash2 } from 'lucide-react';
 import { VoteButton } from './VoteButton';
 import { getCategoryStyle, getCategoryIcon } from '@/data/discussions';
 import type { Discussion } from '@/data/discussions';
@@ -22,6 +23,7 @@ import {
 interface DiscussionCardProps {
   discussion: Discussion;
   index: number;
+  currentUserId: string | null;
   onVote: (id: string, vote: -1 | 0 | 1) => void;
   onClick: (id: string) => void;
   onDelete?: (id: string) => void;
@@ -30,11 +32,12 @@ interface DiscussionCardProps {
 export function DiscussionCard({
   discussion,
   index,
+  currentUserId,
   onVote,
   onClick,
   onDelete,
 }: DiscussionCardProps) {
-  const isOwn = discussion.author === 'you';
+  const isOwn = !!currentUserId && discussion.author.id === currentUserId;
 
   return (
     <motion.div
@@ -69,13 +72,10 @@ export function DiscussionCard({
                     </span>
                     {discussion.category}
                   </Badge>
-                  {discussion.userVote === 1 && (
-                    <Badge
-                      variant='outline'
-                      className='text-[10px] px-2 py-0 h-5 bg-primary/5 text-primary border-primary/20'
-                    >
-                      Upvoted
-                    </Badge>
+                  {discussion.isEdited && (
+                    <span className='text-[10px] text-muted-foreground italic'>
+                      edited
+                    </span>
                   )}
                 </div>
 
@@ -141,23 +141,26 @@ export function DiscussionCard({
               <div className='flex items-center gap-4 text-xs text-muted-foreground'>
                 <div className='flex items-center gap-1.5'>
                   <Avatar className='h-5 w-5'>
+                    {discussion.author.image && (
+                      <AvatarImage src={discussion.author.image} />
+                    )}
                     <AvatarFallback className='bg-primary/10 text-primary text-[9px] font-bold'>
-                      {discussion.author[0].toUpperCase()}
+                      {discussion.author.username[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <span className='font-medium'>{discussion.author}</span>
+                  <span className='font-medium'>{discussion.author.username}</span>
                 </div>
                 <div className='flex items-center gap-1'>
                   <Clock className='h-3 w-3' />
-                  <span>{discussion.createdAt}</span>
+                  <span>
+                    {formatDistanceToNow(new Date(discussion.createdAt), {
+                      addSuffix: true,
+                    })}
+                  </span>
                 </div>
                 <div className='flex items-center gap-1'>
                   <MessageSquare className='h-3 w-3' />
                   <span>{discussion.commentCount}</span>
-                </div>
-                <div className='flex items-center gap-1'>
-                  <Eye className='h-3 w-3' />
-                  <span>{discussion.viewCount}</span>
                 </div>
               </div>
             </div>

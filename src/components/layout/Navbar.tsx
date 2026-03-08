@@ -8,7 +8,7 @@ import {
   Code2,
   LayoutDashboard,
   ListChecks,
-  // MessageSquare,
+  MessageSquare,
   Trophy,
   BookOpen,
   // Map,
@@ -40,7 +40,7 @@ const navItems = [
   { label: 'Problems', href: '/problems', icon: ListChecks },
   { label: 'Sheets', href: '/sheets', icon: BookOpen },
   // { label: 'Roadmaps', href: '/roadmaps', icon: Map },
-  // { label: 'Discussions', href: '/discussions', icon: MessageSquare },
+  { label: 'Discussions', href: '/discussions', icon: MessageSquare },
   { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
 ];

@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -26,53 +27,80 @@ import {
 import {
   ArrowLeft,
   Clock,
-  Eye,
   MessageSquare,
   Share2,
   Bookmark,
+  BookmarkCheck,
   Flag,
   Pencil,
   Trash2,
   X,
+  Loader2,
 } from 'lucide-react';
 import { VoteButton } from '@/components/discussions/VoteButton';
 import { CommentThread } from '@/components/discussions/CommentThread';
 import { MarkdownContent } from '@/components/discussions/MarkdownContent';
 import { MarkdownEditor } from '@/components/discussions/MarkdownEditor';
-import {
-  getCategoryStyle,
-  getCategoryIcon,
-  mockDiscussions,
-} from '@/data/discussions';
-import type { Discussion, Comment } from '@/data/discussions';
+import { getCategoryStyle, getCategoryIcon } from '@/data/discussions';
+import type { Comment } from '@/data/discussions';
 import { toast } from 'sonner';
+import { useAppSelector } from '@/hooks/redux';
+import { useGetDiscussion } from '@/hooks/discussions/useGetDiscussion';
+import { useUpdateDiscussion } from '@/hooks/discussions/useUpdateDiscussion';
+import { useDeleteDiscussion } from '@/hooks/discussions/useDeleteDiscussion';
+import { useCreateComment } from '@/hooks/discussions/useCreateComment';
+import { useUpdateComment } from '@/hooks/discussions/useUpdateComment';
+import { useDeleteComment } from '@/hooks/discussions/useDeleteComment';
+import { useVoteDiscussion } from '@/hooks/discussions/useVoteDiscussion';
+import { useVoteComment } from '@/hooks/discussions/useVoteComment';
+import { useToggleBookmark } from '@/hooks/discussions/useToggleBookmark';
 
 export default function DiscussionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const currentUserId = useAppSelector((state) => state.auth.id);
 
-  const [discussions, setDiscussions] = useState<Discussion[]>(mockDiscussions);
+  const { discussion, isLoading, isError } = useGetDiscussion(id!);
+  const { updateDiscussionMutation } = useUpdateDiscussion();
+  const { deleteDiscussionMutation } = useDeleteDiscussion();
+  const { createCommentMutation, isPending: isPostingComment } = useCreateComment(id!);
+  const { updateCommentMutation } = useUpdateComment(id!);
+  const { deleteCommentMutation } = useDeleteComment(id!);
+  const { voteDiscussionMutation } = useVoteDiscussion();
+  const { voteCommentMutation } = useVoteComment(id!);
+  const { toggleBookmarkMutation, isPending: isTogglingBookmark } = useToggleBookmark(id!);
+
   const [commentText, setCommentText] = useState('');
   const [commentSort, setCommentSort] = useState('top');
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [editPostContent, setEditPostContent] = useState('');
 
-  const discussion = discussions.find((d) => d.id === id);
-
   const sortedComments = useMemo(() => {
-    if (!discussion) return [];
+    if (!discussion?.comments) return [];
     const sorted = [...discussion.comments];
     if (commentSort === 'top') {
-      sorted.sort(
-        (a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes),
-      );
+      sorted.sort((a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes));
     } else if (commentSort === 'newest') {
-      sorted.reverse();
+      sorted.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    } else if (commentSort === 'oldest') {
+      sorted.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
     }
     return sorted;
-  }, [discussion, commentSort]);
+  }, [discussion?.comments, commentSort]);
 
-  if (!discussion) {
+  if (isLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-10 w-10 animate-spin text-primary' />
+      </div>
+    );
+  }
+
+  if (isError || !discussion) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
@@ -86,155 +114,68 @@ export default function DiscussionDetail() {
     );
   }
 
-  const isOwnPost = discussion.author === 'you';
+  const isOwnPost = !!currentUserId && discussion.author.id === currentUserId;
 
   const handlePostVote = (vote: -1 | 0 | 1) => {
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        const oldVote = d.userVote;
-        return {
-          ...d,
-          userVote: vote,
-          upvotes: d.upvotes + (vote === 1 ? 1 : 0) - (oldVote === 1 ? 1 : 0),
-          downvotes:
-            d.downvotes + (vote === -1 ? 1 : 0) - (oldVote === -1 ? 1 : 0),
-        };
-      }),
-    );
+    if (!currentUserId) {
+      toast.error('Please log in to vote');
+      return;
+    }
+    voteDiscussionMutation({ id: discussion.id, value: vote });
   };
 
   const handleCommentVote = (commentId: string, vote: -1 | 0 | 1) => {
-    const updateComment = (comments: Comment[]): Comment[] =>
-      comments.map((c) => {
-        if (c.id === commentId) {
-          const oldVote = c.userVote;
-          return {
-            ...c,
-            userVote: vote,
-            upvotes: c.upvotes + (vote === 1 ? 1 : 0) - (oldVote === 1 ? 1 : 0),
-            downvotes:
-              c.downvotes + (vote === -1 ? 1 : 0) - (oldVote === -1 ? 1 : 0),
-          };
-        }
-        return { ...c, replies: updateComment(c.replies) };
-      });
-
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        return { ...d, comments: updateComment(d.comments) };
-      }),
-    );
+    if (!currentUserId) {
+      toast.error('Please log in to vote');
+      return;
+    }
+    voteCommentMutation({ id: commentId, value: vote });
   };
 
-  const handleReply = (parentId: string, content: string) => {
-    const newReply: Comment = {
-      id: `reply-${Date.now()}`,
-      authorName: 'you',
-      content,
-      createdAt: 'Just now',
-      upvotes: 1,
-      downvotes: 0,
-      userVote: 1,
-      replies: [],
-    };
-
-    const addReply = (comments: Comment[]): Comment[] =>
-      comments.map((c) => {
-        if (c.id === parentId) {
-          return { ...c, replies: [...c.replies, newReply] };
-        }
-        return { ...c, replies: addReply(c.replies) };
-      });
-
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        return {
-          ...d,
-          comments: addReply(d.comments),
-          commentCount: d.commentCount + 1,
-        };
-      }),
-    );
-
-    toast.success('Your reply has been added to the thread.');
+  const handleReply = async (parentId: string, content: string) => {
+    if (!currentUserId) {
+      toast.error('Please log in to reply');
+      return;
+    }
+    try {
+      await createCommentMutation({ discussionId: id!, content, parentId });
+      toast.success('Your reply has been added to the thread.');
+    } catch {
+      toast.error('Failed to post reply. Please try again.');
+    }
   };
 
-  const handleCommentEdit = (commentId: string, newContent: string) => {
-    const editComment = (comments: Comment[]): Comment[] =>
-      comments.map((c) => {
-        if (c.id === commentId) {
-          return { ...c, content: newContent };
-        }
-        return { ...c, replies: editComment(c.replies) };
-      });
-
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        return { ...d, comments: editComment(d.comments) };
-      }),
-    );
-
-toast.success('Your comment has been edited.');
+  const handleCommentEdit = async (commentId: string, newContent: string) => {
+    try {
+      await updateCommentMutation({ id: commentId, content: newContent });
+      toast.success('Your comment has been edited.');
+    } catch {
+      toast.error('Failed to edit comment. Please try again.');
+    }
   };
 
-  const handleCommentDelete = (commentId: string) => {
-    const countComments = (comments: Comment[]): number =>
-      comments.reduce((sum, c) => sum + 1 + countComments(c.replies), 0);
-
-    const removeComment = (comments: Comment[]): Comment[] =>
-      comments
-        .filter((c) => c.id !== commentId)
-        .map((c) => ({ ...c, replies: removeComment(c.replies) }));
-
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        const deletedComment = findComment(d.comments, commentId);
-        const deletedCount = deletedComment
-          ? 1 + countComments(deletedComment.replies)
-          : 1;
-        return {
-          ...d,
-          comments: removeComment(d.comments),
-          commentCount: Math.max(0, d.commentCount - deletedCount),
-        };
-      }),
-    );
-
-toast.success('Your comment has been removed.');
+  const handleCommentDelete = async (commentId: string) => {
+    try {
+      await deleteCommentMutation(commentId);
+      toast.success('Your comment has been removed.');
+    } catch {
+      toast.error('Failed to delete comment. Please try again.');
+    }
   };
 
-  const handlePostComment = () => {
+  const handlePostComment = async () => {
     if (!commentText.trim()) return;
-
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      authorName: 'you',
-      content: commentText.trim(),
-      createdAt: 'Just now',
-      upvotes: 1,
-      downvotes: 0,
-      userVote: 1,
-      replies: [],
-    };
-
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        return {
-          ...d,
-          comments: [...d.comments, newComment],
-          commentCount: d.commentCount + 1,
-        };
-      }),
-    );
-    setCommentText('');
-
-toast.success('Your comment has been added to the discussion.');
+    if (!currentUserId) {
+      toast.error('Please log in to comment');
+      return;
+    }
+    try {
+      await createCommentMutation({ discussionId: id!, content: commentText.trim() });
+      setCommentText('');
+      toast.success('Your comment has been added to the discussion.');
+    } catch {
+      toast.error('Failed to post comment. Please try again.');
+    }
   };
 
   const handleEditPost = () => {
@@ -242,34 +183,48 @@ toast.success('Your comment has been added to the discussion.');
     setIsEditingPost(true);
   };
 
-  const handleSavePostEdit = () => {
+  const handleSavePostEdit = async () => {
     if (!editPostContent.trim()) return;
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        return { ...d, content: editPostContent.trim() };
-      }),
-    );
-    setIsEditingPost(false);
-toast.success('Your discussion has been edited.');
+    try {
+      await updateDiscussionMutation({
+        id: discussion.id,
+        title: discussion.title,
+        content: editPostContent.trim(),
+        category: discussion.category,
+        tags: discussion.tags,
+      });
+      setIsEditingPost(false);
+      toast.success('Your discussion has been edited.');
+    } catch {
+      toast.error('Failed to update post. Please try again.');
+    }
   };
 
-  const handleDeletePost = () => {
-    setDiscussions((prev) => prev.filter((d) => d.id !== id));
-    navigate('/discussions');
-toast.success('Post deleted', {
-  description: 'Your discussion has been removed.',
-});
+  const handleDeletePost = async () => {
+    try {
+      await deleteDiscussionMutation(discussion.id);
+      navigate('/discussions');
+      toast.success('Post deleted', {
+        description: 'Your discussion has been removed.',
+      });
+    } catch {
+      toast.error('Failed to delete post. Please try again.');
+    }
+  };
+
+  const handleBookmark = () => {
+    if (!currentUserId) {
+      toast.error('Please log in to bookmark');
+      return;
+    }
+    toggleBookmarkMutation(discussion.id);
   };
 
   return (
     <div className='min-h-screen'>
       <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8'>
         {/* Back button */}
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
+        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
           <Button
             variant='ghost'
             className='mb-6 text-muted-foreground hover:text-foreground'
@@ -310,6 +265,11 @@ toast.success('Post deleted', {
                         </span>
                         {discussion.category}
                       </Badge>
+                      {discussion.isEdited && (
+                        <span className='text-xs text-muted-foreground italic'>
+                          edited
+                        </span>
+                      )}
                     </div>
 
                     {isOwnPost && !isEditingPost && (
@@ -336,13 +296,10 @@ toast.success('Post deleted', {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Delete this post?
-                              </AlertDialogTitle>
+                              <AlertDialogTitle>Delete this post?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This action cannot be undone. This will
-                                permanently delete your discussion post and all
-                                its comments.
+                                This action cannot be undone. This will permanently
+                                delete your discussion post and all its comments.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -360,9 +317,7 @@ toast.success('Post deleted', {
                     )}
                   </div>
 
-                  <h1 className='text-2xl font-bold mb-4'>
-                    {discussion.title}
-                  </h1>
+                  <h1 className='text-2xl font-bold mb-4'>{discussion.title}</h1>
 
                   {isEditingPost ? (
                     <div className='mb-5 space-y-3'>
@@ -415,19 +370,22 @@ toast.success('Post deleted', {
                     <div className='flex items-center gap-4 text-xs text-muted-foreground'>
                       <div className='flex items-center gap-1.5'>
                         <Avatar className='h-6 w-6'>
+                          {discussion.author.image && (
+                            <AvatarImage src={discussion.author.image} />
+                          )}
                           <AvatarFallback className='bg-primary/10 text-primary text-[10px] font-bold'>
-                            {discussion.author[0].toUpperCase()}
+                            {discussion.author.username[0].toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <span className='font-medium'>{discussion.author}</span>
+                        <span className='font-medium'>{discussion.author.username}</span>
                       </div>
                       <div className='flex items-center gap-1'>
                         <Clock className='h-3 w-3' />
-                        <span>{discussion.createdAt}</span>
-                      </div>
-                      <div className='flex items-center gap-1'>
-                        <Eye className='h-3 w-3' />
-                        <span>{discussion.viewCount} views</span>
+                        <span>
+                          {formatDistanceToNow(new Date(discussion.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </span>
                       </div>
                     </div>
                     <div className='flex items-center gap-1'>
@@ -435,13 +393,23 @@ toast.success('Post deleted', {
                         variant='ghost'
                         size='icon'
                         className='h-8 w-8 text-muted-foreground hover:text-foreground'
+                        onClick={handleBookmark}
+                        disabled={isTogglingBookmark}
                       >
-                        <Bookmark className='h-4 w-4' />
+                        {discussion.bookmarked ? (
+                          <BookmarkCheck className='h-4 w-4 text-primary' />
+                        ) : (
+                          <Bookmark className='h-4 w-4' />
+                        )}
                       </Button>
                       <Button
                         variant='ghost'
                         size='icon'
                         className='h-8 w-8 text-muted-foreground hover:text-foreground'
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.href);
+                          toast.success('Link copied to clipboard');
+                        }}
                       >
                         <Share2 className='h-4 w-4' />
                       </Button>
@@ -461,35 +429,41 @@ toast.success('Post deleted', {
         </motion.div>
 
         {/* Comment input */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className='mb-6'
-        >
-          <Card className='glass-card border-border/50'>
-            <CardContent className='p-5'>
-              <h3 className='text-sm font-semibold mb-3'>Add a comment</h3>
-              <MarkdownEditor
-                value={commentText}
-                onChange={setCommentText}
-                placeholder='Share your thoughts, code snippets, or ask a follow-up question...'
-                minHeight='100px'
-                maxLength={3000}
-              />
-              <div className='flex items-center justify-end mt-3'>
-                <Button
-                  onClick={handlePostComment}
-                  disabled={!commentText.trim()}
-                  size='sm'
-                >
-                  <MessageSquare className='h-4 w-4 mr-1.5' />
-                  Comment
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {currentUserId && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className='mb-6'
+          >
+            <Card className='glass-card border-border/50'>
+              <CardContent className='p-5'>
+                <h3 className='text-sm font-semibold mb-3'>Add a comment</h3>
+                <MarkdownEditor
+                  value={commentText}
+                  onChange={setCommentText}
+                  placeholder='Share your thoughts, code snippets, or ask a follow-up question...'
+                  minHeight='100px'
+                  maxLength={3000}
+                />
+                <div className='flex items-center justify-end mt-3'>
+                  <Button
+                    onClick={handlePostComment}
+                    disabled={!commentText.trim() || isPostingComment}
+                    size='sm'
+                  >
+                    {isPostingComment ? (
+                      <Loader2 className='h-4 w-4 mr-1.5 animate-spin' />
+                    ) : (
+                      <MessageSquare className='h-4 w-4 mr-1.5' />
+                    )}
+                    Comment
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Comments section */}
         <motion.div
@@ -517,10 +491,11 @@ toast.success('Post deleted', {
           <Card className='glass-card border-border/50'>
             <CardContent className='p-5 divide-y divide-border/30'>
               {sortedComments.length > 0 ? (
-                sortedComments.map((comment) => (
+                sortedComments.map((comment: Comment) => (
                   <CommentThread
                     key={comment.id}
                     comment={comment}
+                    currentUserId={currentUserId}
                     onVote={handleCommentVote}
                     onReply={handleReply}
                     onEdit={handleCommentEdit}
@@ -541,13 +516,4 @@ toast.success('Post deleted', {
       </div>
     </div>
   );
-}
-
-function findComment(comments: Comment[], id: string): Comment | null {
-  for (const c of comments) {
-    if (c.id === id) return c;
-    const found = findComment(c.replies, id);
-    if (found) return found;
-  }
-  return null;
 }

@@ -38,7 +38,7 @@ export function NewPostDialog({
 }: NewPostDialogProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState<DiscussionCategory>('discussion');
+  const [category, setCategory] = useState<DiscussionCategory>('general');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
 
@@ -100,10 +100,10 @@ export function NewPostDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='solution'>💡 Solution</SelectItem>
-                <SelectItem value='question'>❓ Question</SelectItem>
-                <SelectItem value='discussion'>💬 Discussion</SelectItem>
-                <SelectItem value='tip'>✨ Tip</SelectItem>
+                <SelectItem value='general'>💬 General</SelectItem>
+                <SelectItem value='problem'>💡 Problem</SelectItem>
+                <SelectItem value='interview'>🎯 Interview</SelectItem>
+                <SelectItem value='career'>💼 Career</SelectItem>
               </SelectContent>
             </Select>
           </div>
