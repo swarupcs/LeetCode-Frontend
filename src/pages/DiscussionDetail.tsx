@@ -96,8 +96,7 @@ export default function DiscussionDetail() {
   const [showEditCode, setShowEditCode] = useState(false);
 
   const sortedComments = useMemo(() => {
-    if (!discussion?.comments) return [];
-    const sorted = [...discussion.comments];
+    const sorted = [...(discussion?.comments ?? [])];
     if (commentSort === 'top') {
       sorted.sort((a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes));
     } else if (commentSort === 'newest') {
