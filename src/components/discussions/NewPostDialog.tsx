@@ -71,7 +71,7 @@ export function NewPostDialog({
     });
     setTitle('');
     setContent('');
-    setCategory('discussion');
+    setCategory('general');
     setTags([]);
     onOpenChange(false);
   };

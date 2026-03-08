@@ -27,6 +27,7 @@ interface DiscussionCardProps {
   onVote: (id: string, vote: -1 | 0 | 1) => void;
   onClick: (id: string) => void;
   onDelete?: (id: string) => void;
+  isVotePending?: boolean;
 }
 
 export function DiscussionCard({
@@ -36,6 +37,7 @@ export function DiscussionCard({
   onVote,
   onClick,
   onDelete,
+  isVotePending = false,
 }: DiscussionCardProps) {
   const isOwn = !!currentUserId && discussion.author.id === currentUserId;
 
@@ -56,6 +58,7 @@ export function DiscussionCard({
               downvotes={discussion.downvotes}
               userVote={discussion.userVote}
               onVote={(vote) => onVote(discussion.id, vote)}
+              disabled={isVotePending}
             />
 
             <div className='flex-1 min-w-0'>

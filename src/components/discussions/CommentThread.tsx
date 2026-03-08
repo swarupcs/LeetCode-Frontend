@@ -28,6 +28,7 @@ interface CommentThreadProps {
   onReply: (parentId: string, content: string) => void;
   onEdit?: (commentId: string, newContent: string) => void;
   onDelete?: (commentId: string) => void;
+  isVotePending?: boolean;
 }
 
 export function CommentThread({
@@ -38,6 +39,7 @@ export function CommentThread({
   onReply,
   onEdit,
   onDelete,
+  isVotePending = false,
 }: CommentThreadProps) {
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState('');
@@ -134,6 +136,7 @@ export function CommentThread({
               onVote={(vote) => onVote(comment.id, vote)}
               size='sm'
               horizontal
+              disabled={isVotePending}
             />
 
             {depth < maxDepth && (
@@ -237,6 +240,7 @@ export function CommentThread({
                   onReply={onReply}
                   onEdit={onEdit}
                   onDelete={onDelete}
+                  isVotePending={isVotePending}
                 />
               ))}
             </div>

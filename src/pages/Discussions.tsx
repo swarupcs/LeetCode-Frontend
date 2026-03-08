@@ -88,12 +88,16 @@ export default function DiscussionsPage() {
     pagination.setPage(1);
   }, [searchQuery, sortBy, categoryFilter]);
 
-  const handleVote = (id: string, vote: -1 | 0 | 1) => {
+  const handleVote = async (id: string, vote: -1 | 0 | 1) => {
     if (!currentUserId) {
       toast.error('Please log in to vote');
       return;
     }
-    voteDiscussionMutation({ id, value: vote });
+    try {
+      await voteDiscussionMutation({ id, value: vote });
+    } catch {
+      toast.error('Failed to vote. Please try again.');
+    }
   };
 
   const handleNewPost = async (post: {
@@ -251,6 +255,7 @@ export default function DiscussionsPage() {
                 onVote={handleVote}
                 onClick={(id) => navigate(`/discussions/${id}`)}
                 onDelete={handleDeletePost}
+                isVotePending={isVotePending}
               />
             ))}
 

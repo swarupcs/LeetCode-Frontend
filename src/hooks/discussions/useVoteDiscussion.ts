@@ -5,7 +5,7 @@ export const useVoteDiscussion = () => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation<
-    { message: string; upvotes: number; downvotes: number; userVote: number },
+    { message: string; upvotes: number; downvotes: number; userVote: -1 | 0 | 1 },
     { message: string },
     { id: string; value: 1 | -1 | 0 }
   >({
@@ -17,7 +17,7 @@ export const useVoteDiscussion = () => {
   });
 
   return {
-    voteDiscussionMutation: mutation.mutate,
+    voteDiscussionMutation: mutation.mutateAsync,
     isPending: mutation.isPending,
   };
 };

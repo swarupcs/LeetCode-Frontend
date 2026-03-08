@@ -124,7 +124,7 @@ export const deleteCommentRequest = async (
 export const voteDiscussionRequest = async (
   id: string,
   value: 1 | -1 | 0,
-): Promise<{ message: string; upvotes: number; downvotes: number; userVote: number }> => {
+): Promise<{ message: string; upvotes: number; downvotes: number; userVote: -1 | 0 | 1 }> => {
   try {
     const { data } = await axiosInstance.post(`/discussions/voteDiscussion/${id}`, {
       value,
@@ -138,7 +138,7 @@ export const voteDiscussionRequest = async (
 export const voteCommentRequest = async (
   id: string,
   value: 1 | -1 | 0,
-): Promise<{ message: string; upvotes: number; downvotes: number; userVote: number }> => {
+): Promise<{ message: string; upvotes: number; downvotes: number; userVote: -1 | 0 | 1 }> => {
   try {
     const { data } = await axiosInstance.post(`/discussions/voteComment/${id}`, {
       value,

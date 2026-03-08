@@ -8,6 +8,7 @@ interface VoteButtonProps {
   onVote: (vote: -1 | 0 | 1) => void;
   size?: 'sm' | 'md';
   horizontal?: boolean;
+  disabled?: boolean;
 }
 
 export function VoteButton({
@@ -17,17 +18,20 @@ export function VoteButton({
   onVote,
   size = 'md',
   horizontal = false,
+  disabled = false,
 }: VoteButtonProps) {
   const score = upvotes - downvotes;
   const iconSize = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
 
   const handleUpvote = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (disabled) return;
     onVote(userVote === 1 ? 0 : 1);
   };
 
   const handleDownvote = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (disabled) return;
     onVote(userVote === -1 ? 0 : -1);
   };
 
@@ -36,15 +40,20 @@ export function VoteButton({
       className={cn(
         'flex items-center gap-0.5 shrink-0',
         horizontal ? 'flex-row gap-1' : 'flex-col',
+        disabled && 'opacity-50 cursor-not-allowed',
       )}
     >
       <button
         onClick={handleUpvote}
+        disabled={disabled}
         className={cn(
           'p-1 rounded-md transition-all duration-200',
-          userVote === 1
-            ? 'text-primary bg-primary/10'
-            : 'text-muted-foreground hover:text-primary hover:bg-primary/5',
+          disabled
+            ? 'cursor-not-allowed'
+            : userVote === 1
+              ? 'text-primary bg-primary/10'
+              : 'text-muted-foreground hover:text-primary hover:bg-primary/5',
+          !disabled && userVote === 1 && 'text-primary bg-primary/10',
         )}
         aria-label='Upvote'
       >
@@ -65,11 +74,15 @@ export function VoteButton({
       </span>
       <button
         onClick={handleDownvote}
+        disabled={disabled}
         className={cn(
           'p-1 rounded-md transition-all duration-200',
-          userVote === -1
-            ? 'text-destructive bg-destructive/10'
-            : 'text-muted-foreground hover:text-destructive hover:bg-destructive/5',
+          disabled
+            ? 'cursor-not-allowed'
+            : userVote === -1
+              ? 'text-destructive bg-destructive/10'
+              : 'text-muted-foreground hover:text-destructive hover:bg-destructive/5',
+          !disabled && userVote === -1 && 'text-destructive bg-destructive/10',
         )}
         aria-label='Downvote'
       >

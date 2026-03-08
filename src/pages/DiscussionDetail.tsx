@@ -116,20 +116,28 @@ export default function DiscussionDetail() {
 
   const isOwnPost = !!currentUserId && discussion.author.id === currentUserId;
 
-  const handlePostVote = (vote: -1 | 0 | 1) => {
+  const handlePostVote = async (vote: -1 | 0 | 1) => {
     if (!currentUserId) {
       toast.error('Please log in to vote');
       return;
     }
-    voteDiscussionMutation({ id: discussion.id, value: vote });
+    try {
+      await voteDiscussionMutation({ id: discussion.id, value: vote });
+    } catch {
+      toast.error('Failed to vote. Please try again.');
+    }
   };
 
-  const handleCommentVote = (commentId: string, vote: -1 | 0 | 1) => {
+  const handleCommentVote = async (commentId: string, vote: -1 | 0 | 1) => {
     if (!currentUserId) {
       toast.error('Please log in to vote');
       return;
     }
-    voteCommentMutation({ id: commentId, value: vote });
+    try {
+      await voteCommentMutation({ id: commentId, value: vote });
+    } catch {
+      toast.error('Failed to vote. Please try again.');
+    }
   };
 
   const handleReply = async (parentId: string, content: string) => {
@@ -212,12 +220,16 @@ export default function DiscussionDetail() {
     }
   };
 
-  const handleBookmark = () => {
+  const handleBookmark = async () => {
     if (!currentUserId) {
       toast.error('Please log in to bookmark');
       return;
     }
-    toggleBookmarkMutation(discussion.id);
+    try {
+      await toggleBookmarkMutation(discussion.id);
+    } catch {
+      toast.error('Failed to update bookmark. Please try again.');
+    }
   };
 
   return (
@@ -249,6 +261,7 @@ export default function DiscussionDetail() {
                   downvotes={discussion.downvotes}
                   userVote={discussion.userVote}
                   onVote={handlePostVote}
+                  disabled={isVotingDiscussion}
                 />
 
                 <div className='flex-1 min-w-0'>
@@ -417,6 +430,7 @@ export default function DiscussionDetail() {
                         variant='ghost'
                         size='icon'
                         className='h-8 w-8 text-muted-foreground hover:text-destructive'
+                        onClick={() => toast.info('Reporting feature coming soon')}
                       >
                         <Flag className='h-4 w-4' />
                       </Button>
@@ -500,6 +514,7 @@ export default function DiscussionDetail() {
                     onReply={handleReply}
                     onEdit={handleCommentEdit}
                     onDelete={handleCommentDelete}
+                    isVotePending={isVotingComment}
                   />
                 ))
               ) : (

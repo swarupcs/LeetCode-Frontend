@@ -17,7 +17,7 @@ export const useToggleBookmark = (discussionId: string) => {
   });
 
   return {
-    toggleBookmarkMutation: mutation.mutate,
+    toggleBookmarkMutation: mutation.mutateAsync,
     isPending: mutation.isPending,
   };
 };
