@@ -8,6 +8,8 @@ interface UpdateDiscussionPayload {
   content: string;
   category: string;
   tags: string[];
+  codeContent?: string;
+  codeLanguage?: string;
 }
 
 export const useUpdateDiscussion = () => {

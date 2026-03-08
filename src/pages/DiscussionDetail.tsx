@@ -36,13 +36,21 @@ import {
   Trash2,
   X,
   Loader2,
+  Code2,
+  Building2,
 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { VoteButton } from '@/components/discussions/VoteButton';
 import { CommentThread } from '@/components/discussions/CommentThread';
 import { MarkdownContent } from '@/components/discussions/MarkdownContent';
 import { MarkdownEditor } from '@/components/discussions/MarkdownEditor';
 import { getCategoryStyle, getCategoryIcon } from '@/data/discussions';
-import type { Comment } from '@/data/discussions';
+import type { Comment, DiscussionCategory } from '@/data/discussions';
+
+const CODE_LANGUAGES = [
+  'javascript', 'typescript', 'python', 'java', 'cpp', 'c',
+  'go', 'rust', 'kotlin', 'swift', 'ruby', 'php', 'sql', 'bash', 'other',
+];
 import { toast } from 'sonner';
 import { useAppSelector } from '@/hooks/redux';
 import { useGetDiscussion } from '@/hooks/discussions/useGetDiscussion';
@@ -74,6 +82,9 @@ export default function DiscussionDetail() {
   const [commentSort, setCommentSort] = useState('top');
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [editPostContent, setEditPostContent] = useState('');
+  const [editCodeContent, setEditCodeContent] = useState('');
+  const [editCodeLanguage, setEditCodeLanguage] = useState('javascript');
+  const [showEditCode, setShowEditCode] = useState(false);
 
   const sortedComments = useMemo(() => {
     if (!discussion?.comments) return [];
@@ -180,6 +191,9 @@ export default function DiscussionDetail() {
 
   const handleEditPost = () => {
     setEditPostContent(discussion.content);
+    setEditCodeContent(discussion.codeContent ?? '');
+    setEditCodeLanguage(discussion.codeLanguage ?? 'javascript');
+    setShowEditCode(!!discussion.codeContent);
     setIsEditingPost(true);
   };
 
@@ -190,8 +204,10 @@ export default function DiscussionDetail() {
         id: discussion.id,
         title: discussion.title,
         content: editPostContent.trim(),
-        category: discussion.category,
+        category: discussion.category as DiscussionCategory,
         tags: discussion.tags,
+        codeContent: showEditCode && editCodeContent.trim() ? editCodeContent.trim() : undefined,
+        codeLanguage: showEditCode && editCodeContent.trim() ? editCodeLanguage : undefined,
       });
       setIsEditingPost(false);
       toast.success('Your discussion has been edited.');
@@ -258,7 +274,7 @@ export default function DiscussionDetail() {
 
                 <div className='flex-1 min-w-0'>
                   <div className='flex items-center justify-between mb-3'>
-                    <div className='flex items-center gap-2'>
+                    <div className='flex items-center gap-2 flex-wrap'>
                       <Badge
                         variant='outline'
                         className={`text-xs px-2.5 py-0.5 ${getCategoryStyle(
@@ -270,6 +286,15 @@ export default function DiscussionDetail() {
                         </span>
                         {discussion.category}
                       </Badge>
+                      {discussion.category === 'interview' &&
+                        (discussion.company || discussion.position) && (
+                          <span className='flex items-center gap-1 text-xs text-muted-foreground'>
+                            <Building2 className='h-3.5 w-3.5' />
+                            {[discussion.company, discussion.position]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        )}
                       {discussion.isEdited && (
                         <span className='text-xs text-muted-foreground italic'>
                           edited
@@ -333,6 +358,38 @@ export default function DiscussionDetail() {
                         minHeight='150px'
                         maxLength={5000}
                       />
+                      {/* Code snippet editor */}
+                      <button
+                        type='button'
+                        onClick={() => setShowEditCode((v) => !v)}
+                        className={`flex items-center gap-2 text-sm font-medium transition-colors ${showEditCode ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                      >
+                        <Code2 className='h-4 w-4' />
+                        {showEditCode ? 'Remove code snippet' : 'Add / edit code snippet'}
+                      </button>
+                      {showEditCode && (
+                        <div className='space-y-2 rounded-md border border-border/50 p-3 bg-surface-1/50'>
+                          <Select value={editCodeLanguage} onValueChange={setEditCodeLanguage}>
+                            <SelectTrigger className='w-44 bg-surface-1 border-border/50 h-8 text-xs'>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CODE_LANGUAGES.map((lang) => (
+                                <SelectItem key={lang} value={lang} className='text-xs'>
+                                  {lang}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Textarea
+                            value={editCodeContent}
+                            onChange={(e) => setEditCodeContent(e.target.value)}
+                            placeholder='Paste your code here...'
+                            className='min-h-[120px] bg-surface-1 border-border/50 resize-none font-mono text-xs'
+                            maxLength={8000}
+                          />
+                        </div>
+                      )}
                       <div className='flex items-center gap-2'>
                         <Button
                           size='sm'
@@ -352,10 +409,25 @@ export default function DiscussionDetail() {
                       </div>
                     </div>
                   ) : (
-                    <MarkdownContent
-                      content={discussion.content}
-                      className='text-sm text-foreground/90 mb-5 leading-relaxed'
-                    />
+                    <>
+                      <MarkdownContent
+                        content={discussion.content}
+                        className='text-sm text-foreground/90 mb-5 leading-relaxed'
+                      />
+                      {discussion.codeContent && (
+                        <div className='mb-5'>
+                          <div className='flex items-center gap-1.5 mb-1.5'>
+                            <Code2 className='h-3.5 w-3.5 text-muted-foreground' />
+                            <span className='text-xs font-mono text-muted-foreground'>
+                              {discussion.codeLanguage || 'code'}
+                            </span>
+                          </div>
+                          <pre className='p-4 rounded-lg bg-surface-2 border border-border/50 text-xs font-mono overflow-x-auto whitespace-pre-wrap'>
+                            <code>{discussion.codeContent}</code>
+                          </pre>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Tags */}

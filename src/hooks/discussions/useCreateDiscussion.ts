@@ -9,6 +9,8 @@ interface CreateDiscussionPayload {
   tags: string[];
   codeContent?: string;
   codeLanguage?: string;
+  company?: string;
+  position?: string;
 }
 
 export const useCreateDiscussion = () => {

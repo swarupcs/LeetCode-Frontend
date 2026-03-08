@@ -31,7 +31,7 @@ export const getDiscussionRequest = async (
 ): Promise<Discussion & { comments: Comment[] }> => {
   try {
     const { data } = await axiosInstance.get(`/discussions/getDiscussion/${id}`);
-    return data;
+    return data.data;
   } catch (err) {
     return handleError(err);
   }
@@ -44,6 +44,8 @@ export const createDiscussionRequest = async (payload: {
   tags: string[];
   codeContent?: string;
   codeLanguage?: string;
+  company?: string;
+  position?: string;
 }): Promise<{ message: string; data: Discussion }> => {
   try {
     const { data } = await axiosInstance.post('/discussions/createDiscussion', payload);
@@ -55,7 +57,14 @@ export const createDiscussionRequest = async (payload: {
 
 export const updateDiscussionRequest = async (
   id: string,
-  payload: { title: string; content: string; category: string; tags: string[] },
+  payload: {
+    title: string;
+    content: string;
+    category: string;
+    tags: string[];
+    codeContent?: string;
+    codeLanguage?: string;
+  },
 ): Promise<{ message: string; data: Discussion }> => {
   try {
     const { data } = await axiosInstance.put(

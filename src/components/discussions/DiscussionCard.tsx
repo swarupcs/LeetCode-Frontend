@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Clock, MessageSquare, Trash2 } from 'lucide-react';
+import { Clock, MessageSquare, Trash2, Code2, Building2 } from 'lucide-react';
 import { VoteButton } from './VoteButton';
 import { getCategoryStyle, getCategoryIcon } from '@/data/discussions';
 import type { Discussion } from '@/data/discussions';
@@ -75,6 +75,12 @@ export function DiscussionCard({
                     </span>
                     {discussion.category}
                   </Badge>
+                  {discussion.contentType === 'code' && (
+                    <span className='flex items-center gap-0.5 text-[10px] text-muted-foreground border border-border/40 rounded px-1.5 h-5'>
+                      <Code2 className='h-3 w-3' />
+                      code
+                    </span>
+                  )}
                   {discussion.isEdited && (
                     <span className='text-[10px] text-muted-foreground italic'>
                       edited
@@ -140,6 +146,18 @@ export function DiscussionCard({
                   </span>
                 ))}
               </div>
+
+              {discussion.category === 'interview' &&
+                (discussion.company || discussion.position) && (
+                  <div className='flex items-center gap-1 text-[10px] text-muted-foreground mb-3'>
+                    <Building2 className='h-3 w-3 shrink-0' />
+                    <span>
+                      {[discussion.company, discussion.position]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                  </div>
+                )}
 
               <div className='flex items-center gap-4 text-xs text-muted-foreground'>
                 <div className='flex items-center gap-1.5'>

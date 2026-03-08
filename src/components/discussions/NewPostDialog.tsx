@@ -42,6 +42,7 @@ const CODE_LANGUAGES = [
 interface NewPostDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isPending?: boolean;
   onSubmit: (post: {
     title: string;
     content: string;
@@ -57,6 +58,7 @@ interface NewPostDialogProps {
 export function NewPostDialog({
   open,
   onOpenChange,
+  isPending = false,
   onSubmit,
 }: NewPostDialogProps) {
   const [title, setTitle] = useState('');
@@ -312,7 +314,7 @@ export function NewPostDialog({
           <Button variant='ghost' onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid}>
+          <Button onClick={handleSubmit} disabled={!isValid || isPending}>
             Post
           </Button>
         </DialogFooter>

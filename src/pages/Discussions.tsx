@@ -350,6 +350,7 @@ export default function DiscussionsPage() {
         <NewPostDialog
           open={newPostOpen}
           onOpenChange={setNewPostOpen}
+          isPending={isCreating}
           onSubmit={handleNewPost}
         />
       </div>
