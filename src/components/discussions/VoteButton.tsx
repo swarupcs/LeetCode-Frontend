@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VoteButtonProps {
@@ -35,25 +35,42 @@ export function VoteButton({
     onVote(userVote === -1 ? 0 : -1);
   };
 
+  if (disabled) {
+    return (
+      <div
+        className={cn(
+          'flex items-center gap-0.5 shrink-0 opacity-60 cursor-not-allowed',
+          horizontal ? 'flex-row gap-1' : 'flex-col',
+        )}
+      >
+        <Loader2 className={cn(iconSize, 'animate-spin text-muted-foreground')} />
+        <span
+          className={cn(
+            'font-semibold tabular-nums',
+            size === 'sm' ? 'text-xs' : 'text-sm',
+            'text-muted-foreground',
+          )}
+        >
+          {score}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
         'flex items-center gap-0.5 shrink-0',
         horizontal ? 'flex-row gap-1' : 'flex-col',
-        disabled && 'opacity-50 cursor-not-allowed',
       )}
     >
       <button
         onClick={handleUpvote}
-        disabled={disabled}
         className={cn(
           'p-1 rounded-md transition-all duration-200',
-          disabled
-            ? 'cursor-not-allowed'
-            : userVote === 1
-              ? 'text-primary bg-primary/10'
-              : 'text-muted-foreground hover:text-primary hover:bg-primary/5',
-          !disabled && userVote === 1 && 'text-primary bg-primary/10',
+          userVote === 1
+            ? 'text-primary bg-primary/10'
+            : 'text-muted-foreground hover:text-primary hover:bg-primary/5',
         )}
         aria-label='Upvote'
       >
@@ -74,15 +91,11 @@ export function VoteButton({
       </span>
       <button
         onClick={handleDownvote}
-        disabled={disabled}
         className={cn(
           'p-1 rounded-md transition-all duration-200',
-          disabled
-            ? 'cursor-not-allowed'
-            : userVote === -1
-              ? 'text-destructive bg-destructive/10'
-              : 'text-muted-foreground hover:text-destructive hover:bg-destructive/5',
-          !disabled && userVote === -1 && 'text-destructive bg-destructive/10',
+          userVote === -1
+            ? 'text-destructive bg-destructive/10'
+            : 'text-muted-foreground hover:text-destructive hover:bg-destructive/5',
         )}
         aria-label='Downvote'
       >

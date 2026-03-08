@@ -14,7 +14,7 @@ interface CreateDiscussionPayload {
 export const useCreateDiscussion = () => {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<Discussion, { message: string }, CreateDiscussionPayload>({
+  const mutation = useMutation<{ message: string; data: Discussion }, { message: string }, CreateDiscussionPayload>({
     mutationFn: createDiscussionRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discussions'] });

@@ -17,8 +17,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { X } from 'lucide-react';
+import { X, Code2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { DiscussionCategory } from '@/data/discussions';
+
+const CODE_LANGUAGES = [
+  'javascript',
+  'typescript',
+  'python',
+  'java',
+  'cpp',
+  'c',
+  'go',
+  'rust',
+  'kotlin',
+  'swift',
+  'ruby',
+  'php',
+  'sql',
+  'bash',
+  'other',
+];
 
 interface NewPostDialogProps {
   open: boolean;
@@ -28,6 +47,10 @@ interface NewPostDialogProps {
     content: string;
     category: DiscussionCategory;
     tags: string[];
+    codeContent?: string;
+    codeLanguage?: string;
+    company?: string;
+    position?: string;
   }) => void;
 }
 
@@ -41,6 +64,11 @@ export function NewPostDialog({
   const [category, setCategory] = useState<DiscussionCategory>('general');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [showCode, setShowCode] = useState(false);
+  const [codeContent, setCodeContent] = useState('');
+  const [codeLanguage, setCodeLanguage] = useState('javascript');
+  const [company, setCompany] = useState('');
+  const [position, setPosition] = useState('');
 
   const handleAddTag = () => {
     const trimmed = tagInput.trim();
@@ -68,11 +96,25 @@ export function NewPostDialog({
       content: content.trim(),
       category,
       tags,
+      ...(showCode && codeContent.trim()
+        ? { codeContent: codeContent.trim(), codeLanguage }
+        : {}),
+      ...(category === 'interview' && company.trim()
+        ? { company: company.trim() }
+        : {}),
+      ...(category === 'interview' && position.trim()
+        ? { position: position.trim() }
+        : {}),
     });
     setTitle('');
     setContent('');
     setCategory('general');
     setTags([]);
+    setShowCode(false);
+    setCodeContent('');
+    setCodeLanguage('javascript');
+    setCompany('');
+    setPosition('');
     onOpenChange(false);
   };
 
@@ -80,7 +122,7 @@ export function NewPostDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-[600px] glass-card border-border/50'>
+      <DialogContent className='sm:max-w-[600px] max-h-[90vh] overflow-y-auto glass-card border-border/50'>
         <DialogHeader>
           <DialogTitle className='text-xl font-bold'>
             Create New Post
@@ -108,6 +150,42 @@ export function NewPostDialog({
             </Select>
           </div>
 
+          {/* Interview-only fields */}
+          {category === 'interview' && (
+            <div className='grid grid-cols-2 gap-3'>
+              <div className='space-y-2'>
+                <label className='text-sm font-medium text-foreground'>
+                  Company{' '}
+                  <span className='text-muted-foreground font-normal'>
+                    (optional)
+                  </span>
+                </label>
+                <Input
+                  placeholder='e.g. Google'
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  className='bg-surface-1 border-border/50'
+                  maxLength={60}
+                />
+              </div>
+              <div className='space-y-2'>
+                <label className='text-sm font-medium text-foreground'>
+                  Position{' '}
+                  <span className='text-muted-foreground font-normal'>
+                    (optional)
+                  </span>
+                </label>
+                <Input
+                  placeholder='e.g. SWE Intern'
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value)}
+                  className='bg-surface-1 border-border/50'
+                  maxLength={60}
+                />
+              </div>
+            </div>
+          )}
+
           <div className='space-y-2'>
             <label className='text-sm font-medium text-foreground'>Title</label>
             <Input
@@ -130,12 +208,56 @@ export function NewPostDialog({
               placeholder='Share your thoughts, code, or question... (Markdown supported)'
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className='min-h-[160px] bg-surface-1 border-border/50 resize-none font-mono text-sm'
+              className='min-h-[140px] bg-surface-1 border-border/50 resize-none text-sm'
               maxLength={5000}
             />
             <p className='text-xs text-muted-foreground text-right'>
               {content.length}/5000
             </p>
+          </div>
+
+          {/* Code snippet toggle */}
+          <div className='space-y-2'>
+            <button
+              type='button'
+              onClick={() => setShowCode((v) => !v)}
+              className={cn(
+                'flex items-center gap-2 text-sm font-medium transition-colors',
+                showCode
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <Code2 className='h-4 w-4' />
+              {showCode ? 'Remove code snippet' : 'Add code snippet'}
+            </button>
+
+            {showCode && (
+              <div className='space-y-2 rounded-md border border-border/50 p-3 bg-surface-1/50'>
+                <Select value={codeLanguage} onValueChange={setCodeLanguage}>
+                  <SelectTrigger className='w-44 bg-surface-1 border-border/50 h-8 text-xs'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CODE_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang} value={lang} className='text-xs'>
+                        {lang}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Textarea
+                  placeholder='Paste your code here...'
+                  value={codeContent}
+                  onChange={(e) => setCodeContent(e.target.value)}
+                  className='min-h-[120px] bg-surface-1 border-border/50 resize-none font-mono text-xs'
+                  maxLength={8000}
+                />
+                <p className='text-xs text-muted-foreground text-right'>
+                  {codeContent.length}/8000
+                </p>
+              </div>
+            )}
           </div>
 
           <div className='space-y-2'>

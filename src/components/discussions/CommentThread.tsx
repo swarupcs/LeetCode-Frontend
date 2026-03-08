@@ -6,6 +6,7 @@ import { VoteButton } from './VoteButton';
 import { MarkdownContent } from './MarkdownContent';
 import { MarkdownEditor } from './MarkdownEditor';
 import { Clock, Reply, Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { Comment } from '@/data/discussions';
 import {
@@ -25,8 +26,8 @@ interface CommentThreadProps {
   depth?: number;
   currentUserId: string | null;
   onVote: (commentId: string, vote: -1 | 0 | 1) => void;
-  onReply: (parentId: string, content: string) => void;
-  onEdit?: (commentId: string, newContent: string) => void;
+  onReply: (parentId: string, content: string) => Promise<void>;
+  onEdit?: (commentId: string, newContent: string) => Promise<void>;
   onDelete?: (commentId: string) => void;
   isVotePending?: boolean;
 }
@@ -48,17 +49,25 @@ export function CommentThread({
   const maxDepth = 3;
   const isOwn = !!currentUserId && comment.author.id === currentUserId;
 
-  const handleSubmitReply = () => {
+  const handleSubmitReply = async () => {
     if (!replyContent.trim()) return;
-    onReply(comment.id, replyContent.trim());
-    setReplyContent('');
-    setShowReplyInput(false);
+    try {
+      await onReply(comment.id, replyContent.trim());
+      setReplyContent('');
+      setShowReplyInput(false);
+    } catch {
+      toast.error('Failed to post reply. Please try again.');
+    }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editContent.trim() || !onEdit) return;
-    onEdit(comment.id, editContent.trim());
-    setIsEditing(false);
+    try {
+      await onEdit(comment.id, editContent.trim());
+      setIsEditing(false);
+    } catch {
+      toast.error('Failed to save edit. Please try again.');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -77,7 +86,7 @@ export function CommentThread({
         <Avatar className='h-7 w-7 shrink-0 mt-0.5'>
           {comment.author.image && <AvatarImage src={comment.author.image} />}
           <AvatarFallback className='bg-primary/10 text-primary text-[10px] font-bold'>
-            {comment.author.username[0].toUpperCase()}
+            {comment.author.username?.[0]?.toUpperCase() ?? '?'}
           </AvatarFallback>
         </Avatar>
 

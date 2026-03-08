@@ -39,7 +39,7 @@ export default function DiscussionsPage() {
   const { discussions, isLoading, isError } = useGetAllDiscussions();
   const { createDiscussionMutation, isPending: isCreating } = useCreateDiscussion();
   const { deleteDiscussionMutation } = useDeleteDiscussion();
-  const { voteDiscussionMutation } = useVoteDiscussion();
+  const { voteDiscussionMutation, isPending: isVotePending } = useVoteDiscussion();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('top');
@@ -105,6 +105,10 @@ export default function DiscussionsPage() {
     content: string;
     category: DiscussionCategory;
     tags: string[];
+    codeContent?: string;
+    codeLanguage?: string;
+    company?: string;
+    position?: string;
   }) => {
     try {
       await createDiscussionMutation(post);

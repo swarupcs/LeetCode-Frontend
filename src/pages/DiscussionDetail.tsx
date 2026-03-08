@@ -66,8 +66,8 @@ export default function DiscussionDetail() {
   const { createCommentMutation, isPending: isPostingComment } = useCreateComment(id!);
   const { updateCommentMutation } = useUpdateComment(id!);
   const { deleteCommentMutation } = useDeleteComment(id!);
-  const { voteDiscussionMutation } = useVoteDiscussion();
-  const { voteCommentMutation } = useVoteComment(id!);
+  const { voteDiscussionMutation, isPending: isVotingDiscussion } = useVoteDiscussion();
+  const { voteCommentMutation, isPending: isVotingComment } = useVoteComment(id!);
   const { toggleBookmarkMutation, isPending: isTogglingBookmark } = useToggleBookmark(id!);
 
   const [commentText, setCommentText] = useState('');
@@ -140,26 +140,18 @@ export default function DiscussionDetail() {
     }
   };
 
-  const handleReply = async (parentId: string, content: string) => {
+  const handleReply = async (parentId: string, content: string): Promise<void> => {
     if (!currentUserId) {
       toast.error('Please log in to reply');
       return;
     }
-    try {
-      await createCommentMutation({ discussionId: id!, content, parentId });
-      toast.success('Your reply has been added to the thread.');
-    } catch {
-      toast.error('Failed to post reply. Please try again.');
-    }
+    await createCommentMutation({ discussionId: id!, content, parentId });
+    toast.success('Your reply has been added to the thread.');
   };
 
-  const handleCommentEdit = async (commentId: string, newContent: string) => {
-    try {
-      await updateCommentMutation({ id: commentId, content: newContent });
-      toast.success('Your comment has been edited.');
-    } catch {
-      toast.error('Failed to edit comment. Please try again.');
-    }
+  const handleCommentEdit = async (commentId: string, newContent: string): Promise<void> => {
+    await updateCommentMutation({ id: commentId, content: newContent });
+    toast.success('Your comment has been edited.');
   };
 
   const handleCommentDelete = async (commentId: string) => {
@@ -387,7 +379,7 @@ export default function DiscussionDetail() {
                             <AvatarImage src={discussion.author.image} />
                           )}
                           <AvatarFallback className='bg-primary/10 text-primary text-[10px] font-bold'>
-                            {discussion.author.username[0].toUpperCase()}
+                            {discussion.author.username?.[0]?.toUpperCase() ?? '?'}
                           </AvatarFallback>
                         </Avatar>
                         <span className='font-medium'>{discussion.author.username}</span>

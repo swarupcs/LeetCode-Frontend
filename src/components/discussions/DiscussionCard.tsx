@@ -148,7 +148,7 @@ export function DiscussionCard({
                       <AvatarImage src={discussion.author.image} />
                     )}
                     <AvatarFallback className='bg-primary/10 text-primary text-[9px] font-bold'>
-                      {discussion.author.username[0].toUpperCase()}
+                      {discussion.author.username?.[0]?.toUpperCase() ?? '?'}
                     </AvatarFallback>
                   </Avatar>
                   <span className='font-medium'>{discussion.author.username}</span>

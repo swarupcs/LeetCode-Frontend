@@ -44,7 +44,7 @@ export const createDiscussionRequest = async (payload: {
   tags: string[];
   codeContent?: string;
   codeLanguage?: string;
-}): Promise<Discussion> => {
+}): Promise<{ message: string; data: Discussion }> => {
   try {
     const { data } = await axiosInstance.post('/discussions/createDiscussion', payload);
     return data;
@@ -150,6 +150,18 @@ export const voteCommentRequest = async (
 };
 
 // ─── Bookmarks ────────────────────────────────────────────────────────────────
+
+export const getBookmarkedDiscussionsRequest = async (): Promise<{
+  message: string;
+  data: Discussion[];
+}> => {
+  try {
+    const { data } = await axiosInstance.get('/discussions/bookmarks');
+    return data;
+  } catch (err) {
+    return handleError(err);
+  }
+};
 
 export const toggleBookmarkRequest = async (
   id: string,
