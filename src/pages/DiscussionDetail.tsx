@@ -70,7 +70,7 @@ export default function DiscussionDetail() {
   const currentUserId = useAppSelector((state) => state.auth.id);
 
   const { discussion, isLoading, isError } = useGetDiscussion(id!);
-  const { updateDiscussionMutation } = useUpdateDiscussion();
+  const { updateDiscussionMutation, isPending: isUpdatingPost } = useUpdateDiscussion();
   const { deleteDiscussionMutation } = useDeleteDiscussion();
   const { createCommentMutation, isPending: isPostingComment } = useCreateComment(id!);
   const { updateCommentMutation } = useUpdateComment(id!);
@@ -517,7 +517,7 @@ export default function DiscussionDetail() {
                         <Button
                           size='sm'
                           onClick={handleSavePostEdit}
-                          disabled={!editTitle.trim() || !editContent.trim()}
+                          disabled={!editTitle.trim() || !editContent.trim() || isUpdatingPost}
                         >
                           Save Changes
                         </Button>

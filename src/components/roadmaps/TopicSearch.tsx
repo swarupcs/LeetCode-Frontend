@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { roadmaps, type Roadmap, type RoadmapTopic } from '@/data/roadmaps';
+import type { Roadmap, RoadmapTopic } from '@/data/roadmaps';
+import { useGetRoadmaps } from '@/hooks/roadmaps/useGetRoadmaps';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SearchResult {
@@ -29,11 +30,12 @@ export function TopicSearch() {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
-  const published = useMemo(() => roadmaps.filter((r) => r.isPublished), []);
+  const { roadmaps } = useGetRoadmaps();
+  const published = roadmaps as unknown as Roadmap[];
 
   const results = useMemo<SearchResult[]>(() => {
     const q = query.trim().toLowerCase();
-    if (q.length < 2) return [];
+    if (q.length < 2 || published.length === 0) return [];
 
     const matches: SearchResult[] = [];
     for (const roadmap of published) {
