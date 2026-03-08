@@ -19,6 +19,7 @@ export const useCreateComment = (discussionId: string) => {
     mutationFn: createCommentRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discussion', discussionId] });
+      queryClient.invalidateQueries({ queryKey: ['discussions'] });
     },
   });
 

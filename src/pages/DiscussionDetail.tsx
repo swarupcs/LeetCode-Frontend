@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
@@ -39,18 +41,12 @@ import {
   Code2,
   Building2,
 } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
 import { VoteButton } from '@/components/discussions/VoteButton';
 import { CommentThread } from '@/components/discussions/CommentThread';
 import { MarkdownContent } from '@/components/discussions/MarkdownContent';
 import { MarkdownEditor } from '@/components/discussions/MarkdownEditor';
 import { getCategoryStyle, getCategoryIcon } from '@/data/discussions';
 import type { Comment, DiscussionCategory } from '@/data/discussions';
-
-const CODE_LANGUAGES = [
-  'javascript', 'typescript', 'python', 'java', 'cpp', 'c',
-  'go', 'rust', 'kotlin', 'swift', 'ruby', 'php', 'sql', 'bash', 'other',
-];
 import { toast } from 'sonner';
 import { useAppSelector } from '@/hooks/redux';
 import { useGetDiscussion } from '@/hooks/discussions/useGetDiscussion';
@@ -62,6 +58,11 @@ import { useDeleteComment } from '@/hooks/discussions/useDeleteComment';
 import { useVoteDiscussion } from '@/hooks/discussions/useVoteDiscussion';
 import { useVoteComment } from '@/hooks/discussions/useVoteComment';
 import { useToggleBookmark } from '@/hooks/discussions/useToggleBookmark';
+
+const CODE_LANGUAGES = [
+  'javascript', 'typescript', 'python', 'java', 'cpp', 'c',
+  'go', 'rust', 'kotlin', 'swift', 'ruby', 'php', 'sql', 'bash', 'other',
+];
 
 export default function DiscussionDetail() {
   const { id } = useParams<{ id: string }>();
@@ -81,7 +82,15 @@ export default function DiscussionDetail() {
   const [commentText, setCommentText] = useState('');
   const [commentSort, setCommentSort] = useState('top');
   const [isEditingPost, setIsEditingPost] = useState(false);
-  const [editPostContent, setEditPostContent] = useState('');
+
+  // Edit form state
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editCategory, setEditCategory] = useState<DiscussionCategory>('general');
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [editTagInput, setEditTagInput] = useState('');
+  const [editCompany, setEditCompany] = useState('');
+  const [editPosition, setEditPosition] = useState('');
   const [editCodeContent, setEditCodeContent] = useState('');
   const [editCodeLanguage, setEditCodeLanguage] = useState('javascript');
   const [showEditCode, setShowEditCode] = useState(false);
@@ -128,10 +137,7 @@ export default function DiscussionDetail() {
   const isOwnPost = !!currentUserId && discussion.author.id === currentUserId;
 
   const handlePostVote = async (vote: -1 | 0 | 1) => {
-    if (!currentUserId) {
-      toast.error('Please log in to vote');
-      return;
-    }
+    if (!currentUserId) { toast.error('Please log in to vote'); return; }
     try {
       await voteDiscussionMutation({ id: discussion.id, value: vote });
     } catch {
@@ -140,10 +146,7 @@ export default function DiscussionDetail() {
   };
 
   const handleCommentVote = async (commentId: string, vote: -1 | 0 | 1) => {
-    if (!currentUserId) {
-      toast.error('Please log in to vote');
-      return;
-    }
+    if (!currentUserId) { toast.error('Please log in to vote'); return; }
     try {
       await voteCommentMutation({ id: commentId, value: vote });
     } catch {
@@ -152,10 +155,7 @@ export default function DiscussionDetail() {
   };
 
   const handleReply = async (parentId: string, content: string): Promise<void> => {
-    if (!currentUserId) {
-      toast.error('Please log in to reply');
-      return;
-    }
+    if (!currentUserId) { toast.error('Please log in to reply'); return; }
     await createCommentMutation({ discussionId: id!, content, parentId });
     toast.success('Your reply has been added to the thread.');
   };
@@ -176,10 +176,7 @@ export default function DiscussionDetail() {
 
   const handlePostComment = async () => {
     if (!commentText.trim()) return;
-    if (!currentUserId) {
-      toast.error('Please log in to comment');
-      return;
-    }
+    if (!currentUserId) { toast.error('Please log in to comment'); return; }
     try {
       await createCommentMutation({ discussionId: id!, content: commentText.trim() });
       setCommentText('');
@@ -190,22 +187,38 @@ export default function DiscussionDetail() {
   };
 
   const handleEditPost = () => {
-    setEditPostContent(discussion.content);
+    setEditTitle(discussion.title);
+    setEditContent(discussion.content);
+    setEditCategory(discussion.category);
+    setEditTags([...discussion.tags]);
+    setEditTagInput('');
+    setEditCompany(discussion.company ?? '');
+    setEditPosition(discussion.position ?? '');
     setEditCodeContent(discussion.codeContent ?? '');
     setEditCodeLanguage(discussion.codeLanguage ?? 'javascript');
     setShowEditCode(!!discussion.codeContent);
     setIsEditingPost(true);
   };
 
+  const handleAddEditTag = () => {
+    const trimmed = editTagInput.trim();
+    if (trimmed && !editTags.includes(trimmed) && editTags.length < 5) {
+      setEditTags([...editTags, trimmed]);
+      setEditTagInput('');
+    }
+  };
+
   const handleSavePostEdit = async () => {
-    if (!editPostContent.trim()) return;
+    if (!editTitle.trim() || !editContent.trim()) return;
     try {
       await updateDiscussionMutation({
         id: discussion.id,
-        title: discussion.title,
-        content: editPostContent.trim(),
-        category: discussion.category as DiscussionCategory,
-        tags: discussion.tags,
+        title: editTitle.trim(),
+        content: editContent.trim(),
+        category: editCategory,
+        tags: editTags,
+        company: editCategory === 'interview' && editCompany.trim() ? editCompany.trim() : undefined,
+        position: editCategory === 'interview' && editPosition.trim() ? editPosition.trim() : undefined,
         codeContent: showEditCode && editCodeContent.trim() ? editCodeContent.trim() : undefined,
         codeLanguage: showEditCode && editCodeContent.trim() ? editCodeLanguage : undefined,
       });
@@ -220,19 +233,14 @@ export default function DiscussionDetail() {
     try {
       await deleteDiscussionMutation(discussion.id);
       navigate('/discussions');
-      toast.success('Post deleted', {
-        description: 'Your discussion has been removed.',
-      });
+      toast.success('Post deleted', { description: 'Your discussion has been removed.' });
     } catch {
       toast.error('Failed to delete post. Please try again.');
     }
   };
 
   const handleBookmark = async () => {
-    if (!currentUserId) {
-      toast.error('Please log in to bookmark');
-      return;
-    }
+    if (!currentUserId) { toast.error('Please log in to bookmark'); return; }
     try {
       await toggleBookmarkMutation(discussion.id);
     } catch {
@@ -273,37 +281,32 @@ export default function DiscussionDetail() {
                 />
 
                 <div className='flex-1 min-w-0'>
+                  {/* Header row: badges + edit/delete buttons */}
                   <div className='flex items-center justify-between mb-3'>
-                    <div className='flex items-center gap-2 flex-wrap'>
-                      <Badge
-                        variant='outline'
-                        className={`text-xs px-2.5 py-0.5 ${getCategoryStyle(
-                          discussion.category,
-                        )}`}
-                      >
-                        <span className='mr-1'>
-                          {getCategoryIcon(discussion.category)}
-                        </span>
-                        {discussion.category}
-                      </Badge>
-                      {discussion.category === 'interview' &&
-                        (discussion.company || discussion.position) && (
-                          <span className='flex items-center gap-1 text-xs text-muted-foreground'>
-                            <Building2 className='h-3.5 w-3.5' />
-                            {[discussion.company, discussion.position]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </span>
+                    {!isEditingPost && (
+                      <div className='flex items-center gap-2 flex-wrap'>
+                        <Badge
+                          variant='outline'
+                          className={`text-xs px-2.5 py-0.5 ${getCategoryStyle(discussion.category)}`}
+                        >
+                          <span className='mr-1'>{getCategoryIcon(discussion.category)}</span>
+                          {discussion.category}
+                        </Badge>
+                        {discussion.category === 'interview' &&
+                          (discussion.company || discussion.position) && (
+                            <span className='flex items-center gap-1 text-xs text-muted-foreground'>
+                              <Building2 className='h-3.5 w-3.5' />
+                              {[discussion.company, discussion.position].filter(Boolean).join(' · ')}
+                            </span>
+                          )}
+                        {discussion.isEdited && (
+                          <span className='text-xs text-muted-foreground italic'>edited</span>
                         )}
-                      {discussion.isEdited && (
-                        <span className='text-xs text-muted-foreground italic'>
-                          edited
-                        </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {isOwnPost && !isEditingPost && (
-                      <div className='flex items-center gap-1'>
+                      <div className='flex items-center gap-1 ml-auto'>
                         <Button
                           variant='ghost'
                           size='sm'
@@ -328,8 +331,8 @@ export default function DiscussionDetail() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete this post?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This action cannot be undone. This will permanently
-                                delete your discussion post and all its comments.
+                                This action cannot be undone. This will permanently delete your
+                                discussion post and all its comments.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -347,54 +350,175 @@ export default function DiscussionDetail() {
                     )}
                   </div>
 
-                  <h1 className='text-2xl font-bold mb-4'>{discussion.title}</h1>
-
+                  {/* ── Edit form ─────────────────────────────────── */}
                   {isEditingPost ? (
-                    <div className='mb-5 space-y-3'>
-                      <MarkdownEditor
-                        value={editPostContent}
-                        onChange={setEditPostContent}
-                        placeholder='Edit your post...'
-                        minHeight='150px'
-                        maxLength={5000}
-                      />
-                      {/* Code snippet editor */}
-                      <button
-                        type='button'
-                        onClick={() => setShowEditCode((v) => !v)}
-                        className={`flex items-center gap-2 text-sm font-medium transition-colors ${showEditCode ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                      >
-                        <Code2 className='h-4 w-4' />
-                        {showEditCode ? 'Remove code snippet' : 'Add / edit code snippet'}
-                      </button>
-                      {showEditCode && (
-                        <div className='space-y-2 rounded-md border border-border/50 p-3 bg-surface-1/50'>
-                          <Select value={editCodeLanguage} onValueChange={setEditCodeLanguage}>
-                            <SelectTrigger className='w-44 bg-surface-1 border-border/50 h-8 text-xs'>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {CODE_LANGUAGES.map((lang) => (
-                                <SelectItem key={lang} value={lang} className='text-xs'>
-                                  {lang}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Textarea
-                            value={editCodeContent}
-                            onChange={(e) => setEditCodeContent(e.target.value)}
-                            placeholder='Paste your code here...'
-                            className='min-h-[120px] bg-surface-1 border-border/50 resize-none font-mono text-xs'
-                            maxLength={8000}
-                          />
+                    <div className='space-y-4 mb-5'>
+                      {/* Title */}
+                      <div className='space-y-1.5'>
+                        <label className='text-xs font-medium text-muted-foreground'>Title</label>
+                        <Input
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          className='bg-surface-1 border-border/50'
+                          maxLength={120}
+                        />
+                        <p className='text-xs text-muted-foreground text-right'>{editTitle.length}/120</p>
+                      </div>
+
+                      {/* Category */}
+                      <div className='space-y-1.5'>
+                        <label className='text-xs font-medium text-muted-foreground'>Category</label>
+                        <Select
+                          value={editCategory}
+                          onValueChange={(v) => setEditCategory(v as DiscussionCategory)}
+                        >
+                          <SelectTrigger className='bg-surface-1 border-border/50'>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value='general'>💬 General</SelectItem>
+                            <SelectItem value='problem'>💡 Problem</SelectItem>
+                            <SelectItem value='interview'>🎯 Interview</SelectItem>
+                            <SelectItem value='career'>💼 Career</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Company / Position — interview only */}
+                      {editCategory === 'interview' && (
+                        <div className='grid grid-cols-2 gap-3'>
+                          <div className='space-y-1.5'>
+                            <label className='text-xs font-medium text-muted-foreground'>
+                              Company <span className='font-normal'>(optional)</span>
+                            </label>
+                            <Input
+                              value={editCompany}
+                              onChange={(e) => setEditCompany(e.target.value)}
+                              placeholder='e.g. Google'
+                              className='bg-surface-1 border-border/50'
+                              maxLength={60}
+                            />
+                          </div>
+                          <div className='space-y-1.5'>
+                            <label className='text-xs font-medium text-muted-foreground'>
+                              Position <span className='font-normal'>(optional)</span>
+                            </label>
+                            <Input
+                              value={editPosition}
+                              onChange={(e) => setEditPosition(e.target.value)}
+                              placeholder='e.g. SWE Intern'
+                              className='bg-surface-1 border-border/50'
+                              maxLength={60}
+                            />
+                          </div>
                         </div>
                       )}
-                      <div className='flex items-center gap-2'>
+
+                      {/* Content */}
+                      <div className='space-y-1.5'>
+                        <label className='text-xs font-medium text-muted-foreground'>Content</label>
+                        <MarkdownEditor
+                          value={editContent}
+                          onChange={setEditContent}
+                          placeholder='Edit your post...'
+                          minHeight='150px'
+                          maxLength={5000}
+                        />
+                      </div>
+
+                      {/* Code snippet toggle */}
+                      <div className='space-y-2'>
+                        <button
+                          type='button'
+                          onClick={() => setShowEditCode((v) => !v)}
+                          className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                            showEditCode
+                              ? 'text-primary'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <Code2 className='h-4 w-4' />
+                          {showEditCode ? 'Remove code snippet' : 'Add / edit code snippet'}
+                        </button>
+                        {showEditCode && (
+                          <div className='space-y-2 rounded-md border border-border/50 p-3 bg-surface-1/50'>
+                            <Select value={editCodeLanguage} onValueChange={setEditCodeLanguage}>
+                              <SelectTrigger className='w-44 bg-surface-1 border-border/50 h-8 text-xs'>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CODE_LANGUAGES.map((lang) => (
+                                  <SelectItem key={lang} value={lang} className='text-xs'>
+                                    {lang}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Textarea
+                              value={editCodeContent}
+                              onChange={(e) => setEditCodeContent(e.target.value)}
+                              placeholder='Paste your code here...'
+                              className='min-h-[120px] bg-surface-1 border-border/50 resize-none font-mono text-xs'
+                              maxLength={8000}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Tags */}
+                      <div className='space-y-1.5'>
+                        <label className='text-xs font-medium text-muted-foreground'>
+                          Tags <span className='font-normal'>(up to 5)</span>
+                        </label>
+                        <div className='flex gap-2'>
+                          <Input
+                            value={editTagInput}
+                            onChange={(e) => setEditTagInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddEditTag();
+                              }
+                            }}
+                            placeholder='Add a tag...'
+                            className='bg-surface-1 border-border/50'
+                            maxLength={20}
+                            disabled={editTags.length >= 5}
+                          />
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={handleAddEditTag}
+                            disabled={!editTagInput.trim() || editTags.length >= 5}
+                            className='shrink-0'
+                          >
+                            Add
+                          </Button>
+                        </div>
+                        {editTags.length > 0 && (
+                          <div className='flex flex-wrap gap-1.5 mt-1'>
+                            {editTags.map((tag) => (
+                              <Badge key={tag} variant='secondary' className='text-xs gap-1 pr-1'>
+                                {tag}
+                                <button
+                                  onClick={() =>
+                                    setEditTags(editTags.filter((t) => t !== tag))
+                                  }
+                                  className='ml-0.5 rounded-full hover:bg-foreground/10 p-0.5'
+                                >
+                                  <X className='h-3 w-3' />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className='flex items-center gap-2 pt-1'>
                         <Button
                           size='sm'
                           onClick={handleSavePostEdit}
-                          disabled={!editPostContent.trim()}
+                          disabled={!editTitle.trim() || !editContent.trim()}
                         >
                           Save Changes
                         </Button>
@@ -409,7 +533,9 @@ export default function DiscussionDetail() {
                       </div>
                     </div>
                   ) : (
+                    /* ── Read-only view ──────────────────────────── */
                     <>
+                      <h1 className='text-2xl font-bold mb-4'>{discussion.title}</h1>
                       <MarkdownContent
                         content={discussion.content}
                         className='text-sm text-foreground/90 mb-5 leading-relaxed'
@@ -430,17 +556,19 @@ export default function DiscussionDetail() {
                     </>
                   )}
 
-                  {/* Tags */}
-                  <div className='flex flex-wrap gap-1.5 mb-4'>
-                    {discussion.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className='text-[11px] px-2 py-0.5 rounded-full bg-surface-3 text-muted-foreground border border-border/30'
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  {/* Tags (always visible outside edit mode) */}
+                  {!isEditingPost && discussion.tags.length > 0 && (
+                    <div className='flex flex-wrap gap-1.5 mb-4'>
+                      {discussion.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className='text-[11px] px-2 py-0.5 rounded-full bg-surface-3 text-muted-foreground border border-border/30'
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Meta row */}
                   <div className='flex items-center justify-between border-t border-border/30 pt-4'>

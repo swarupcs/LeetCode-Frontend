@@ -19,7 +19,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { MessageSquare, Search, Plus, TrendingUp, Loader2 } from 'lucide-react';
+import { MessageSquare, Search, Plus, TrendingUp, Loader2, Bookmark } from 'lucide-react';
 import { DiscussionCard } from '@/components/discussions/DiscussionCard';
 import { CategoryFilter } from '@/components/discussions/CategoryFilter';
 import { NewPostDialog } from '@/components/discussions/NewPostDialog';
@@ -28,15 +28,25 @@ import { usePagination } from '@/hooks/use-pagination';
 import { toast } from 'sonner';
 import { useAppSelector } from '@/hooks/redux';
 import { useGetAllDiscussions } from '@/hooks/discussions/useGetAllDiscussions';
+import { useGetBookmarkedDiscussions } from '@/hooks/discussions/useGetBookmarkedDiscussions';
 import { useCreateDiscussion } from '@/hooks/discussions/useCreateDiscussion';
 import { useDeleteDiscussion } from '@/hooks/discussions/useDeleteDiscussion';
 import { useVoteDiscussion } from '@/hooks/discussions/useVoteDiscussion';
+
+type TabView = 'all' | 'bookmarks';
 
 export default function DiscussionsPage() {
   const navigate = useNavigate();
   const currentUserId = useAppSelector((state) => state.auth.id);
 
+  const [activeTab, setActiveTab] = useState<TabView>('all');
+
   const { discussions, isLoading, isError } = useGetAllDiscussions();
+  const {
+    bookmarkedDiscussions,
+    isLoading: isLoadingBookmarks,
+    isError: isErrorBookmarks,
+  } = useGetBookmarkedDiscussions(!!currentUserId);
   const { createDiscussionMutation, isPending: isCreating } = useCreateDiscussion();
   const { deleteDiscussionMutation } = useDeleteDiscussion();
   const { voteDiscussionMutation, isPending: isVotePending } = useVoteDiscussion();
@@ -193,158 +203,252 @@ export default function DiscussionsPage() {
           </div>
         </motion.div>
 
-        {/* Category filter */}
+        {/* Tab toggle */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.08 }}
-          className='mb-4'
+          transition={{ delay: 0.07 }}
+          className='flex items-center gap-1 mb-5 bg-surface-1 rounded-lg p-1 w-fit border border-border/40'
         >
-          <CategoryFilter selected={categoryFilter} onSelect={setCategoryFilter} />
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'all'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <MessageSquare className='h-3.5 w-3.5' />
+            All Discussions
+          </button>
+          <button
+            onClick={() => {
+              if (!currentUserId) {
+                toast.error('Please log in to view bookmarks');
+                return;
+              }
+              setActiveTab('bookmarks');
+            }}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'bookmarks'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Bookmark className='h-3.5 w-3.5' />
+            My Bookmarks
+            {bookmarkedDiscussions.length > 0 && (
+              <span className='ml-1 text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-semibold'>
+                {bookmarkedDiscussions.length}
+              </span>
+            )}
+          </button>
         </motion.div>
 
-        {/* Search & Sort */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className='flex flex-col sm:flex-row gap-3 mb-6'
-        >
-          <div className='relative flex-1'>
-            <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground' />
-            <Input
-              placeholder='Search discussions, tags...'
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className='pl-10 bg-surface-1 border-border/50 h-10'
-            />
-          </div>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className='w-full sm:w-44 bg-surface-1 border-border/50 h-10'>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='top'>🔥 Top Voted</SelectItem>
-              <SelectItem value='newest'>🕐 Newest</SelectItem>
-              <SelectItem value='discussed'>💬 Most Discussed</SelectItem>
-            </SelectContent>
-          </Select>
-        </motion.div>
-
-        {/* Loading state */}
-        {isLoading && (
-          <div className='flex items-center justify-center py-16'>
-            <Loader2 className='h-8 w-8 animate-spin text-primary' />
-          </div>
+        {/* ── BOOKMARKS TAB ─────────────────────────────────────── */}
+        {activeTab === 'bookmarks' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {isLoadingBookmarks && (
+              <div className='flex items-center justify-center py-16'>
+                <Loader2 className='h-8 w-8 animate-spin text-primary' />
+              </div>
+            )}
+            {isErrorBookmarks && (
+              <div className='text-center py-16'>
+                <Bookmark className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
+                <p className='text-muted-foreground mb-1'>Failed to load bookmarks</p>
+                <p className='text-xs text-muted-foreground'>Please try again later</p>
+              </div>
+            )}
+            {!isLoadingBookmarks && !isErrorBookmarks && (
+              <div className='space-y-3'>
+                {bookmarkedDiscussions.length > 0 ? (
+                  bookmarkedDiscussions.map((discussion, index) => (
+                    <DiscussionCard
+                      key={discussion.id}
+                      discussion={discussion}
+                      index={index}
+                      currentUserId={currentUserId}
+                      onVote={handleVote}
+                      onClick={(id) => navigate(`/discussions/${id}`)}
+                      onDelete={handleDeletePost}
+                      isVotePending={isVotePending}
+                    />
+                  ))
+                ) : (
+                  <div className='text-center py-16'>
+                    <Bookmark className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
+                    <p className='text-muted-foreground mb-1'>No bookmarks yet</p>
+                    <p className='text-xs text-muted-foreground'>
+                      Bookmark discussions you want to revisit
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
         )}
 
-        {/* Error state */}
-        {isError && (
-          <div className='text-center py-16'>
-            <MessageSquare className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
-            <p className='text-muted-foreground mb-1'>Failed to load discussions</p>
-            <p className='text-xs text-muted-foreground'>Please try again later</p>
-          </div>
-        )}
+        {/* ── ALL DISCUSSIONS TAB ───────────────────────────────── */}
+        {activeTab === 'all' && (
+          <>
+            {/* Category filter */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 }}
+              className='mb-4'
+            >
+              <CategoryFilter selected={categoryFilter} onSelect={setCategoryFilter} />
+            </motion.div>
 
-        {/* Discussion List */}
-        {!isLoading && !isError && (
-          <div className='space-y-3'>
-            {paginatedItems.map((discussion, index) => (
-              <DiscussionCard
-                key={discussion.id}
-                discussion={discussion}
-                index={index}
-                currentUserId={currentUserId}
-                onVote={handleVote}
-                onClick={(id) => navigate(`/discussions/${id}`)}
-                onDelete={handleDeletePost}
-                isVotePending={isVotePending}
-              />
-            ))}
+            {/* Search & Sort */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className='flex flex-col sm:flex-row gap-3 mb-6'
+            >
+              <div className='relative flex-1'>
+                <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground' />
+                <Input
+                  placeholder='Search discussions, tags...'
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className='pl-10 bg-surface-1 border-border/50 h-10'
+                />
+              </div>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className='w-full sm:w-44 bg-surface-1 border-border/50 h-10'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='top'>🔥 Top Voted</SelectItem>
+                  <SelectItem value='newest'>🕐 Newest</SelectItem>
+                  <SelectItem value='discussed'>💬 Most Discussed</SelectItem>
+                </SelectContent>
+              </Select>
+            </motion.div>
 
-            {filtered.length === 0 && (
+            {/* Loading state */}
+            {isLoading && (
+              <div className='flex items-center justify-center py-16'>
+                <Loader2 className='h-8 w-8 animate-spin text-primary' />
+              </div>
+            )}
+
+            {/* Error state */}
+            {isError && (
+              <div className='text-center py-16'>
+                <MessageSquare className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
+                <p className='text-muted-foreground mb-1'>Failed to load discussions</p>
+                <p className='text-xs text-muted-foreground'>Please try again later</p>
+              </div>
+            )}
+
+            {/* Discussion List */}
+            {!isLoading && !isError && (
+              <div className='space-y-3'>
+                {paginatedItems.map((discussion, index) => (
+                  <DiscussionCard
+                    key={discussion.id}
+                    discussion={discussion}
+                    index={index}
+                    currentUserId={currentUserId}
+                    onVote={handleVote}
+                    onClick={(id) => navigate(`/discussions/${id}`)}
+                    onDelete={handleDeletePost}
+                    isVotePending={isVotePending}
+                  />
+                ))}
+
+                {filtered.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className='text-center py-16'
+                  >
+                    <MessageSquare className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
+                    <p className='text-muted-foreground mb-1'>No discussions found</p>
+                    <p className='text-xs text-muted-foreground'>
+                      Try a different search or category filter
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className='text-center py-16'
+                transition={{ delay: 0.2 }}
+                className='mt-8 flex flex-col items-center gap-3'
               >
-                <MessageSquare className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
-                <p className='text-muted-foreground mb-1'>No discussions found</p>
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={(e) => {
+                          e.preventDefault();
+                          pagination.prevPage();
+                        }}
+                        className={
+                          pagination.isFirstPage
+                            ? 'pointer-events-none opacity-50'
+                            : 'cursor-pointer'
+                        }
+                      />
+                    </PaginationItem>
+
+                    {pagination.pageNumbers.map((page, idx) =>
+                      page === 'ellipsis' ? (
+                        <PaginationItem key={`ellipsis-${idx}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            isActive={page === pagination.currentPage}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              pagination.setPage(page);
+                            }}
+                            className='cursor-pointer'
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ),
+                    )}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={(e) => {
+                          e.preventDefault();
+                          pagination.nextPage();
+                        }}
+                        className={
+                          pagination.isLastPage
+                            ? 'pointer-events-none opacity-50'
+                            : 'cursor-pointer'
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+
                 <p className='text-xs text-muted-foreground'>
-                  Try a different search or category filter
+                  Showing {pagination.startIndex + 1}–{pagination.endIndex} of{' '}
+                  {filtered.length} discussions
                 </p>
               </motion.div>
             )}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className='mt-8 flex flex-col items-center gap-3'
-          >
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={(e) => {
-                      e.preventDefault();
-                      pagination.prevPage();
-                    }}
-                    className={
-                      pagination.isFirstPage
-                        ? 'pointer-events-none opacity-50'
-                        : 'cursor-pointer'
-                    }
-                  />
-                </PaginationItem>
-
-                {pagination.pageNumbers.map((page, idx) =>
-                  page === 'ellipsis' ? (
-                    <PaginationItem key={`ellipsis-${idx}`}>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  ) : (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        isActive={page === pagination.currentPage}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          pagination.setPage(page);
-                        }}
-                        className='cursor-pointer'
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ),
-                )}
-
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={(e) => {
-                      e.preventDefault();
-                      pagination.nextPage();
-                    }}
-                    className={
-                      pagination.isLastPage
-                        ? 'pointer-events-none opacity-50'
-                        : 'cursor-pointer'
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-
-            <p className='text-xs text-muted-foreground'>
-              Showing {pagination.startIndex + 1}–{pagination.endIndex} of{' '}
-              {filtered.length} discussions
-            </p>
-          </motion.div>
+          </>
         )}
 
         <NewPostDialog

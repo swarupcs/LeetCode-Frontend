@@ -64,6 +64,8 @@ export const updateDiscussionRequest = async (
     tags: string[];
     codeContent?: string;
     codeLanguage?: string;
+    company?: string;
+    position?: string;
   },
 ): Promise<{ message: string; data: Discussion }> => {
   try {
