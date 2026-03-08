@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { formatDistanceToNow } from 'date-fns';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { VoteButton } from './VoteButton';
 import { MarkdownContent } from './MarkdownContent';
 import { MarkdownEditor } from './MarkdownEditor';
-import { Clock, Reply, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
+import { Clock, Reply, Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { Comment } from '@/data/discussions';
 import {
@@ -22,38 +24,50 @@ import {
 interface CommentThreadProps {
   comment: Comment;
   depth?: number;
+  currentUserId: string | null;
   onVote: (commentId: string, vote: -1 | 0 | 1) => void;
-  onReply: (parentId: string, content: string) => void;
-  onEdit?: (commentId: string, newContent: string) => void;
+  onReply: (parentId: string, content: string) => Promise<void>;
+  onEdit?: (commentId: string, newContent: string) => Promise<void>;
   onDelete?: (commentId: string) => void;
+  isVotePending?: boolean;
 }
 
 export function CommentThread({
   comment,
   depth = 0,
+  currentUserId,
   onVote,
   onReply,
   onEdit,
   onDelete,
+  isVotePending = false,
 }: CommentThreadProps) {
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const maxDepth = 3;
-  const isOwn = comment.authorName === 'you';
+  const isOwn = !!currentUserId && comment.author.id === currentUserId;
 
-  const handleSubmitReply = () => {
+  const handleSubmitReply = async () => {
     if (!replyContent.trim()) return;
-    onReply(comment.id, replyContent.trim());
-    setReplyContent('');
-    setShowReplyInput(false);
+    try {
+      await onReply(comment.id, replyContent.trim());
+      setReplyContent('');
+      setShowReplyInput(false);
+    } catch {
+      toast.error('Failed to post reply. Please try again.');
+    }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editContent.trim() || !onEdit) return;
-    onEdit(comment.id, editContent.trim());
-    setIsEditing(false);
+    try {
+      await onEdit(comment.id, editContent.trim());
+      setIsEditing(false);
+    } catch {
+      toast.error('Failed to save edit. Please try again.');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -70,25 +84,23 @@ export function CommentThread({
     >
       <div className='flex gap-3 py-3'>
         <Avatar className='h-7 w-7 shrink-0 mt-0.5'>
+          {comment.author.image && <AvatarImage src={comment.author.image} />}
           <AvatarFallback className='bg-primary/10 text-primary text-[10px] font-bold'>
-            {comment.authorName[0].toUpperCase()}
+            {comment.author.username?.[0]?.toUpperCase() ?? '?'}
           </AvatarFallback>
         </Avatar>
 
         <div className='flex-1 min-w-0'>
           <div className='flex items-center gap-2 mb-1'>
             <span className='text-sm font-semibold text-foreground'>
-              {comment.authorName}
+              {comment.author.username}
             </span>
             <span className='text-xs text-muted-foreground flex items-center gap-1'>
               <Clock className='h-3 w-3' />
-              {comment.createdAt}
+              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
             </span>
-            {comment.isAccepted && (
-              <span className='flex items-center gap-1 text-xs text-primary font-medium'>
-                <CheckCircle2 className='h-3.5 w-3.5' />
-                Accepted
-              </span>
+            {comment.isEdited && (
+              <span className='text-xs text-muted-foreground italic'>edited</span>
             )}
           </div>
 
@@ -120,13 +132,7 @@ export function CommentThread({
               </div>
             </div>
           ) : (
-            <div
-              className={cn(
-                'text-sm text-foreground/90 mb-2',
-                comment.isAccepted &&
-                  'p-3 rounded-lg bg-primary/5 border border-primary/10',
-              )}
-            >
+            <div className='text-sm text-foreground/90 mb-2'>
               <MarkdownContent content={comment.content} />
             </div>
           )}
@@ -139,6 +145,7 @@ export function CommentThread({
               onVote={(vote) => onVote(comment.id, vote)}
               size='sm'
               horizontal
+              disabled={isVotePending}
             />
 
             {depth < maxDepth && (
@@ -203,7 +210,7 @@ export function CommentThread({
               <MarkdownEditor
                 value={replyContent}
                 onChange={setReplyContent}
-                placeholder={`Reply to ${comment.authorName}...`}
+                placeholder={`Reply to ${comment.author.username}...`}
                 minHeight='80px'
               />
               <div className='flex items-center gap-2'>
@@ -237,10 +244,12 @@ export function CommentThread({
                   key={reply.id}
                   comment={reply}
                   depth={depth + 1}
+                  currentUserId={currentUserId}
                   onVote={onVote}
                   onReply={onReply}
                   onEdit={onEdit}
                   onDelete={onDelete}
+                  isVotePending={isVotePending}
                 />
               ))}
             </div>

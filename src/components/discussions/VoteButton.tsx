@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VoteButtonProps {
@@ -8,6 +8,7 @@ interface VoteButtonProps {
   onVote: (vote: -1 | 0 | 1) => void;
   size?: 'sm' | 'md';
   horizontal?: boolean;
+  disabled?: boolean;
 }
 
 export function VoteButton({
@@ -17,19 +18,44 @@ export function VoteButton({
   onVote,
   size = 'md',
   horizontal = false,
+  disabled = false,
 }: VoteButtonProps) {
   const score = upvotes - downvotes;
   const iconSize = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
 
   const handleUpvote = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (disabled) return;
     onVote(userVote === 1 ? 0 : 1);
   };
 
   const handleDownvote = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (disabled) return;
     onVote(userVote === -1 ? 0 : -1);
   };
+
+  if (disabled) {
+    return (
+      <div
+        className={cn(
+          'flex items-center gap-0.5 shrink-0 opacity-60 cursor-not-allowed',
+          horizontal ? 'flex-row gap-1' : 'flex-col',
+        )}
+      >
+        <Loader2 className={cn(iconSize, 'animate-spin text-muted-foreground')} />
+        <span
+          className={cn(
+            'font-semibold tabular-nums',
+            size === 'sm' ? 'text-xs' : 'text-sm',
+            'text-muted-foreground',
+          )}
+        >
+          {score}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -3,14 +3,10 @@ import { getCategoryStyle, getCategoryIcon } from '@/data/discussions';
 
 const categories = [
   { value: 'all', label: 'All', icon: '📋' },
-  { value: 'solution', label: 'Solutions', icon: getCategoryIcon('solution') },
-  { value: 'question', label: 'Questions', icon: getCategoryIcon('question') },
-  {
-    value: 'discussion',
-    label: 'Discussions',
-    icon: getCategoryIcon('discussion'),
-  },
-  { value: 'tip', label: 'Tips', icon: getCategoryIcon('tip') },
+  { value: 'general', label: 'General', icon: getCategoryIcon('general') },
+  { value: 'problem', label: 'Problem', icon: getCategoryIcon('problem') },
+  { value: 'interview', label: 'Interview', icon: getCategoryIcon('interview') },
+  { value: 'career', label: 'Career', icon: getCategoryIcon('career') },
 ];
 
 interface CategoryFilterProps {

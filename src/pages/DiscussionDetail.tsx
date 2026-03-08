@@ -1,10 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -26,53 +29,97 @@ import {
 import {
   ArrowLeft,
   Clock,
-  Eye,
   MessageSquare,
   Share2,
   Bookmark,
+  BookmarkCheck,
   Flag,
   Pencil,
   Trash2,
   X,
+  Loader2,
+  Code2,
+  Building2,
 } from 'lucide-react';
 import { VoteButton } from '@/components/discussions/VoteButton';
 import { CommentThread } from '@/components/discussions/CommentThread';
 import { MarkdownContent } from '@/components/discussions/MarkdownContent';
 import { MarkdownEditor } from '@/components/discussions/MarkdownEditor';
-import {
-  getCategoryStyle,
-  getCategoryIcon,
-  mockDiscussions,
-} from '@/data/discussions';
-import type { Discussion, Comment } from '@/data/discussions';
+import { getCategoryStyle, getCategoryIcon } from '@/data/discussions';
+import type { Comment, DiscussionCategory } from '@/data/discussions';
 import { toast } from 'sonner';
+import { useAppSelector } from '@/hooks/redux';
+import { useGetDiscussion } from '@/hooks/discussions/useGetDiscussion';
+import { useUpdateDiscussion } from '@/hooks/discussions/useUpdateDiscussion';
+import { useDeleteDiscussion } from '@/hooks/discussions/useDeleteDiscussion';
+import { useCreateComment } from '@/hooks/discussions/useCreateComment';
+import { useUpdateComment } from '@/hooks/discussions/useUpdateComment';
+import { useDeleteComment } from '@/hooks/discussions/useDeleteComment';
+import { useVoteDiscussion } from '@/hooks/discussions/useVoteDiscussion';
+import { useVoteComment } from '@/hooks/discussions/useVoteComment';
+import { useToggleBookmark } from '@/hooks/discussions/useToggleBookmark';
+
+const CODE_LANGUAGES = [
+  'javascript', 'typescript', 'python', 'java', 'cpp', 'c',
+  'go', 'rust', 'kotlin', 'swift', 'ruby', 'php', 'sql', 'bash', 'other',
+];
 
 export default function DiscussionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const currentUserId = useAppSelector((state) => state.auth.id);
 
-  const [discussions, setDiscussions] = useState<Discussion[]>(mockDiscussions);
+  const { discussion, isLoading, isError } = useGetDiscussion(id!);
+  const { updateDiscussionMutation } = useUpdateDiscussion();
+  const { deleteDiscussionMutation } = useDeleteDiscussion();
+  const { createCommentMutation, isPending: isPostingComment } = useCreateComment(id!);
+  const { updateCommentMutation } = useUpdateComment(id!);
+  const { deleteCommentMutation } = useDeleteComment(id!);
+  const { voteDiscussionMutation, isPending: isVotingDiscussion } = useVoteDiscussion();
+  const { voteCommentMutation, isPending: isVotingComment } = useVoteComment(id!);
+  const { toggleBookmarkMutation, isPending: isTogglingBookmark } = useToggleBookmark(id!);
+
   const [commentText, setCommentText] = useState('');
   const [commentSort, setCommentSort] = useState('top');
   const [isEditingPost, setIsEditingPost] = useState(false);
-  const [editPostContent, setEditPostContent] = useState('');
 
-  const discussion = discussions.find((d) => d.id === id);
+  // Edit form state
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editCategory, setEditCategory] = useState<DiscussionCategory>('general');
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [editTagInput, setEditTagInput] = useState('');
+  const [editCompany, setEditCompany] = useState('');
+  const [editPosition, setEditPosition] = useState('');
+  const [editCodeContent, setEditCodeContent] = useState('');
+  const [editCodeLanguage, setEditCodeLanguage] = useState('javascript');
+  const [showEditCode, setShowEditCode] = useState(false);
 
   const sortedComments = useMemo(() => {
-    if (!discussion) return [];
-    const sorted = [...discussion.comments];
+    const sorted = [...(discussion?.comments ?? [])];
     if (commentSort === 'top') {
-      sorted.sort(
-        (a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes),
-      );
+      sorted.sort((a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes));
     } else if (commentSort === 'newest') {
-      sorted.reverse();
+      sorted.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    } else if (commentSort === 'oldest') {
+      sorted.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
     }
     return sorted;
-  }, [discussion, commentSort]);
+  }, [discussion?.comments, commentSort]);
 
-  if (!discussion) {
+  if (isLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-10 w-10 animate-spin text-primary' />
+      </div>
+    );
+  }
+
+  if (isError || !discussion) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
@@ -86,190 +133,125 @@ export default function DiscussionDetail() {
     );
   }
 
-  const isOwnPost = discussion.author === 'you';
+  const isOwnPost = !!currentUserId && discussion.author.id === currentUserId;
 
-  const handlePostVote = (vote: -1 | 0 | 1) => {
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        const oldVote = d.userVote;
-        return {
-          ...d,
-          userVote: vote,
-          upvotes: d.upvotes + (vote === 1 ? 1 : 0) - (oldVote === 1 ? 1 : 0),
-          downvotes:
-            d.downvotes + (vote === -1 ? 1 : 0) - (oldVote === -1 ? 1 : 0),
-        };
-      }),
-    );
+  const handlePostVote = async (vote: -1 | 0 | 1) => {
+    if (!currentUserId) { toast.error('Please log in to vote'); return; }
+    try {
+      await voteDiscussionMutation({ id: discussion.id, value: vote });
+    } catch {
+      toast.error('Failed to vote. Please try again.');
+    }
   };
 
-  const handleCommentVote = (commentId: string, vote: -1 | 0 | 1) => {
-    const updateComment = (comments: Comment[]): Comment[] =>
-      comments.map((c) => {
-        if (c.id === commentId) {
-          const oldVote = c.userVote;
-          return {
-            ...c,
-            userVote: vote,
-            upvotes: c.upvotes + (vote === 1 ? 1 : 0) - (oldVote === 1 ? 1 : 0),
-            downvotes:
-              c.downvotes + (vote === -1 ? 1 : 0) - (oldVote === -1 ? 1 : 0),
-          };
-        }
-        return { ...c, replies: updateComment(c.replies) };
-      });
-
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        return { ...d, comments: updateComment(d.comments) };
-      }),
-    );
+  const handleCommentVote = async (commentId: string, vote: -1 | 0 | 1) => {
+    if (!currentUserId) { toast.error('Please log in to vote'); return; }
+    try {
+      await voteCommentMutation({ id: commentId, value: vote });
+    } catch {
+      toast.error('Failed to vote. Please try again.');
+    }
   };
 
-  const handleReply = (parentId: string, content: string) => {
-    const newReply: Comment = {
-      id: `reply-${Date.now()}`,
-      authorName: 'you',
-      content,
-      createdAt: 'Just now',
-      upvotes: 1,
-      downvotes: 0,
-      userVote: 1,
-      replies: [],
-    };
-
-    const addReply = (comments: Comment[]): Comment[] =>
-      comments.map((c) => {
-        if (c.id === parentId) {
-          return { ...c, replies: [...c.replies, newReply] };
-        }
-        return { ...c, replies: addReply(c.replies) };
-      });
-
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        return {
-          ...d,
-          comments: addReply(d.comments),
-          commentCount: d.commentCount + 1,
-        };
-      }),
-    );
-
+  const handleReply = async (parentId: string, content: string): Promise<void> => {
+    if (!currentUserId) { toast.error('Please log in to reply'); return; }
+    await createCommentMutation({ discussionId: id!, content, parentId });
     toast.success('Your reply has been added to the thread.');
   };
 
-  const handleCommentEdit = (commentId: string, newContent: string) => {
-    const editComment = (comments: Comment[]): Comment[] =>
-      comments.map((c) => {
-        if (c.id === commentId) {
-          return { ...c, content: newContent };
-        }
-        return { ...c, replies: editComment(c.replies) };
-      });
-
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        return { ...d, comments: editComment(d.comments) };
-      }),
-    );
-
-toast.success('Your comment has been edited.');
+  const handleCommentEdit = async (commentId: string, newContent: string): Promise<void> => {
+    await updateCommentMutation({ id: commentId, content: newContent });
+    toast.success('Your comment has been edited.');
   };
 
-  const handleCommentDelete = (commentId: string) => {
-    const countComments = (comments: Comment[]): number =>
-      comments.reduce((sum, c) => sum + 1 + countComments(c.replies), 0);
-
-    const removeComment = (comments: Comment[]): Comment[] =>
-      comments
-        .filter((c) => c.id !== commentId)
-        .map((c) => ({ ...c, replies: removeComment(c.replies) }));
-
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        const deletedComment = findComment(d.comments, commentId);
-        const deletedCount = deletedComment
-          ? 1 + countComments(deletedComment.replies)
-          : 1;
-        return {
-          ...d,
-          comments: removeComment(d.comments),
-          commentCount: Math.max(0, d.commentCount - deletedCount),
-        };
-      }),
-    );
-
-toast.success('Your comment has been removed.');
+  const handleCommentDelete = async (commentId: string) => {
+    try {
+      await deleteCommentMutation(commentId);
+      toast.success('Your comment has been removed.');
+    } catch {
+      toast.error('Failed to delete comment. Please try again.');
+    }
   };
 
-  const handlePostComment = () => {
+  const handlePostComment = async () => {
     if (!commentText.trim()) return;
-
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      authorName: 'you',
-      content: commentText.trim(),
-      createdAt: 'Just now',
-      upvotes: 1,
-      downvotes: 0,
-      userVote: 1,
-      replies: [],
-    };
-
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        return {
-          ...d,
-          comments: [...d.comments, newComment],
-          commentCount: d.commentCount + 1,
-        };
-      }),
-    );
-    setCommentText('');
-
-toast.success('Your comment has been added to the discussion.');
+    if (!currentUserId) { toast.error('Please log in to comment'); return; }
+    try {
+      await createCommentMutation({ discussionId: id!, content: commentText.trim() });
+      setCommentText('');
+      toast.success('Your comment has been added to the discussion.');
+    } catch {
+      toast.error('Failed to post comment. Please try again.');
+    }
   };
 
   const handleEditPost = () => {
-    setEditPostContent(discussion.content);
+    setEditTitle(discussion.title);
+    setEditContent(discussion.content);
+    setEditCategory(discussion.category);
+    setEditTags([...discussion.tags]);
+    setEditTagInput('');
+    setEditCompany(discussion.company ?? '');
+    setEditPosition(discussion.position ?? '');
+    setEditCodeContent(discussion.codeContent ?? '');
+    setEditCodeLanguage(discussion.codeLanguage ?? 'javascript');
+    setShowEditCode(!!discussion.codeContent);
     setIsEditingPost(true);
   };
 
-  const handleSavePostEdit = () => {
-    if (!editPostContent.trim()) return;
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        return { ...d, content: editPostContent.trim() };
-      }),
-    );
-    setIsEditingPost(false);
-toast.success('Your discussion has been edited.');
+  const handleAddEditTag = () => {
+    const trimmed = editTagInput.trim();
+    if (trimmed && !editTags.includes(trimmed) && editTags.length < 5) {
+      setEditTags([...editTags, trimmed]);
+      setEditTagInput('');
+    }
   };
 
-  const handleDeletePost = () => {
-    setDiscussions((prev) => prev.filter((d) => d.id !== id));
-    navigate('/discussions');
-toast.success('Post deleted', {
-  description: 'Your discussion has been removed.',
-});
+  const handleSavePostEdit = async () => {
+    if (!editTitle.trim() || !editContent.trim()) return;
+    try {
+      await updateDiscussionMutation({
+        id: discussion.id,
+        title: editTitle.trim(),
+        content: editContent.trim(),
+        category: editCategory,
+        tags: editTags,
+        company: editCategory === 'interview' && editCompany.trim() ? editCompany.trim() : undefined,
+        position: editCategory === 'interview' && editPosition.trim() ? editPosition.trim() : undefined,
+        codeContent: showEditCode && editCodeContent.trim() ? editCodeContent.trim() : undefined,
+        codeLanguage: showEditCode && editCodeContent.trim() ? editCodeLanguage : undefined,
+      });
+      setIsEditingPost(false);
+      toast.success('Your discussion has been edited.');
+    } catch {
+      toast.error('Failed to update post. Please try again.');
+    }
+  };
+
+  const handleDeletePost = async () => {
+    try {
+      await deleteDiscussionMutation(discussion.id);
+      navigate('/discussions');
+      toast.success('Post deleted', { description: 'Your discussion has been removed.' });
+    } catch {
+      toast.error('Failed to delete post. Please try again.');
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!currentUserId) { toast.error('Please log in to bookmark'); return; }
+    try {
+      await toggleBookmarkMutation(discussion.id);
+    } catch {
+      toast.error('Failed to update bookmark. Please try again.');
+    }
   };
 
   return (
     <div className='min-h-screen'>
       <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8'>
         {/* Back button */}
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
+        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
           <Button
             variant='ghost'
             className='mb-6 text-muted-foreground hover:text-foreground'
@@ -294,26 +276,36 @@ toast.success('Post deleted', {
                   downvotes={discussion.downvotes}
                   userVote={discussion.userVote}
                   onVote={handlePostVote}
+                  disabled={isVotingDiscussion}
                 />
 
                 <div className='flex-1 min-w-0'>
+                  {/* Header row: badges + edit/delete buttons */}
                   <div className='flex items-center justify-between mb-3'>
-                    <div className='flex items-center gap-2'>
-                      <Badge
-                        variant='outline'
-                        className={`text-xs px-2.5 py-0.5 ${getCategoryStyle(
-                          discussion.category,
-                        )}`}
-                      >
-                        <span className='mr-1'>
-                          {getCategoryIcon(discussion.category)}
-                        </span>
-                        {discussion.category}
-                      </Badge>
-                    </div>
+                    {!isEditingPost && (
+                      <div className='flex items-center gap-2 flex-wrap'>
+                        <Badge
+                          variant='outline'
+                          className={`text-xs px-2.5 py-0.5 ${getCategoryStyle(discussion.category)}`}
+                        >
+                          <span className='mr-1'>{getCategoryIcon(discussion.category)}</span>
+                          {discussion.category}
+                        </Badge>
+                        {discussion.category === 'interview' &&
+                          (discussion.company || discussion.position) && (
+                            <span className='flex items-center gap-1 text-xs text-muted-foreground'>
+                              <Building2 className='h-3.5 w-3.5' />
+                              {[discussion.company, discussion.position].filter(Boolean).join(' · ')}
+                            </span>
+                          )}
+                        {discussion.isEdited && (
+                          <span className='text-xs text-muted-foreground italic'>edited</span>
+                        )}
+                      </div>
+                    )}
 
                     {isOwnPost && !isEditingPost && (
-                      <div className='flex items-center gap-1'>
+                      <div className='flex items-center gap-1 ml-auto'>
                         <Button
                           variant='ghost'
                           size='sm'
@@ -336,13 +328,10 @@ toast.success('Post deleted', {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Delete this post?
-                              </AlertDialogTitle>
+                              <AlertDialogTitle>Delete this post?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This action cannot be undone. This will
-                                permanently delete your discussion post and all
-                                its comments.
+                                This action cannot be undone. This will permanently delete your
+                                discussion post and all its comments.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -360,24 +349,175 @@ toast.success('Post deleted', {
                     )}
                   </div>
 
-                  <h1 className='text-2xl font-bold mb-4'>
-                    {discussion.title}
-                  </h1>
-
+                  {/* ── Edit form ─────────────────────────────────── */}
                   {isEditingPost ? (
-                    <div className='mb-5 space-y-3'>
-                      <MarkdownEditor
-                        value={editPostContent}
-                        onChange={setEditPostContent}
-                        placeholder='Edit your post...'
-                        minHeight='150px'
-                        maxLength={5000}
-                      />
-                      <div className='flex items-center gap-2'>
+                    <div className='space-y-4 mb-5'>
+                      {/* Title */}
+                      <div className='space-y-1.5'>
+                        <label className='text-xs font-medium text-muted-foreground'>Title</label>
+                        <Input
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          className='bg-surface-1 border-border/50'
+                          maxLength={120}
+                        />
+                        <p className='text-xs text-muted-foreground text-right'>{editTitle.length}/120</p>
+                      </div>
+
+                      {/* Category */}
+                      <div className='space-y-1.5'>
+                        <label className='text-xs font-medium text-muted-foreground'>Category</label>
+                        <Select
+                          value={editCategory}
+                          onValueChange={(v) => setEditCategory(v as DiscussionCategory)}
+                        >
+                          <SelectTrigger className='bg-surface-1 border-border/50'>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value='general'>💬 General</SelectItem>
+                            <SelectItem value='problem'>💡 Problem</SelectItem>
+                            <SelectItem value='interview'>🎯 Interview</SelectItem>
+                            <SelectItem value='career'>💼 Career</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Company / Position — interview only */}
+                      {editCategory === 'interview' && (
+                        <div className='grid grid-cols-2 gap-3'>
+                          <div className='space-y-1.5'>
+                            <label className='text-xs font-medium text-muted-foreground'>
+                              Company <span className='font-normal'>(optional)</span>
+                            </label>
+                            <Input
+                              value={editCompany}
+                              onChange={(e) => setEditCompany(e.target.value)}
+                              placeholder='e.g. Google'
+                              className='bg-surface-1 border-border/50'
+                              maxLength={60}
+                            />
+                          </div>
+                          <div className='space-y-1.5'>
+                            <label className='text-xs font-medium text-muted-foreground'>
+                              Position <span className='font-normal'>(optional)</span>
+                            </label>
+                            <Input
+                              value={editPosition}
+                              onChange={(e) => setEditPosition(e.target.value)}
+                              placeholder='e.g. SWE Intern'
+                              className='bg-surface-1 border-border/50'
+                              maxLength={60}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Content */}
+                      <div className='space-y-1.5'>
+                        <label className='text-xs font-medium text-muted-foreground'>Content</label>
+                        <MarkdownEditor
+                          value={editContent}
+                          onChange={setEditContent}
+                          placeholder='Edit your post...'
+                          minHeight='150px'
+                          maxLength={5000}
+                        />
+                      </div>
+
+                      {/* Code snippet toggle */}
+                      <div className='space-y-2'>
+                        <button
+                          type='button'
+                          onClick={() => setShowEditCode((v) => !v)}
+                          className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                            showEditCode
+                              ? 'text-primary'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <Code2 className='h-4 w-4' />
+                          {showEditCode ? 'Remove code snippet' : 'Add / edit code snippet'}
+                        </button>
+                        {showEditCode && (
+                          <div className='space-y-2 rounded-md border border-border/50 p-3 bg-surface-1/50'>
+                            <Select value={editCodeLanguage} onValueChange={setEditCodeLanguage}>
+                              <SelectTrigger className='w-44 bg-surface-1 border-border/50 h-8 text-xs'>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CODE_LANGUAGES.map((lang) => (
+                                  <SelectItem key={lang} value={lang} className='text-xs'>
+                                    {lang}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Textarea
+                              value={editCodeContent}
+                              onChange={(e) => setEditCodeContent(e.target.value)}
+                              placeholder='Paste your code here...'
+                              className='min-h-[120px] bg-surface-1 border-border/50 resize-none font-mono text-xs'
+                              maxLength={8000}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Tags */}
+                      <div className='space-y-1.5'>
+                        <label className='text-xs font-medium text-muted-foreground'>
+                          Tags <span className='font-normal'>(up to 5)</span>
+                        </label>
+                        <div className='flex gap-2'>
+                          <Input
+                            value={editTagInput}
+                            onChange={(e) => setEditTagInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddEditTag();
+                              }
+                            }}
+                            placeholder='Add a tag...'
+                            className='bg-surface-1 border-border/50'
+                            maxLength={20}
+                            disabled={editTags.length >= 5}
+                          />
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={handleAddEditTag}
+                            disabled={!editTagInput.trim() || editTags.length >= 5}
+                            className='shrink-0'
+                          >
+                            Add
+                          </Button>
+                        </div>
+                        {editTags.length > 0 && (
+                          <div className='flex flex-wrap gap-1.5 mt-1'>
+                            {editTags.map((tag) => (
+                              <Badge key={tag} variant='secondary' className='text-xs gap-1 pr-1'>
+                                {tag}
+                                <button
+                                  onClick={() =>
+                                    setEditTags(editTags.filter((t) => t !== tag))
+                                  }
+                                  className='ml-0.5 rounded-full hover:bg-foreground/10 p-0.5'
+                                >
+                                  <X className='h-3 w-3' />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className='flex items-center gap-2 pt-1'>
                         <Button
                           size='sm'
                           onClick={handleSavePostEdit}
-                          disabled={!editPostContent.trim()}
+                          disabled={!editTitle.trim() || !editContent.trim()}
                         >
                           Save Changes
                         </Button>
@@ -392,42 +532,64 @@ toast.success('Post deleted', {
                       </div>
                     </div>
                   ) : (
-                    <MarkdownContent
-                      content={discussion.content}
-                      className='text-sm text-foreground/90 mb-5 leading-relaxed'
-                    />
+                    /* ── Read-only view ──────────────────────────── */
+                    <>
+                      <h1 className='text-2xl font-bold mb-4'>{discussion.title}</h1>
+                      <MarkdownContent
+                        content={discussion.content}
+                        className='text-sm text-foreground/90 mb-5 leading-relaxed'
+                      />
+                      {discussion.codeContent && (
+                        <div className='mb-5'>
+                          <div className='flex items-center gap-1.5 mb-1.5'>
+                            <Code2 className='h-3.5 w-3.5 text-muted-foreground' />
+                            <span className='text-xs font-mono text-muted-foreground'>
+                              {discussion.codeLanguage || 'code'}
+                            </span>
+                          </div>
+                          <pre className='p-4 rounded-lg bg-surface-2 border border-border/50 text-xs font-mono overflow-x-auto whitespace-pre-wrap'>
+                            <code>{discussion.codeContent}</code>
+                          </pre>
+                        </div>
+                      )}
+                    </>
                   )}
 
-                  {/* Tags */}
-                  <div className='flex flex-wrap gap-1.5 mb-4'>
-                    {discussion.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className='text-[11px] px-2 py-0.5 rounded-full bg-surface-3 text-muted-foreground border border-border/30'
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  {/* Tags (always visible outside edit mode) */}
+                  {!isEditingPost && discussion.tags.length > 0 && (
+                    <div className='flex flex-wrap gap-1.5 mb-4'>
+                      {discussion.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className='text-[11px] px-2 py-0.5 rounded-full bg-surface-3 text-muted-foreground border border-border/30'
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Meta row */}
                   <div className='flex items-center justify-between border-t border-border/30 pt-4'>
                     <div className='flex items-center gap-4 text-xs text-muted-foreground'>
                       <div className='flex items-center gap-1.5'>
                         <Avatar className='h-6 w-6'>
+                          {discussion.author.image && (
+                            <AvatarImage src={discussion.author.image} />
+                          )}
                           <AvatarFallback className='bg-primary/10 text-primary text-[10px] font-bold'>
-                            {discussion.author[0].toUpperCase()}
+                            {discussion.author.username?.[0]?.toUpperCase() ?? '?'}
                           </AvatarFallback>
                         </Avatar>
-                        <span className='font-medium'>{discussion.author}</span>
+                        <span className='font-medium'>{discussion.author.username}</span>
                       </div>
                       <div className='flex items-center gap-1'>
                         <Clock className='h-3 w-3' />
-                        <span>{discussion.createdAt}</span>
-                      </div>
-                      <div className='flex items-center gap-1'>
-                        <Eye className='h-3 w-3' />
-                        <span>{discussion.viewCount} views</span>
+                        <span>
+                          {formatDistanceToNow(new Date(discussion.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </span>
                       </div>
                     </div>
                     <div className='flex items-center gap-1'>
@@ -435,13 +597,23 @@ toast.success('Post deleted', {
                         variant='ghost'
                         size='icon'
                         className='h-8 w-8 text-muted-foreground hover:text-foreground'
+                        onClick={handleBookmark}
+                        disabled={isTogglingBookmark}
                       >
-                        <Bookmark className='h-4 w-4' />
+                        {discussion.bookmarked ? (
+                          <BookmarkCheck className='h-4 w-4 text-primary' />
+                        ) : (
+                          <Bookmark className='h-4 w-4' />
+                        )}
                       </Button>
                       <Button
                         variant='ghost'
                         size='icon'
                         className='h-8 w-8 text-muted-foreground hover:text-foreground'
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.href);
+                          toast.success('Link copied to clipboard');
+                        }}
                       >
                         <Share2 className='h-4 w-4' />
                       </Button>
@@ -449,6 +621,7 @@ toast.success('Post deleted', {
                         variant='ghost'
                         size='icon'
                         className='h-8 w-8 text-muted-foreground hover:text-destructive'
+                        onClick={() => toast.info('Reporting feature coming soon')}
                       >
                         <Flag className='h-4 w-4' />
                       </Button>
@@ -461,35 +634,41 @@ toast.success('Post deleted', {
         </motion.div>
 
         {/* Comment input */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className='mb-6'
-        >
-          <Card className='glass-card border-border/50'>
-            <CardContent className='p-5'>
-              <h3 className='text-sm font-semibold mb-3'>Add a comment</h3>
-              <MarkdownEditor
-                value={commentText}
-                onChange={setCommentText}
-                placeholder='Share your thoughts, code snippets, or ask a follow-up question...'
-                minHeight='100px'
-                maxLength={3000}
-              />
-              <div className='flex items-center justify-end mt-3'>
-                <Button
-                  onClick={handlePostComment}
-                  disabled={!commentText.trim()}
-                  size='sm'
-                >
-                  <MessageSquare className='h-4 w-4 mr-1.5' />
-                  Comment
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {currentUserId && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className='mb-6'
+          >
+            <Card className='glass-card border-border/50'>
+              <CardContent className='p-5'>
+                <h3 className='text-sm font-semibold mb-3'>Add a comment</h3>
+                <MarkdownEditor
+                  value={commentText}
+                  onChange={setCommentText}
+                  placeholder='Share your thoughts, code snippets, or ask a follow-up question...'
+                  minHeight='100px'
+                  maxLength={3000}
+                />
+                <div className='flex items-center justify-end mt-3'>
+                  <Button
+                    onClick={handlePostComment}
+                    disabled={!commentText.trim() || isPostingComment}
+                    size='sm'
+                  >
+                    {isPostingComment ? (
+                      <Loader2 className='h-4 w-4 mr-1.5 animate-spin' />
+                    ) : (
+                      <MessageSquare className='h-4 w-4 mr-1.5' />
+                    )}
+                    Comment
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Comments section */}
         <motion.div
@@ -517,14 +696,16 @@ toast.success('Post deleted', {
           <Card className='glass-card border-border/50'>
             <CardContent className='p-5 divide-y divide-border/30'>
               {sortedComments.length > 0 ? (
-                sortedComments.map((comment) => (
+                sortedComments.map((comment: Comment) => (
                   <CommentThread
                     key={comment.id}
                     comment={comment}
+                    currentUserId={currentUserId}
                     onVote={handleCommentVote}
                     onReply={handleReply}
                     onEdit={handleCommentEdit}
                     onDelete={handleCommentDelete}
+                    isVotePending={isVotingComment}
                   />
                 ))
               ) : (
@@ -541,13 +722,4 @@ toast.success('Post deleted', {
       </div>
     </div>
   );
-}
-
-function findComment(comments: Comment[], id: string): Comment | null {
-  for (const c of comments) {
-    if (c.id === id) return c;
-    const found = findComment(c.replies, id);
-    if (found) return found;
-  }
-  return null;
 }
