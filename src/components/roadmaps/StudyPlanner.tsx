@@ -14,7 +14,10 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { roadmaps, getRoadmapStats } from '@/data/roadmaps';
+import { getRoadmapStats, type Roadmap } from '@/data/roadmaps';
+import { useGetRoadmaps } from '@/hooks/roadmaps/useGetRoadmaps';
+import { useAppSelector } from '@/hooks/redux';
+import type { RoadmapWithProgress } from '@/services/roadmap.service';
 
 const STORAGE_KEY = 'study-planner';
 
@@ -65,8 +68,20 @@ const colorBgMap: Record<string, string> = {
 export function StudyPlanner() {
   const [expanded, setExpanded] = useState(false);
   const [planner, setPlanner] = useState<PlannerData>(loadPlanner);
-  const progress = useMemo(() => loadProgress(), []);
-  const published = useMemo(() => roadmaps.filter((r) => r.isPublished), []);
+  const currentUserId = useAppSelector((state) => state.auth.id);
+  const { roadmaps: apiRoadmaps } = useGetRoadmaps();
+  const published = apiRoadmaps as unknown as (Roadmap & { completedTopicIds?: string[] })[];
+
+  // For logged-in users, progress comes from the API (completedTopicIds per roadmap).
+  // For anonymous users, read from localStorage.
+  const progress = useMemo(() => {
+    if (currentUserId) {
+      return Object.fromEntries(
+        (apiRoadmaps as RoadmapWithProgress[]).map((r) => [r.id, r.completedTopicIds ?? []]),
+      );
+    }
+    return loadProgress();
+  }, [currentUserId, apiRoadmaps]);
 
   const update = useCallback((partial: Partial<PlannerData>) => {
     setPlanner((prev) => {
@@ -96,7 +111,7 @@ export function StudyPlanner() {
 
   const stats = useMemo(() => {
     return activeRoadmaps.map((r) => {
-      const s = getRoadmapStats(r);
+      const s = getRoadmapStats(r as unknown as Roadmap);
       const completedIds = progress[r.id] ?? [];
       const allTopicIds = r.sections.flatMap((sec) =>
         sec.topics.map((t) => t.id),

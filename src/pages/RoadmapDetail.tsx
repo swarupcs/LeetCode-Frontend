@@ -1,7 +1,7 @@
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { useParams, Link } from 'react-router-dom';
-
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,10 +32,8 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   GraduationCap as CourseIcon,
+  Loader2,
 } from 'lucide-react';
-import { roadmaps } from '@/data/roadmaps';
-import { useRoadmapProgress } from '@/hooks/use-roadmap-progress';
-import { useLearningStreak } from '@/hooks/use-learning-streak';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +47,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAppSelector } from '@/hooks/redux';
+import { useGetRoadmap } from '@/hooks/roadmaps/useGetRoadmap';
+import { useSaveProgress } from '@/hooks/roadmaps/useSaveProgress';
+import { useResetProgress } from '@/hooks/roadmaps/useResetProgress';
+import { useRoadmapProgress } from '@/hooks/use-roadmap-progress';
+import { useLearningStreak } from '@/hooks/use-learning-streak';
 
 const iconMap: Record<string, React.ElementType> = {
   Binary,
@@ -106,15 +110,25 @@ function formatTime(minutes: number): string {
 
 export default function RoadmapDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const roadmap = useMemo(
-    () => roadmaps.find((r) => r.slug === slug && r.isPublished),
-    [slug],
+  const currentUserId = useAppSelector((state) => state.auth.id);
+
+  const { roadmap, isLoading, isError } = useGetRoadmap(slug!);
+  const { saveProgressMutation } = useSaveProgress(roadmap?.id ?? '');
+  const { resetProgressMutation } = useResetProgress(roadmap?.id ?? '');
+
+  const { isCompleted, toggleTopic, completedCount, resetProgress } = useRoadmapProgress(
+    roadmap?.id ?? '',
+    {
+      currentUserId,
+      serverCompletedIds: roadmap?.completedTopicIds ?? [],
+      isServerLoaded: !isLoading && !!roadmap,
+      onSave: (ids) => saveProgressMutation(ids),
+      onReset: () => resetProgressMutation(),
+    },
   );
-  const roadmapId = roadmap?.id ?? '';
-  const { isCompleted, toggleTopic, completedCount, resetProgress } =
-    useRoadmapProgress(roadmapId);
-  const { recordActivity, newMilestone, milestoneMessage, clearMilestone } =
-    useLearningStreak();
+
+  const { recordActivity, newMilestone, milestoneMessage, clearMilestone } = useLearningStreak();
+
   const totalTopics = roadmap
     ? roadmap.sections.reduce((acc, s) => acc + s.topics.length, 0)
     : 0;
@@ -124,15 +138,13 @@ export default function RoadmapDetailPage() {
         0,
       )
     : 0;
-  const progress =
-    totalTopics > 0 ? Math.round((completedCount / totalTopics) * 100) : 0;
+  const progress = totalTopics > 0 ? Math.round((completedCount / totalTopics) * 100) : 0;
   const Icon = roadmap ? iconMap[roadmap.icon] || Binary : Binary;
+
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<string>('default');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    new Set(),
-  );
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const toggleSectionCollapse = (sectionId: string) => {
     setCollapsedSections((prev) => {
@@ -149,7 +161,6 @@ export default function RoadmapDetailPage() {
 
     let filtered = sections;
 
-    // Apply search
     if (query) {
       filtered = filtered
         .map((s) => ({
@@ -163,7 +174,6 @@ export default function RoadmapDetailPage() {
         .filter((s) => s.topics.length > 0);
     }
 
-    // Apply difficulty filter
     if (difficultyFilter !== 'all') {
       filtered = filtered
         .map((s) => ({
@@ -173,7 +183,6 @@ export default function RoadmapDetailPage() {
         .filter((s) => s.topics.length > 0);
     }
 
-    // Apply sort
     if (sortOrder === 'default') return filtered;
     return filtered.map((s) => ({
       ...s,
@@ -183,7 +192,7 @@ export default function RoadmapDetailPage() {
           : b.estimatedMinutes - a.estimatedMinutes,
       ),
     }));
-  }, [roadmap, difficultyFilter, sortOrder, searchQuery]);
+  }, [roadmap?.sections, difficultyFilter, sortOrder, searchQuery]);
 
   const handleToggle = (topicId: string) => {
     const wasCompleted = isCompleted(topicId);
@@ -202,7 +211,6 @@ export default function RoadmapDetailPage() {
     toggleTopic(subtopicId);
     if (!wasCompleted) {
       recordActivity();
-      // Auto-complete parent topic if all subtopics are now done
       const othersDone = allSubtopicIds
         .filter((id) => id !== subtopicId)
         .every((id) => isCompleted(id));
@@ -210,12 +218,12 @@ export default function RoadmapDetailPage() {
         toggleTopic(topicId);
       }
     } else {
-      // If unchecking a subtopic, also uncheck parent topic
       if (isCompleted(topicId)) {
         toggleTopic(topicId);
       }
     }
   };
+
   const prevCompletedRef = useRef(completedCount);
 
   useEffect(() => {
@@ -227,12 +235,7 @@ export default function RoadmapDetailPage() {
       const end = Date.now() + 1500;
       const frame = () => {
         confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } });
-        confetti({
-          particleCount: 3,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1 },
-        });
+        confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } });
         if (Date.now() < end) requestAnimationFrame(frame);
       };
       frame();
@@ -240,18 +243,24 @@ export default function RoadmapDetailPage() {
     prevCompletedRef.current = completedCount;
   }, [completedCount, totalTopics]);
 
-
-
   useEffect(() => {
     if (newMilestone && milestoneMessage) {
-toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
-  description: milestoneMessage.description,
-});
+      toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
+        description: milestoneMessage.description,
+      });
       clearMilestone();
     }
   }, [newMilestone, milestoneMessage, clearMilestone]);
 
-  if (!roadmap) {
+  if (isLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <Loader2 className='h-10 w-10 animate-spin text-primary' />
+      </div>
+    );
+  }
+
+  if (isError || !roadmap) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
@@ -268,10 +277,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
     <div className='min-h-screen'>
       <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8'>
         {/* Back link */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <Link
             to='/roadmaps'
             className='inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6'
@@ -289,16 +295,12 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
           className='mb-8'
         >
           <div className='flex items-start gap-4 mb-4'>
-            <div
-              className={`p-3 rounded-xl border ${colorBgMap[roadmap.color]}`}
-            >
+            <div className={`p-3 rounded-xl border ${colorBgMap[roadmap.color]}`}>
               <Icon className={`h-7 w-7 ${colorTextMap[roadmap.color]}`} />
             </div>
             <div className='flex-1'>
               <h1 className='text-2xl sm:text-3xl font-bold'>{roadmap.name}</h1>
-              <p className='text-muted-foreground mt-1'>
-                {roadmap.description}
-              </p>
+              <p className='text-muted-foreground mt-1'>{roadmap.description}</p>
               <div className='flex items-center gap-3 mt-2'>
                 <span className='inline-flex items-center gap-1 text-xs text-muted-foreground'>
                   <Clock className='h-3 w-3' />
@@ -309,9 +311,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                   {roadmap.sections.length} sections
                 </span>
                 <span className='text-xs text-muted-foreground'>·</span>
-                <span className='text-xs text-muted-foreground'>
-                  {totalTopics} topics
-                </span>
+                <span className='text-xs text-muted-foreground'>{totalTopics} topics</span>
               </div>
             </div>
           </div>
@@ -331,9 +331,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
           <div className='flex items-center justify-between gap-2 mb-3 flex-wrap'>
             <div className='flex items-center gap-2'>
               <span className='text-xs text-muted-foreground'>Filter:</span>
-              {(searchQuery ||
-                difficultyFilter !== 'all' ||
-                sortOrder !== 'default') && (
+              {(searchQuery || difficultyFilter !== 'all' || sortOrder !== 'default') && (
                 <button
                   onClick={() => {
                     setSearchQuery('');
@@ -390,10 +388,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                 {completedCount} of {totalTopics} topics completed
               </span>
               <div className='flex items-center gap-3'>
-                <span
-                  className='font-semibold'
-                  style={{ color: colorMap[roadmap.color] }}
-                >
+                <span className='font-semibold' style={{ color: colorMap[roadmap.color] }}>
                   {progress}%
                 </span>
                 {completedCount > 0 && (
@@ -412,8 +407,8 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Reset progress?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will clear all {completedCount} completed topics
-                          for this roadmap. This action cannot be undone.
+                          This will clear all {completedCount} completed topics for this roadmap.
+                          This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -433,10 +428,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
             <div className='h-2 bg-surface-3 rounded-full overflow-hidden'>
               <div
                 className='h-full rounded-full transition-all duration-500'
-                style={{
-                  width: `${progress}%`,
-                  backgroundColor: colorMap[roadmap.color],
-                }}
+                style={{ width: `${progress}%`, backgroundColor: colorMap[roadmap.color] }}
               />
             </div>
           </div>
@@ -447,11 +439,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
           <div className='flex items-center gap-2'>
             {(() => {
               const completedSectionIds = filteredSections
-                .filter(
-                  (s) =>
-                    s.topics.length > 0 &&
-                    s.topics.every((t) => isCompleted(t.id)),
-                )
+                .filter((s) => s.topics.length > 0 && s.topics.every((t) => isCompleted(t.id)))
                 .map((s) => s.id);
               const hasCompletedSections = completedSectionIds.length > 0;
               return (
@@ -498,13 +486,8 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
             </p>
           )}
           {filteredSections.map((section, si) => {
-            const sectionCompleted = section.topics.filter((t) =>
-              isCompleted(t.id),
-            ).length;
-            const sectionMinutes = section.topics.reduce(
-              (a, t) => a + t.estimatedMinutes,
-              0,
-            );
+            const sectionCompleted = section.topics.filter((t) => isCompleted(t.id)).length;
+            const sectionMinutes = section.topics.reduce((a, t) => a + t.estimatedMinutes, 0);
             const sectionProgress =
               section.topics.length > 0
                 ? Math.round((sectionCompleted / section.topics.length) * 100)
@@ -530,9 +513,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                           {section.name}
                         </h2>
                         {section.description && (
-                          <p className='text-xs text-muted-foreground'>
-                            {section.description}
-                          </p>
+                          <p className='text-xs text-muted-foreground'>{section.description}</p>
                         )}
                       </div>
                       <div className='flex items-center gap-2'>
@@ -559,10 +540,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                           <span
                             className='text-[10px] font-semibold min-w-[28px] text-right'
                             style={{
-                              color:
-                                sectionProgress > 0
-                                  ? colorMap[roadmap.color]
-                                  : undefined,
+                              color: sectionProgress > 0 ? colorMap[roadmap.color] : undefined,
                             }}
                           >
                             {sectionProgress}%
@@ -582,22 +560,14 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                         return (
                           <div
                             key={topic.id}
-                            className={`glass-card p-4 group hover:border-primary/30 transition-all ${
-                              done ? 'opacity-60' : ''
-                            }`}
+                            className={`glass-card p-4 group hover:border-primary/30 transition-all ${done ? 'opacity-60' : ''}`}
                           >
                             <div className='flex items-start gap-3'>
-                              <div
-                                className='pt-0.5 cursor-pointer'
-                                onClick={() => handleToggle(topic.id)}
-                              >
+                              <div className='pt-0.5 cursor-pointer' onClick={() => handleToggle(topic.id)}>
                                 {done ? (
                                   <CheckCircle2 className='h-4.5 w-4.5 text-primary' />
                                 ) : (
-                                  <Checkbox
-                                    className='h-4 w-4'
-                                    checked={false}
-                                  />
+                                  <Checkbox className='h-4 w-4' checked={false} />
                                 )}
                               </div>
                               <div className='flex-1 min-w-0'>
@@ -629,18 +599,22 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                                     <div className='flex items-center gap-2 mb-1'>
                                       <span className='text-[10px] text-muted-foreground font-medium'>
                                         Subtopics (
-                                        {
-                                          topic.subtopics.filter((st) =>
-                                            isCompleted(st.id),
-                                          ).length
-                                        }
+                                        {topic.subtopics.filter((st) => isCompleted(st.id)).length}
                                         /{topic.subtopics.length})
                                       </span>
                                       <div className='flex-1 h-1 bg-surface-3 rounded-full overflow-hidden max-w-[80px]'>
                                         <div
                                           className='h-full rounded-full transition-all duration-300 bg-primary'
                                           style={{
-                                            width: `${topic.subtopics.length > 0 ? (topic.subtopics.filter((st) => isCompleted(st.id)).length / topic.subtopics.length) * 100 : 0}%`,
+                                            width: `${
+                                              topic.subtopics.length > 0
+                                                ? (topic.subtopics.filter((st) =>
+                                                    isCompleted(st.id),
+                                                  ).length /
+                                                    topic.subtopics.length) *
+                                                  100
+                                                : 0
+                                            }%`,
                                           }}
                                         />
                                       </div>
@@ -662,10 +636,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                                           {stDone ? (
                                             <CheckCircle2 className='h-3 w-3 text-primary shrink-0' />
                                           ) : (
-                                            <Checkbox
-                                              className='h-3 w-3 shrink-0'
-                                              checked={false}
-                                            />
+                                            <Checkbox className='h-3 w-3 shrink-0' checked={false} />
                                           )}
                                           <span
                                             className={`text-[11px] ${stDone ? 'line-through text-muted-foreground' : 'text-foreground/80 group-hover/st:text-foreground'} transition-colors`}
@@ -682,8 +653,7 @@ toast.success(`${milestoneMessage.emoji} ${milestoneMessage.title}`, {
                                 {topic.resources.length > 0 && (
                                   <div className='flex flex-wrap gap-1.5 mt-2'>
                                     {topic.resources.map((r, ri) => {
-                                      const RIcon =
-                                        resourceIcons[r.type] || BookOpen;
+                                      const RIcon = resourceIcons[r.type] || BookOpen;
                                       return r.url ? (
                                         <a
                                           key={ri}

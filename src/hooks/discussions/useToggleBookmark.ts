@@ -13,6 +13,7 @@ export const useToggleBookmark = (discussionId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discussions'] });
       queryClient.invalidateQueries({ queryKey: ['discussion', discussionId] });
+      queryClient.invalidateQueries({ queryKey: ['bookmarkedDiscussions'] });
     },
   });
 

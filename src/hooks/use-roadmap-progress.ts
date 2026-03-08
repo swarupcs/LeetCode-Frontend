@@ -1,10 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from 'react';
 
-const STORAGE_KEY = "roadmap-progress";
+const STORAGE_KEY = 'roadmap-progress';
 
 type ProgressMap = Record<string, string[]>; // roadmapId -> completedTopicIds[]
 
-function loadProgress(): ProgressMap {
+function loadLocalProgress(): ProgressMap {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : {};
@@ -13,14 +13,44 @@ function loadProgress(): ProgressMap {
   }
 }
 
-function saveProgress(data: ProgressMap) {
+function saveLocalProgress(data: ProgressMap) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-export function useRoadmapProgress(roadmapId: string) {
+interface UseRoadmapProgressOptions {
+  /** If provided, syncs with backend instead of localStorage */
+  currentUserId?: string | null;
+  /** Completed IDs from the server (for logged-in users) */
+  serverCompletedIds?: string[];
+  /** Whether the server data has finished loading */
+  isServerLoaded?: boolean;
+  /** Called with the new completed IDs array when a topic is toggled (logged-in only) */
+  onSave?: (ids: string[]) => void;
+  /** Called when progress is reset (logged-in only) */
+  onReset?: () => void;
+}
+
+export function useRoadmapProgress(
+  roadmapId: string,
+  options: UseRoadmapProgressOptions = {},
+) {
+  const { currentUserId, serverCompletedIds = [], isServerLoaded = false, onSave, onReset } =
+    options;
+
   const [completed, setCompleted] = useState<string[]>(() => {
-    return loadProgress()[roadmapId] ?? [];
+    // For anonymous users initialise from localStorage immediately
+    if (!currentUserId) {
+      return loadLocalProgress()[roadmapId] ?? [];
+    }
+    return [];
   });
+
+  // Once server data loads (for logged-in users), sync local state to it
+  useEffect(() => {
+    if (currentUserId && isServerLoaded) {
+      setCompleted(serverCompletedIds);
+    }
+  }, [currentUserId, isServerLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleTopic = useCallback(
     (topicId: string) => {
@@ -28,28 +58,36 @@ export function useRoadmapProgress(roadmapId: string) {
         const next = prev.includes(topicId)
           ? prev.filter((id) => id !== topicId)
           : [...prev, topicId];
-        const all = loadProgress();
-        all[roadmapId] = next;
-        saveProgress(all);
+
+        if (currentUserId) {
+          onSave?.(next);
+        } else {
+          const all = loadLocalProgress();
+          all[roadmapId] = next;
+          saveLocalProgress(all);
+        }
+
         return next;
       });
     },
-    [roadmapId]
+    [roadmapId, currentUserId, onSave],
   );
 
   const isCompleted = useCallback(
     (topicId: string) => completed.includes(topicId),
-    [completed]
+    [completed],
   );
 
   const resetProgress = useCallback(() => {
-    const all = loadProgress();
-    delete all[roadmapId];
-    saveProgress(all);
+    if (currentUserId) {
+      onReset?.();
+    } else {
+      const all = loadLocalProgress();
+      delete all[roadmapId];
+      saveLocalProgress(all);
+    }
     setCompleted([]);
-  }, [roadmapId]);
+  }, [roadmapId, currentUserId, onReset]);
 
-  const completedCount = completed.length;
-
-  return { completed, toggleTopic, isCompleted, completedCount, resetProgress };
+  return { completed, toggleTopic, isCompleted, completedCount: completed.length, resetProgress };
 }

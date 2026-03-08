@@ -8,6 +8,7 @@ export const useDeleteDiscussion = () => {
     mutationFn: deleteDiscussionRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discussions'] });
+      queryClient.invalidateQueries({ queryKey: ['bookmarkedDiscussions'] });
     },
   });
 

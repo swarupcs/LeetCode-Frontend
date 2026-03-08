@@ -148,7 +148,7 @@ export function CommentThread({
               disabled={isVotePending}
             />
 
-            {depth < maxDepth && (
+            {depth < maxDepth && !!currentUserId && (
               <Button
                 variant='ghost'
                 size='sm'

@@ -13,6 +13,7 @@ export const useVoteDiscussion = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['discussions'] });
       queryClient.invalidateQueries({ queryKey: ['discussion', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['bookmarkedDiscussions'] });
     },
   });
 

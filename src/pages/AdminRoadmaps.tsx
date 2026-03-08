@@ -47,21 +47,23 @@ import {
   Map,
   Globe,
   Layers,
+  Loader2,
 } from 'lucide-react';
-import {
-  roadmaps as initialRoadmaps,
-  getRoadmapStats,
-  type Roadmap,
-} from '@/data/roadmaps';
-
+import { getRoadmapStats, type Roadmap } from '@/data/roadmaps';
 import { toast } from 'sonner';
+import { useGetAllRoadmapsAdmin } from '@/hooks/roadmaps/useGetAllRoadmapsAdmin';
+import { useDeleteRoadmap } from '@/hooks/roadmaps/useDeleteRoadmap';
+import { useToggleRoadmapPublish } from '@/hooks/roadmaps/useToggleRoadmapPublish';
+import type { RoadmapWithProgress } from '@/services/roadmap.service';
 
 export default function AdminRoadmapsPage() {
+  const { roadmaps: list, isLoading, isError } = useGetAllRoadmapsAdmin();
+  const { deleteRoadmapMutation, isPending: isDeleting } = useDeleteRoadmap();
+  const { togglePublishMutation, isPending: isToggling } = useToggleRoadmapPublish();
 
-  const [list, setList] = useState<Roadmap[]>(initialRoadmaps);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [deleteTarget, setDeleteTarget] = useState<Roadmap | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<RoadmapWithProgress | null>(null);
 
   const filtered = useMemo(() => {
     return list.filter((r) => {
@@ -81,24 +83,29 @@ export default function AdminRoadmapsPage() {
     return { total: list.length, published, draft: list.length - published };
   }, [list]);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget) return;
-    setList((prev) => prev.filter((r) => r.id !== deleteTarget.id));
-toast.success('Roadmap deleted', {
-  description: `"${deleteTarget.name}" has been removed.`,
-});
-    setDeleteTarget(null);
+    try {
+      await deleteRoadmapMutation(deleteTarget.id);
+      toast.success('Roadmap deleted', {
+        description: `"${deleteTarget.name}" has been removed.`,
+      });
+    } catch {
+      toast.error('Failed to delete roadmap. Please try again.');
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
-  const handleTogglePublish = (roadmap: Roadmap) => {
-    setList((prev) =>
-      prev.map((r) =>
-        r.id === roadmap.id ? { ...r, isPublished: !r.isPublished } : r,
-      ),
-    );
-    toast.success(roadmap.isPublished ? 'Roadmap unpublished' : 'Roadmap published', {
-      description: `"${roadmap.name}" is now ${roadmap.isPublished ? 'a draft' : 'live'}.`,
-    });
+  const handleTogglePublish = async (roadmap: RoadmapWithProgress) => {
+    try {
+      await togglePublishMutation(roadmap.id);
+      toast.success(roadmap.isPublished ? 'Roadmap unpublished' : 'Roadmap published', {
+        description: `"${roadmap.name}" is now ${roadmap.isPublished ? 'a draft' : 'live'}.`,
+      });
+    } catch {
+      toast.error('Failed to update roadmap. Please try again.');
+    }
   };
 
   return (
@@ -132,21 +139,15 @@ toast.success('Roadmap deleted', {
         className='grid grid-cols-3 gap-4 mb-8'
       >
         <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-foreground'>
-            {stats.total}
-          </div>
+          <div className='text-2xl font-bold text-foreground'>{stats.total}</div>
           <div className='text-xs text-muted-foreground mt-1'>Total</div>
         </div>
         <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-primary'>
-            {stats.published}
-          </div>
+          <div className='text-2xl font-bold text-primary'>{stats.published}</div>
           <div className='text-xs text-muted-foreground mt-1'>Published</div>
         </div>
         <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-muted-foreground'>
-            {stats.draft}
-          </div>
+          <div className='text-2xl font-bold text-muted-foreground'>{stats.draft}</div>
           <div className='text-xs text-muted-foreground mt-1'>Drafts</div>
         </div>
       </motion.div>
@@ -180,189 +181,185 @@ toast.success('Roadmap deleted', {
         </Select>
       </motion.div>
 
+      {/* Loading / error */}
+      {isLoading && (
+        <div className='flex items-center justify-center py-16'>
+          <Loader2 className='h-8 w-8 animate-spin text-primary' />
+        </div>
+      )}
+      {isError && (
+        <div className='text-center py-16'>
+          <Map className='h-10 w-10 text-muted-foreground/30 mx-auto mb-3' />
+          <p className='text-muted-foreground text-sm'>Failed to load roadmaps.</p>
+        </div>
+      )}
+
       {/* Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className='glass-card overflow-hidden'
-      >
-        <Table>
-          <TableHeader>
-            <TableRow className='border-border/50 hover:bg-transparent'>
-              <TableHead className='text-muted-foreground text-xs font-semibold'>
-                Name
-              </TableHead>
-              <TableHead className='text-muted-foreground text-xs font-semibold w-[100px]'>
-                Status
-              </TableHead>
-              <TableHead className='text-muted-foreground text-xs font-semibold w-[80px] text-center'>
-                Sections
-              </TableHead>
-              <TableHead className='text-muted-foreground text-xs font-semibold w-[80px] text-center'>
-                Topics
-              </TableHead>
-              <TableHead className='text-muted-foreground text-xs font-semibold w-[50px]' />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <AnimatePresence>
-              {filtered.map((roadmap) => {
-                const s = getRoadmapStats(roadmap);
-                return (
-                  <motion.tr
-                    key={roadmap.id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className='border-border/30 hover:bg-surface-2/50 transition-colors group'
-                  >
-                    <TableCell>
-                      <div className='flex items-center gap-2'>
-                        <div>
-                          <span className='font-medium text-sm text-foreground group-hover:text-primary transition-colors'>
-                            {roadmap.name}
-                          </span>
-                          <p className='text-xs text-muted-foreground/70 line-clamp-1 mt-0.5'>
-                            {roadmap.description}
-                          </p>
+      {!isLoading && !isError && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className='glass-card overflow-hidden'
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className='border-border/50 hover:bg-transparent'>
+                <TableHead className='text-muted-foreground text-xs font-semibold'>Name</TableHead>
+                <TableHead className='text-muted-foreground text-xs font-semibold w-[100px]'>
+                  Status
+                </TableHead>
+                <TableHead className='text-muted-foreground text-xs font-semibold w-[80px] text-center'>
+                  Sections
+                </TableHead>
+                <TableHead className='text-muted-foreground text-xs font-semibold w-[80px] text-center'>
+                  Topics
+                </TableHead>
+                <TableHead className='text-muted-foreground text-xs font-semibold w-[50px]' />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <AnimatePresence>
+                {filtered.map((roadmap) => {
+                  const s = getRoadmapStats(roadmap as unknown as Roadmap);
+                  return (
+                    <motion.tr
+                      key={roadmap.id}
+                      layout
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className='border-border/30 hover:bg-surface-2/50 transition-colors group'
+                    >
+                      <TableCell>
+                        <div className='flex items-center gap-2'>
+                          <div>
+                            <span className='font-medium text-sm text-foreground group-hover:text-primary transition-colors'>
+                              {roadmap.name}
+                            </span>
+                            <p className='text-xs text-muted-foreground/70 line-clamp-1 mt-0.5'>
+                              {roadmap.description}
+                            </p>
+                          </div>
+                          {!roadmap.isPublished && (
+                            <EyeOff className='h-3.5 w-3.5 text-muted-foreground/50 shrink-0' />
+                          )}
                         </div>
-                        {!roadmap.isPublished && (
-                          <EyeOff className='h-3.5 w-3.5 text-muted-foreground/50 shrink-0' />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant='outline'
-                        className={`text-[10px] font-medium border cursor-pointer transition-colors ${
-                          roadmap.isPublished
-                            ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
-                            : 'bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted'
-                        }`}
-                        onClick={() => handleTogglePublish(roadmap)}
-                      >
-                        {roadmap.isPublished ? 'Published' : 'Draft'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      <div className='flex items-center justify-center gap-1 text-sm text-muted-foreground'>
-                        <Layers className='h-3.5 w-3.5' />
-                        {s.totalSections}
-                      </div>
-                    </TableCell>
-                    <TableCell className='text-center text-sm text-muted-foreground'>
-                      {s.totalTopics}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant='ghost'
-                            size='icon'
-                            className='h-7 w-7 text-muted-foreground hover:text-foreground'
-                          >
-                            <MoreVertical className='h-4 w-4' />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align='end'
-                          className='w-44 bg-card border-border/50'
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant='outline'
+                          className={`text-[10px] font-medium border cursor-pointer transition-colors ${
+                            roadmap.isPublished
+                              ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                              : 'bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted'
+                          }`}
+                          onClick={() => !isToggling && handleTogglePublish(roadmap)}
                         >
-                          <DropdownMenuItem
-                            asChild
-                            className='text-sm cursor-pointer'
-                          >
-                            <Link
-                              to={`/roadmaps/${roadmap.slug}`}
-                              className='flex items-center gap-2'
+                          {roadmap.isPublished ? 'Published' : 'Draft'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className='text-center'>
+                        <div className='flex items-center justify-center gap-1 text-sm text-muted-foreground'>
+                          <Layers className='h-3.5 w-3.5' />
+                          {s.totalSections}
+                        </div>
+                      </TableCell>
+                      <TableCell className='text-center text-sm text-muted-foreground'>
+                        {s.totalTopics}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='h-7 w-7 text-muted-foreground hover:text-foreground'
                             >
-                              <Eye className='h-3.5 w-3.5' />
-                              View
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            asChild
-                            className='text-sm cursor-pointer'
-                          >
-                            <Link
-                              to={`/admin/roadmaps/edit/${roadmap.id}`}
-                              className='flex items-center gap-2'
+                              <MoreVertical className='h-4 w-4' />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align='end' className='w-44 bg-card border-border/50'>
+                            <DropdownMenuItem asChild className='text-sm cursor-pointer'>
+                              <Link
+                                to={`/roadmaps/${roadmap.slug}`}
+                                className='flex items-center gap-2'
+                              >
+                                <Eye className='h-3.5 w-3.5' />
+                                View
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild className='text-sm cursor-pointer'>
+                              <Link
+                                to={`/admin/roadmaps/edit/${roadmap.id}`}
+                                className='flex items-center gap-2'
+                              >
+                                <Pencil className='h-3.5 w-3.5' />
+                                Edit
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className='text-sm cursor-pointer flex items-center gap-2'
+                              onClick={() => !isToggling && handleTogglePublish(roadmap)}
                             >
-                              <Pencil className='h-3.5 w-3.5' />
-                              Edit
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className='text-sm cursor-pointer flex items-center gap-2'
-                            onClick={() => handleTogglePublish(roadmap)}
-                          >
-                            {roadmap.isPublished ? (
-                              <>
-                                <EyeOff className='h-3.5 w-3.5' />
-                                Unpublish
-                              </>
-                            ) : (
-                              <>
-                                <Globe className='h-3.5 w-3.5' />
-                                Publish
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className='text-sm text-destructive cursor-pointer flex items-center gap-2'
-                            onClick={() => setDeleteTarget(roadmap)}
-                          >
-                            <Trash2 className='h-3.5 w-3.5' />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </motion.tr>
-                );
-              })}
-            </AnimatePresence>
-          </TableBody>
-        </Table>
+                              {roadmap.isPublished ? (
+                                <>
+                                  <EyeOff className='h-3.5 w-3.5' />
+                                  Unpublish
+                                </>
+                              ) : (
+                                <>
+                                  <Globe className='h-3.5 w-3.5' />
+                                  Publish
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className='text-sm text-destructive cursor-pointer flex items-center gap-2'
+                              onClick={() => setDeleteTarget(roadmap)}
+                            >
+                              <Trash2 className='h-3.5 w-3.5' />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </motion.tr>
+                  );
+                })}
+              </AnimatePresence>
+            </TableBody>
+          </Table>
 
-        {filtered.length === 0 && (
-          <div className='text-center py-12'>
-            <Map className='h-10 w-10 text-muted-foreground/30 mx-auto mb-3' />
-            <p className='text-muted-foreground text-sm'>
-              No roadmaps match your search.
-            </p>
-          </div>
-        )}
-      </motion.div>
+          {filtered.length === 0 && (
+            <div className='text-center py-12'>
+              <Map className='h-10 w-10 text-muted-foreground/30 mx-auto mb-3' />
+              <p className='text-muted-foreground text-sm'>No roadmaps match your search.</p>
+            </div>
+          )}
+        </motion.div>
+      )}
 
-      <AlertDialog
-        open={!!deleteTarget}
-        onOpenChange={() => setDeleteTarget(null)}
-      >
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent className='bg-card border-border/50'>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Roadmap</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete{' '}
-              <span className='font-semibold text-foreground'>
-                "{deleteTarget?.name}"
-              </span>
-              ? This action cannot be undone.
+              <span className='font-semibold text-foreground'>"{deleteTarget?.name}"</span>? This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className='border-border/50'>
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel className='border-border/50'>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+              disabled={isDeleting}
               className='bg-destructive hover:bg-destructive/90 text-destructive-foreground'
             >
-              Delete
+              {isDeleting ? <Loader2 className='h-4 w-4 animate-spin' /> : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
