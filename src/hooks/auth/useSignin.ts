@@ -18,14 +18,15 @@ export const useSignin = () => {
   const mutation = useMutation<AuthResponse, ApiError, SignInPayload>({
     mutationFn: signInRequest,
 
+
     onSuccess: (data) => {
       dispatch(
         loginSuccess({
-          user: data.user.name,
-          role: data.user.role,
-          id: data.user.id,
-          username: data.user.username,
-          email: data.user.email,
+          user: data.data.name,
+          role: data.data.role,
+          id: data.data.id,
+          username: data.data.username,
+          email: data.data.email,
         }),
       );
 

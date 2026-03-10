@@ -64,7 +64,7 @@ export interface UpdatedProfileFields {
 /* ============================= */
 export interface AuthResponse {
   message: string;
-  user: User;
+  data: User;
 }
 
 export interface GetUserProfileResponse {
