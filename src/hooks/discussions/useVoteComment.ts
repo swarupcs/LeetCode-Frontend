@@ -1,22 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { voteCommentRequest } from '@/services/discussion.service';
-
+import type { VotePayload, VoteCommentResponse, ApiError } from '@/types/discussion.types';
+ 
 export const useVoteComment = (discussionId: string) => {
   const queryClient = useQueryClient();
-
-  const mutation = useMutation<
-    { message: string; upvotes: number; downvotes: number; userVote: -1 | 0 | 1 },
-    { message: string },
-    { id: string; value: 1 | -1 | 0 }
-  >({
+  const mutation = useMutation<VoteCommentResponse, ApiError, VotePayload>({
     mutationFn: ({ id, value }) => voteCommentRequest(id, value),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discussion', discussionId] });
     },
   });
-
   return {
-    voteCommentMutation: mutation.mutateAsync,
     isPending: mutation.isPending,
+    voteCommentMutation: mutation.mutateAsync,
   };
 };

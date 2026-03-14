@@ -1,14 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toggleBookmarkRequest } from '@/services/discussion.service';
-
+import type { ToggleBookmarkResponse, ApiError } from '@/types/discussion.types';
+ 
 export const useToggleBookmark = (discussionId: string) => {
   const queryClient = useQueryClient();
-
-  const mutation = useMutation<
-    { message: string; bookmarked: boolean },
-    { message: string },
-    string
-  >({
+  const mutation = useMutation<ToggleBookmarkResponse, ApiError, string>({
     mutationFn: toggleBookmarkRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discussions'] });
@@ -16,9 +12,8 @@ export const useToggleBookmark = (discussionId: string) => {
       queryClient.invalidateQueries({ queryKey: ['bookmarkedDiscussions'] });
     },
   });
-
   return {
-    toggleBookmarkMutation: mutation.mutateAsync,
     isPending: mutation.isPending,
+    toggleBookmarkMutation: mutation.mutateAsync,
   };
 };

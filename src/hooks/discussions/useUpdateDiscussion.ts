@@ -1,34 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateDiscussionRequest } from '@/services/discussion.service';
-import type { Discussion } from '@/data/discussions';
-
-interface UpdateDiscussionPayload {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  tags: string[];
-  codeContent?: string;
-  codeLanguage?: string;
-  company?: string;
-  position?: string;
-}
-
+import type {
+  UpdateDiscussionPayload, UpdateDiscussionResponse, ApiError,
+} from '@/types/discussion.types';
+ 
 export const useUpdateDiscussion = () => {
   const queryClient = useQueryClient();
-
-  const mutation = useMutation<
-    { message: string; data: Discussion },
-    { message: string },
-    UpdateDiscussionPayload
-  >({
+  const mutation = useMutation<UpdateDiscussionResponse, ApiError, UpdateDiscussionPayload>({
     mutationFn: ({ id, ...payload }) => updateDiscussionRequest(id, payload),
-    onSuccess: (_data, variables) => {
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['discussions'] });
-      queryClient.invalidateQueries({ queryKey: ['discussion', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['discussion', id] });
     },
   });
-
   return {
     isPending: mutation.isPending,
     updateDiscussionMutation: mutation.mutateAsync,

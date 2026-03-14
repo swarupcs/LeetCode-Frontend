@@ -1,3 +1,4 @@
+// src/pages/DiscussionDetail.tsx
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -46,7 +47,6 @@ import { CommentThread } from '@/components/discussions/CommentThread';
 import { MarkdownContent } from '@/components/discussions/MarkdownContent';
 import { MarkdownEditor } from '@/components/discussions/MarkdownEditor';
 import { getCategoryStyle, getCategoryIcon } from '@/data/discussions';
-import type { Comment, DiscussionCategory } from '@/data/discussions';
 import { toast } from 'sonner';
 import { useAppSelector } from '@/hooks/redux';
 import { useGetDiscussion } from '@/hooks/discussions/useGetDiscussion';
@@ -58,10 +58,24 @@ import { useDeleteComment } from '@/hooks/discussions/useDeleteComment';
 import { useVoteDiscussion } from '@/hooks/discussions/useVoteDiscussion';
 import { useVoteComment } from '@/hooks/discussions/useVoteComment';
 import { useToggleBookmark } from '@/hooks/discussions/useToggleBookmark';
+import type { Comment, DiscussionCategory } from '@/types/discussion.types';
 
 const CODE_LANGUAGES = [
-  'javascript', 'typescript', 'python', 'java', 'cpp', 'c',
-  'go', 'rust', 'kotlin', 'swift', 'ruby', 'php', 'sql', 'bash', 'other',
+  'javascript',
+  'typescript',
+  'python',
+  'java',
+  'cpp',
+  'c',
+  'go',
+  'rust',
+  'kotlin',
+  'swift',
+  'ruby',
+  'php',
+  'sql',
+  'bash',
+  'other',
 ];
 
 export default function DiscussionDetail() {
@@ -69,24 +83,30 @@ export default function DiscussionDetail() {
   const navigate = useNavigate();
   const currentUserId = useAppSelector((state) => state.auth.id);
 
-  const { discussion, isLoading, isError } = useGetDiscussion(id!);
-  const { updateDiscussionMutation, isPending: isUpdatingPost } = useUpdateDiscussion();
+  const { discussion, isPending: isLoading, isError } = useGetDiscussion(id!);
+  const { updateDiscussionMutation, isPending: isUpdatingPost } =
+    useUpdateDiscussion();
   const { deleteDiscussionMutation } = useDeleteDiscussion();
-  const { createCommentMutation, isPending: isPostingComment } = useCreateComment(id!);
+  const { createCommentMutation, isPending: isPostingComment } =
+    useCreateComment(id!);
   const { updateCommentMutation } = useUpdateComment(id!);
   const { deleteCommentMutation } = useDeleteComment(id!);
-  const { voteDiscussionMutation, isPending: isVotingDiscussion } = useVoteDiscussion();
-  const { voteCommentMutation, isPending: isVotingComment } = useVoteComment(id!);
-  const { toggleBookmarkMutation, isPending: isTogglingBookmark } = useToggleBookmark(id!);
+  const { voteDiscussionMutation, isPending: isVotingDiscussion } =
+    useVoteDiscussion();
+  const { voteCommentMutation, isPending: isVotingComment } = useVoteComment(
+    id!
+  );
+  const { toggleBookmarkMutation, isPending: isTogglingBookmark } =
+    useToggleBookmark(id!);
 
   const [commentText, setCommentText] = useState('');
   const [commentSort, setCommentSort] = useState('top');
   const [isEditingPost, setIsEditingPost] = useState(false);
 
-  // Edit form state
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
-  const [editCategory, setEditCategory] = useState<DiscussionCategory>('general');
+  const [editCategory, setEditCategory] =
+    useState<DiscussionCategory>('general');
   const [editTags, setEditTags] = useState<string[]>([]);
   const [editTagInput, setEditTagInput] = useState('');
   const [editCompany, setEditCompany] = useState('');
@@ -97,17 +117,20 @@ export default function DiscussionDetail() {
 
   const sortedComments = useMemo(() => {
     const sorted = [...(discussion?.comments ?? [])];
-    if (commentSort === 'top') {
-      sorted.sort((a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes));
-    } else if (commentSort === 'newest') {
+    if (commentSort === 'top')
       sorted.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        (a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes)
       );
-    } else if (commentSort === 'oldest') {
+    else if (commentSort === 'newest')
       sorted.sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
-    }
+    else if (commentSort === 'oldest')
+      sorted.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
     return sorted;
   }, [discussion?.comments, commentSort]);
 
@@ -136,7 +159,10 @@ export default function DiscussionDetail() {
   const isOwnPost = !!currentUserId && discussion.author.id === currentUserId;
 
   const handlePostVote = async (vote: -1 | 0 | 1) => {
-    if (!currentUserId) { toast.error('Please log in to vote'); return; }
+    if (!currentUserId) {
+      toast.error('Please log in to vote');
+      return;
+    }
     try {
       await voteDiscussionMutation({ id: discussion.id, value: vote });
     } catch {
@@ -145,7 +171,10 @@ export default function DiscussionDetail() {
   };
 
   const handleCommentVote = async (commentId: string, vote: -1 | 0 | 1) => {
-    if (!currentUserId) { toast.error('Please log in to vote'); return; }
+    if (!currentUserId) {
+      toast.error('Please log in to vote');
+      return;
+    }
     try {
       await voteCommentMutation({ id: commentId, value: vote });
     } catch {
@@ -153,13 +182,22 @@ export default function DiscussionDetail() {
     }
   };
 
-  const handleReply = async (parentId: string, content: string): Promise<void> => {
-    if (!currentUserId) { toast.error('Please log in to reply'); return; }
+  const handleReply = async (
+    parentId: string,
+    content: string
+  ): Promise<void> => {
+    if (!currentUserId) {
+      toast.error('Please log in to reply');
+      return;
+    }
     await createCommentMutation({ discussionId: id!, content, parentId });
     toast.success('Your reply has been added to the thread.');
   };
 
-  const handleCommentEdit = async (commentId: string, newContent: string): Promise<void> => {
+  const handleCommentEdit = async (
+    commentId: string,
+    newContent: string
+  ): Promise<void> => {
     await updateCommentMutation({ id: commentId, content: newContent });
     toast.success('Your comment has been edited.');
   };
@@ -175,9 +213,15 @@ export default function DiscussionDetail() {
 
   const handlePostComment = async () => {
     if (!commentText.trim()) return;
-    if (!currentUserId) { toast.error('Please log in to comment'); return; }
+    if (!currentUserId) {
+      toast.error('Please log in to comment');
+      return;
+    }
     try {
-      await createCommentMutation({ discussionId: id!, content: commentText.trim() });
+      await createCommentMutation({
+        discussionId: id!,
+        content: commentText.trim(),
+      });
       setCommentText('');
       toast.success('Your comment has been added to the discussion.');
     } catch {
@@ -216,10 +260,20 @@ export default function DiscussionDetail() {
         content: editContent.trim(),
         category: editCategory,
         tags: editTags,
-        company: editCategory === 'interview' && editCompany.trim() ? editCompany.trim() : undefined,
-        position: editCategory === 'interview' && editPosition.trim() ? editPosition.trim() : undefined,
-        codeContent: showEditCode && editCodeContent.trim() ? editCodeContent.trim() : undefined,
-        codeLanguage: showEditCode && editCodeContent.trim() ? editCodeLanguage : undefined,
+        company:
+          editCategory === 'interview' && editCompany.trim()
+            ? editCompany.trim()
+            : undefined,
+        position:
+          editCategory === 'interview' && editPosition.trim()
+            ? editPosition.trim()
+            : undefined,
+        codeContent:
+          showEditCode && editCodeContent.trim()
+            ? editCodeContent.trim()
+            : undefined,
+        codeLanguage:
+          showEditCode && editCodeContent.trim() ? editCodeLanguage : undefined,
       });
       setIsEditingPost(false);
       toast.success('Your discussion has been edited.');
@@ -232,14 +286,19 @@ export default function DiscussionDetail() {
     try {
       await deleteDiscussionMutation(discussion.id);
       navigate('/discussions');
-      toast.success('Post deleted', { description: 'Your discussion has been removed.' });
+      toast.success('Post deleted', {
+        description: 'Your discussion has been removed.',
+      });
     } catch {
       toast.error('Failed to delete post. Please try again.');
     }
   };
 
   const handleBookmark = async () => {
-    if (!currentUserId) { toast.error('Please log in to bookmark'); return; }
+    if (!currentUserId) {
+      toast.error('Please log in to bookmark');
+      return;
+    }
     try {
       await toggleBookmarkMutation(discussion.id);
     } catch {
@@ -250,8 +309,10 @@ export default function DiscussionDetail() {
   return (
     <div className='min-h-screen'>
       <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Back button */}
-        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
           <Button
             variant='ghost'
             className='mb-6 text-muted-foreground hover:text-foreground'
@@ -262,7 +323,6 @@ export default function DiscussionDetail() {
           </Button>
         </motion.div>
 
-        {/* Main post */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -278,9 +338,7 @@ export default function DiscussionDetail() {
                   onVote={handlePostVote}
                   disabled={isVotingDiscussion}
                 />
-
                 <div className='flex-1 min-w-0'>
-                  {/* Header row: badges + edit/delete buttons */}
                   <div className='flex items-center justify-between mb-3'>
                     {!isEditingPost && (
                       <div className='flex items-center gap-2 flex-wrap'>
@@ -288,22 +346,27 @@ export default function DiscussionDetail() {
                           variant='outline'
                           className={`text-xs px-2.5 py-0.5 ${getCategoryStyle(discussion.category)}`}
                         >
-                          <span className='mr-1'>{getCategoryIcon(discussion.category)}</span>
+                          <span className='mr-1'>
+                            {getCategoryIcon(discussion.category)}
+                          </span>
                           {discussion.category}
                         </Badge>
                         {discussion.category === 'interview' &&
                           (discussion.company || discussion.position) && (
                             <span className='flex items-center gap-1 text-xs text-muted-foreground'>
                               <Building2 className='h-3.5 w-3.5' />
-                              {[discussion.company, discussion.position].filter(Boolean).join(' · ')}
+                              {[discussion.company, discussion.position]
+                                .filter(Boolean)
+                                .join(' · ')}
                             </span>
                           )}
                         {discussion.isEdited && (
-                          <span className='text-xs text-muted-foreground italic'>edited</span>
+                          <span className='text-xs text-muted-foreground italic'>
+                            edited
+                          </span>
                         )}
                       </div>
                     )}
-
                     {isOwnPost && !isEditingPost && (
                       <div className='flex items-center gap-1 ml-auto'>
                         <Button
@@ -328,17 +391,20 @@ export default function DiscussionDetail() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+                              <AlertDialogTitle>
+                                Delete this post?
+                              </AlertDialogTitle>
                               <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete your
-                                discussion post and all its comments.
+                                This action cannot be undone. This will
+                                permanently delete your discussion post and all
+                                its comments.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
                                 className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                                onClick={handleDeletePost}
+                                onClick={() => void handleDeletePost()}
                               >
                                 Delete
                               </AlertDialogAction>
@@ -349,27 +415,32 @@ export default function DiscussionDetail() {
                     )}
                   </div>
 
-                  {/* ── Edit form ─────────────────────────────────── */}
+                  {/* Edit form */}
                   {isEditingPost ? (
                     <div className='space-y-4 mb-5'>
-                      {/* Title */}
                       <div className='space-y-1.5'>
-                        <label className='text-xs font-medium text-muted-foreground'>Title</label>
+                        <label className='text-xs font-medium text-muted-foreground'>
+                          Title
+                        </label>
                         <Input
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
                           className='bg-surface-1 border-border/50'
                           maxLength={120}
                         />
-                        <p className='text-xs text-muted-foreground text-right'>{editTitle.length}/120</p>
+                        <p className='text-xs text-muted-foreground text-right'>
+                          {editTitle.length}/120
+                        </p>
                       </div>
-
-                      {/* Category */}
                       <div className='space-y-1.5'>
-                        <label className='text-xs font-medium text-muted-foreground'>Category</label>
+                        <label className='text-xs font-medium text-muted-foreground'>
+                          Category
+                        </label>
                         <Select
                           value={editCategory}
-                          onValueChange={(v) => setEditCategory(v as DiscussionCategory)}
+                          onValueChange={(v) =>
+                            setEditCategory(v as DiscussionCategory)
+                          }
                         >
                           <SelectTrigger className='bg-surface-1 border-border/50'>
                             <SelectValue />
@@ -377,18 +448,19 @@ export default function DiscussionDetail() {
                           <SelectContent>
                             <SelectItem value='general'>💬 General</SelectItem>
                             <SelectItem value='problem'>💡 Problem</SelectItem>
-                            <SelectItem value='interview'>🎯 Interview</SelectItem>
+                            <SelectItem value='interview'>
+                              🎯 Interview
+                            </SelectItem>
                             <SelectItem value='career'>💼 Career</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-
-                      {/* Company / Position — interview only */}
                       {editCategory === 'interview' && (
                         <div className='grid grid-cols-2 gap-3'>
                           <div className='space-y-1.5'>
                             <label className='text-xs font-medium text-muted-foreground'>
-                              Company <span className='font-normal'>(optional)</span>
+                              Company{' '}
+                              <span className='font-normal'>(optional)</span>
                             </label>
                             <Input
                               value={editCompany}
@@ -400,7 +472,8 @@ export default function DiscussionDetail() {
                           </div>
                           <div className='space-y-1.5'>
                             <label className='text-xs font-medium text-muted-foreground'>
-                              Position <span className='font-normal'>(optional)</span>
+                              Position{' '}
+                              <span className='font-normal'>(optional)</span>
                             </label>
                             <Input
                               value={editPosition}
@@ -412,10 +485,10 @@ export default function DiscussionDetail() {
                           </div>
                         </div>
                       )}
-
-                      {/* Content */}
                       <div className='space-y-1.5'>
-                        <label className='text-xs font-medium text-muted-foreground'>Content</label>
+                        <label className='text-xs font-medium text-muted-foreground'>
+                          Content
+                        </label>
                         <MarkdownEditor
                           value={editContent}
                           onChange={setEditContent}
@@ -424,30 +497,33 @@ export default function DiscussionDetail() {
                           maxLength={5000}
                         />
                       </div>
-
-                      {/* Code snippet toggle */}
                       <div className='space-y-2'>
                         <button
                           type='button'
                           onClick={() => setShowEditCode((v) => !v)}
-                          className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-                            showEditCode
-                              ? 'text-primary'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
+                          className={`flex items-center gap-2 text-sm font-medium transition-colors ${showEditCode ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                         >
                           <Code2 className='h-4 w-4' />
-                          {showEditCode ? 'Remove code snippet' : 'Add / edit code snippet'}
+                          {showEditCode
+                            ? 'Remove code snippet'
+                            : 'Add / edit code snippet'}
                         </button>
                         {showEditCode && (
                           <div className='space-y-2 rounded-md border border-border/50 p-3 bg-surface-1/50'>
-                            <Select value={editCodeLanguage} onValueChange={setEditCodeLanguage}>
+                            <Select
+                              value={editCodeLanguage}
+                              onValueChange={setEditCodeLanguage}
+                            >
                               <SelectTrigger className='w-44 bg-surface-1 border-border/50 h-8 text-xs'>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 {CODE_LANGUAGES.map((lang) => (
-                                  <SelectItem key={lang} value={lang} className='text-xs'>
+                                  <SelectItem
+                                    key={lang}
+                                    value={lang}
+                                    className='text-xs'
+                                  >
                                     {lang}
                                   </SelectItem>
                                 ))}
@@ -455,7 +531,9 @@ export default function DiscussionDetail() {
                             </Select>
                             <Textarea
                               value={editCodeContent}
-                              onChange={(e) => setEditCodeContent(e.target.value)}
+                              onChange={(e) =>
+                                setEditCodeContent(e.target.value)
+                              }
                               placeholder='Paste your code here...'
                               className='min-h-[120px] bg-surface-1 border-border/50 resize-none font-mono text-xs'
                               maxLength={8000}
@@ -463,8 +541,6 @@ export default function DiscussionDetail() {
                           </div>
                         )}
                       </div>
-
-                      {/* Tags */}
                       <div className='space-y-1.5'>
                         <label className='text-xs font-medium text-muted-foreground'>
                           Tags <span className='font-normal'>(up to 5)</span>
@@ -488,7 +564,9 @@ export default function DiscussionDetail() {
                             variant='outline'
                             size='sm'
                             onClick={handleAddEditTag}
-                            disabled={!editTagInput.trim() || editTags.length >= 5}
+                            disabled={
+                              !editTagInput.trim() || editTags.length >= 5
+                            }
                             className='shrink-0'
                           >
                             Add
@@ -497,11 +575,17 @@ export default function DiscussionDetail() {
                         {editTags.length > 0 && (
                           <div className='flex flex-wrap gap-1.5 mt-1'>
                             {editTags.map((tag) => (
-                              <Badge key={tag} variant='secondary' className='text-xs gap-1 pr-1'>
+                              <Badge
+                                key={tag}
+                                variant='secondary'
+                                className='text-xs gap-1 pr-1'
+                              >
                                 {tag}
                                 <button
                                   onClick={() =>
-                                    setEditTags(editTags.filter((t) => t !== tag))
+                                    setEditTags(
+                                      editTags.filter((t) => t !== tag)
+                                    )
                                   }
                                   className='ml-0.5 rounded-full hover:bg-foreground/10 p-0.5'
                                 >
@@ -512,12 +596,15 @@ export default function DiscussionDetail() {
                           </div>
                         )}
                       </div>
-
                       <div className='flex items-center gap-2 pt-1'>
                         <Button
                           size='sm'
-                          onClick={handleSavePostEdit}
-                          disabled={!editTitle.trim() || !editContent.trim() || isUpdatingPost}
+                          onClick={() => void handleSavePostEdit()}
+                          disabled={
+                            !editTitle.trim() ||
+                            !editContent.trim() ||
+                            isUpdatingPost
+                          }
                         >
                           Save Changes
                         </Button>
@@ -532,9 +619,10 @@ export default function DiscussionDetail() {
                       </div>
                     </div>
                   ) : (
-                    /* ── Read-only view ──────────────────────────── */
                     <>
-                      <h1 className='text-2xl font-bold mb-4'>{discussion.title}</h1>
+                      <h1 className='text-2xl font-bold mb-4'>
+                        {discussion.title}
+                      </h1>
                       <MarkdownContent
                         content={discussion.content}
                         className='text-sm text-foreground/90 mb-5 leading-relaxed'
@@ -555,7 +643,6 @@ export default function DiscussionDetail() {
                     </>
                   )}
 
-                  {/* Tags (always visible outside edit mode) */}
                   {!isEditingPost && discussion.tags.length > 0 && (
                     <div className='flex flex-wrap gap-1.5 mb-4'>
                       {discussion.tags.map((tag) => (
@@ -569,7 +656,6 @@ export default function DiscussionDetail() {
                     </div>
                   )}
 
-                  {/* Meta row */}
                   <div className='flex items-center justify-between border-t border-border/30 pt-4'>
                     <div className='flex items-center gap-4 text-xs text-muted-foreground'>
                       <div className='flex items-center gap-1.5'>
@@ -578,10 +664,13 @@ export default function DiscussionDetail() {
                             <AvatarImage src={discussion.author.image} />
                           )}
                           <AvatarFallback className='bg-primary/10 text-primary text-[10px] font-bold'>
-                            {discussion.author.username?.[0]?.toUpperCase() ?? '?'}
+                            {discussion.author.username?.[0]?.toUpperCase() ??
+                              '?'}
                           </AvatarFallback>
                         </Avatar>
-                        <span className='font-medium'>{discussion.author.username}</span>
+                        <span className='font-medium'>
+                          {discussion.author.username}
+                        </span>
                       </div>
                       <div className='flex items-center gap-1'>
                         <Clock className='h-3 w-3' />
@@ -597,7 +686,7 @@ export default function DiscussionDetail() {
                         variant='ghost'
                         size='icon'
                         className='h-8 w-8 text-muted-foreground hover:text-foreground'
-                        onClick={handleBookmark}
+                        onClick={() => void handleBookmark()}
                         disabled={isTogglingBookmark}
                       >
                         {discussion.bookmarked ? (
@@ -611,7 +700,9 @@ export default function DiscussionDetail() {
                         size='icon'
                         className='h-8 w-8 text-muted-foreground hover:text-foreground'
                         onClick={() => {
-                          navigator.clipboard.writeText(window.location.href);
+                          void navigator.clipboard.writeText(
+                            window.location.href
+                          );
                           toast.success('Link copied to clipboard');
                         }}
                       >
@@ -621,7 +712,9 @@ export default function DiscussionDetail() {
                         variant='ghost'
                         size='icon'
                         className='h-8 w-8 text-muted-foreground hover:text-destructive'
-                        onClick={() => toast.info('Reporting feature coming soon')}
+                        onClick={() =>
+                          toast.info('Reporting feature coming soon')
+                        }
                       >
                         <Flag className='h-4 w-4' />
                       </Button>
@@ -647,13 +740,13 @@ export default function DiscussionDetail() {
                 <MarkdownEditor
                   value={commentText}
                   onChange={setCommentText}
-                  placeholder='Share your thoughts, code snippets, or ask a follow-up question...'
+                  placeholder='Share your thoughts...'
                   minHeight='100px'
                   maxLength={3000}
                 />
                 <div className='flex items-center justify-end mt-3'>
                   <Button
-                    onClick={handlePostComment}
+                    onClick={() => void handlePostComment()}
                     disabled={!commentText.trim() || isPostingComment}
                     size='sm'
                   >
@@ -692,7 +785,6 @@ export default function DiscussionDetail() {
               </SelectContent>
             </Select>
           </div>
-
           <Card className='glass-card border-border/50'>
             <CardContent className='p-5 divide-y divide-border/30'>
               {sortedComments.length > 0 ? (

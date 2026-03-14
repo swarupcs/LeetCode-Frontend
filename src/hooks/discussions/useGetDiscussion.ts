@@ -1,17 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { getDiscussionRequest } from '@/services/discussion.service';
-import type { Discussion, Comment } from '@/data/discussions';
-
+import type { GetDiscussionResponse, ApiError } from '@/types/discussion.types';
+ 
 export const useGetDiscussion = (id: string) => {
-  const query = useQuery<Discussion & { comments: Comment[] }, { message: string }>({
+  const query = useQuery<GetDiscussionResponse, ApiError>({
     queryKey: ['discussion', id],
     queryFn: () => getDiscussionRequest(id),
     enabled: !!id,
-    staleTime: 1000 * 60 * 1,
+    staleTime: 60 * 1000,
   });
-
   return {
     ...query,
-    discussion: query.data,
+    // data.data is the Discussion (with comments populated)
+    discussion: query.data?.data ?? null,
   };
 };

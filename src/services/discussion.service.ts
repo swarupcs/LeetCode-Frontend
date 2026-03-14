@@ -1,186 +1,160 @@
+// src/services/discussion.service.ts
 import { axiosInstance } from '@/config/axiosConfig';
 import type { AxiosError } from 'axios';
-import type { Discussion, Comment } from '@/data/discussions';
+import type {
+  CreateDiscussionPayload,
+  CreateDiscussionResponse,
+  UpdateDiscussionPayload,
+  UpdateDiscussionResponse,
+  DeleteDiscussionResponse,
+  GetAllDiscussionsResponse,
+  GetDiscussionResponse,
+  CreateCommentPayload,
+  CreateCommentResponse,
+  UpdateCommentResponse,
+  DeleteCommentResponse,
+  VotePayload,
+  VoteDiscussionResponse,
+  VoteCommentResponse,
+  ToggleBookmarkResponse,
+  GetBookmarksResponse,
+  ApiError,
+} from '@/types/discussion.types';
 
-interface ApiErrorResponse {
-  message: string;
-}
-
-const handleError = (err: unknown): never => {
-  const error = err as AxiosError<ApiErrorResponse>;
-  if (error.response?.data) throw error.response.data;
-  throw { message: (err as Error).message || 'Something went wrong' };
+const throwError = (err: unknown): never => {
+  const error = err as AxiosError<ApiError>;
+  throw error.response?.data ?? { message: (err as Error).message || 'Something went wrong' };
 };
 
 // ─── Discussions ──────────────────────────────────────────────────────────────
 
-export const getAllDiscussionsRequest = async (): Promise<{
-  message: string;
-  data: Discussion[];
-}> => {
+// GET /api/v1/discussions
+export const getAllDiscussionsRequest = async (): Promise<GetAllDiscussionsResponse> => {
   try {
-    const { data } = await axiosInstance.get('/discussions/getAllDiscussions');
+    const { data } = await axiosInstance.get<GetAllDiscussionsResponse>('/discussions');
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
-export const getDiscussionRequest = async (
-  id: string,
-): Promise<Discussion & { comments: Comment[] }> => {
+// GET /api/v1/discussions/bookmarks  (must come before /:id route)
+export const getBookmarkedDiscussionsRequest = async (): Promise<GetBookmarksResponse> => {
   try {
-    const { data } = await axiosInstance.get(`/discussions/getDiscussion/${id}`);
-    return data.data;
-  } catch (err) {
-    return handleError(err);
-  }
-};
-
-export const createDiscussionRequest = async (payload: {
-  title: string;
-  content: string;
-  category: string;
-  tags: string[];
-  codeContent?: string;
-  codeLanguage?: string;
-  company?: string;
-  position?: string;
-}): Promise<{ message: string; data: Discussion }> => {
-  try {
-    const { data } = await axiosInstance.post('/discussions/createDiscussion', payload);
+    const { data } = await axiosInstance.get<GetBookmarksResponse>('/discussions/bookmarks');
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
+// GET /api/v1/discussions/:id
+export const getDiscussionRequest = async (id: string): Promise<GetDiscussionResponse> => {
+  try {
+    const { data } = await axiosInstance.get<GetDiscussionResponse>(`/discussions/${id}`);
+    return data;
+  } catch (err) { return throwError(err); }
+};
+
+// POST /api/v1/discussions
+export const createDiscussionRequest = async (
+  payload: CreateDiscussionPayload,
+): Promise<CreateDiscussionResponse> => {
+  try {
+    const { data } = await axiosInstance.post<CreateDiscussionResponse>('/discussions', payload);
+    return data;
+  } catch (err) { return throwError(err); }
+};
+
+// PUT /api/v1/discussions/:id
 export const updateDiscussionRequest = async (
   id: string,
-  payload: {
-    title: string;
-    content: string;
-    category: string;
-    tags: string[];
-    codeContent?: string;
-    codeLanguage?: string;
-    company?: string;
-    position?: string;
-  },
-): Promise<{ message: string; data: Discussion }> => {
+  payload: Omit<UpdateDiscussionPayload, 'id'>,
+): Promise<UpdateDiscussionResponse> => {
   try {
-    const { data } = await axiosInstance.put(
-      `/discussions/updateDiscussion/${id}`,
-      payload,
-    );
+    const { data } = await axiosInstance.put<UpdateDiscussionResponse>(`/discussions/${id}`, payload);
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
-export const deleteDiscussionRequest = async (
-  id: string,
-): Promise<{ message: string }> => {
+// DELETE /api/v1/discussions/:id
+export const deleteDiscussionRequest = async (id: string): Promise<DeleteDiscussionResponse> => {
   try {
-    const { data } = await axiosInstance.delete(`/discussions/deleteDiscussion/${id}`);
+    const { data } = await axiosInstance.delete<DeleteDiscussionResponse>(`/discussions/${id}`);
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
 // ─── Comments ─────────────────────────────────────────────────────────────────
 
-export const createCommentRequest = async (payload: {
-  discussionId: string;
-  content: string;
-  parentId?: string;
-}): Promise<{ message: string; data: Comment }> => {
+// POST /api/v1/discussions/comments
+export const createCommentRequest = async (
+  payload: CreateCommentPayload,
+): Promise<CreateCommentResponse> => {
   try {
-    const { data } = await axiosInstance.post('/discussions/createComment', payload);
+    const { data } = await axiosInstance.post<CreateCommentResponse>('/discussions/comments', payload);
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
+// PUT /api/v1/discussions/comments/:id
 export const updateCommentRequest = async (
   id: string,
   content: string,
-): Promise<{ message: string; data: Comment }> => {
+): Promise<UpdateCommentResponse> => {
   try {
-    const { data } = await axiosInstance.put(`/discussions/updateComment/${id}`, {
-      content,
-    });
+    const { data } = await axiosInstance.put<UpdateCommentResponse>(
+      `/discussions/comments/${id}`,
+      { content },
+    );
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
-export const deleteCommentRequest = async (
-  id: string,
-): Promise<{ message: string }> => {
+// DELETE /api/v1/discussions/comments/:id
+export const deleteCommentRequest = async (id: string): Promise<DeleteCommentResponse> => {
   try {
-    const { data } = await axiosInstance.delete(`/discussions/deleteComment/${id}`);
+    const { data } = await axiosInstance.delete<DeleteCommentResponse>(
+      `/discussions/comments/${id}`,
+    );
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
 // ─── Votes ────────────────────────────────────────────────────────────────────
 
+// POST /api/v1/discussions/:id/vote
 export const voteDiscussionRequest = async (
   id: string,
-  value: 1 | -1 | 0,
-): Promise<{ message: string; upvotes: number; downvotes: number; userVote: -1 | 0 | 1 }> => {
+  value: VotePayload['value'],
+): Promise<VoteDiscussionResponse> => {
   try {
-    const { data } = await axiosInstance.post(`/discussions/voteDiscussion/${id}`, {
-      value,
-    });
+    const { data } = await axiosInstance.post<VoteDiscussionResponse>(
+      `/discussions/${id}/vote`,
+      { value },
+    );
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
+// POST /api/v1/discussions/comments/:id/vote
 export const voteCommentRequest = async (
   id: string,
-  value: 1 | -1 | 0,
-): Promise<{ message: string; upvotes: number; downvotes: number; userVote: -1 | 0 | 1 }> => {
+  value: VotePayload['value'],
+): Promise<VoteCommentResponse> => {
   try {
-    const { data } = await axiosInstance.post(`/discussions/voteComment/${id}`, {
-      value,
-    });
+    const { data } = await axiosInstance.post<VoteCommentResponse>(
+      `/discussions/comments/${id}/vote`,
+      { value },
+    );
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
 // ─── Bookmarks ────────────────────────────────────────────────────────────────
 
-export const getBookmarkedDiscussionsRequest = async (): Promise<{
-  message: string;
-  data: Discussion[];
-}> => {
+// POST /api/v1/discussions/:id/bookmark
+export const toggleBookmarkRequest = async (id: string): Promise<ToggleBookmarkResponse> => {
   try {
-    const { data } = await axiosInstance.get('/discussions/bookmarks');
+    const { data } = await axiosInstance.post<ToggleBookmarkResponse>(
+      `/discussions/${id}/bookmark`,
+    );
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
-};
-
-export const toggleBookmarkRequest = async (
-  id: string,
-): Promise<{ message: string; bookmarked: boolean }> => {
-  try {
-    const { data } = await axiosInstance.post(`/discussions/toggleBookmark/${id}`);
-    return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };

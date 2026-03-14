@@ -1,3 +1,4 @@
+// src/pages/DiscussionsPage.tsx
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -19,11 +20,17 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { MessageSquare, Search, Plus, TrendingUp, Loader2, Bookmark } from 'lucide-react';
+import {
+  MessageSquare,
+  Search,
+  Plus,
+  TrendingUp,
+  Loader2,
+  Bookmark,
+} from 'lucide-react';
 import { DiscussionCard } from '@/components/discussions/DiscussionCard';
 import { CategoryFilter } from '@/components/discussions/CategoryFilter';
 import { NewPostDialog } from '@/components/discussions/NewPostDialog';
-import type { DiscussionCategory } from '@/data/discussions';
 import { usePagination } from '@/hooks/use-pagination';
 import { toast } from 'sonner';
 import { useAppSelector } from '@/hooks/redux';
@@ -32,6 +39,10 @@ import { useGetBookmarkedDiscussions } from '@/hooks/discussions/useGetBookmarke
 import { useCreateDiscussion } from '@/hooks/discussions/useCreateDiscussion';
 import { useDeleteDiscussion } from '@/hooks/discussions/useDeleteDiscussion';
 import { useVoteDiscussion } from '@/hooks/discussions/useVoteDiscussion';
+import type {
+  CreateDiscussionPayload,
+  DiscussionCategory,
+} from '@/types/discussion.types';
 
 type TabView = 'all' | 'bookmarks';
 
@@ -41,15 +52,18 @@ export default function DiscussionsPage() {
 
   const [activeTab, setActiveTab] = useState<TabView>('all');
 
-  const { discussions, isLoading, isError } = useGetAllDiscussions();
+  // hooks — data.data is pre-unwrapped in each hook
+  const { discussions, isPending: isLoading, isError } = useGetAllDiscussions();
   const {
     bookmarkedDiscussions,
-    isLoading: isLoadingBookmarks,
+    isPending: isLoadingBookmarks,
     isError: isErrorBookmarks,
   } = useGetBookmarkedDiscussions(!!currentUserId);
-  const { createDiscussionMutation, isPending: isCreating } = useCreateDiscussion();
+  const { createDiscussionMutation, isPending: isCreating } =
+    useCreateDiscussion();
   const { deleteDiscussionMutation } = useDeleteDiscussion();
-  const { voteDiscussionMutation, isPending: isVotePending } = useVoteDiscussion();
+  const { voteDiscussionMutation, isPending: isVotePending } =
+    useVoteDiscussion();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('top');
@@ -59,26 +73,24 @@ export default function DiscussionsPage() {
 
   const filtered = useMemo(() => {
     let result = discussions;
-
-    if (categoryFilter !== 'all') {
+    if (categoryFilter !== 'all')
       result = result.filter((d) => d.category === categoryFilter);
-    }
-
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
         (d) =>
           d.title.toLowerCase().includes(q) ||
           d.content.toLowerCase().includes(q) ||
-          d.tags.some((t) => t.toLowerCase().includes(q)),
+          d.tags.some((t) => t.toLowerCase().includes(q))
       );
     }
-
     return [...result].sort((a, b) => {
       if (sortBy === 'top')
         return b.upvotes - b.downvotes - (a.upvotes - a.downvotes);
       if (sortBy === 'newest')
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       if (sortBy === 'discussed') return b.commentCount - a.commentCount;
       return 0;
     });
@@ -88,10 +100,9 @@ export default function DiscussionsPage() {
     totalItems: filtered.length,
     itemsPerPage: ITEMS_PER_PAGE,
   });
-
   const paginatedItems = useMemo(
     () => filtered.slice(pagination.startIndex, pagination.endIndex),
-    [filtered, pagination.startIndex, pagination.endIndex],
+    [filtered, pagination.startIndex, pagination.endIndex]
   );
 
   useEffect(() => {
@@ -110,16 +121,7 @@ export default function DiscussionsPage() {
     }
   };
 
-  const handleNewPost = async (post: {
-    title: string;
-    content: string;
-    category: DiscussionCategory;
-    tags: string[];
-    codeContent?: string;
-    codeLanguage?: string;
-    company?: string;
-    position?: string;
-  }) => {
+  const handleNewPost = async (post: CreateDiscussionPayload) => {
     try {
       await createDiscussionMutation(post);
       toast.success('Post created!', {
@@ -142,11 +144,13 @@ export default function DiscussionsPage() {
     }
   };
 
-  const stats = useMemo(() => {
-    const totalPosts = discussions.length;
-    const totalComments = discussions.reduce((sum, d) => sum + d.commentCount, 0);
-    return { totalPosts, totalComments };
-  }, [discussions]);
+  const stats = useMemo(
+    () => ({
+      totalPosts: discussions.length,
+      totalComments: discussions.reduce((sum, d) => sum + d.commentCount, 0),
+    }),
+    [discussions]
+  );
 
   return (
     <div className='min-h-screen'>
@@ -191,7 +195,8 @@ export default function DiscussionsPage() {
           <div className='flex items-center gap-1.5'>
             <TrendingUp className='h-4 w-4 text-primary' />
             <span>
-              <strong className='text-foreground'>{stats.totalPosts}</strong> posts
+              <strong className='text-foreground'>{stats.totalPosts}</strong>{' '}
+              posts
             </span>
           </div>
           <div className='flex items-center gap-1.5'>
@@ -212,11 +217,7 @@ export default function DiscussionsPage() {
         >
           <button
             onClick={() => setActiveTab('all')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              activeTab === 'all'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'all' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <MessageSquare className='h-3.5 w-3.5' />
             All Discussions
@@ -229,11 +230,7 @@ export default function DiscussionsPage() {
               }
               setActiveTab('bookmarks');
             }}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              activeTab === 'bookmarks'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'bookmarks' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <Bookmark className='h-3.5 w-3.5' />
             My Bookmarks
@@ -245,7 +242,7 @@ export default function DiscussionsPage() {
           </button>
         </motion.div>
 
-        {/* ── BOOKMARKS TAB ─────────────────────────────────────── */}
+        {/* ── BOOKMARKS TAB ─────────────────────────────────────────── */}
         {activeTab === 'bookmarks' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -259,8 +256,12 @@ export default function DiscussionsPage() {
             {isErrorBookmarks && (
               <div className='text-center py-16'>
                 <Bookmark className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
-                <p className='text-muted-foreground mb-1'>Failed to load bookmarks</p>
-                <p className='text-xs text-muted-foreground'>Please try again later</p>
+                <p className='text-muted-foreground mb-1'>
+                  Failed to load bookmarks
+                </p>
+                <p className='text-xs text-muted-foreground'>
+                  Please try again later
+                </p>
               </div>
             )}
             {!isLoadingBookmarks && !isErrorBookmarks && (
@@ -281,7 +282,9 @@ export default function DiscussionsPage() {
                 ) : (
                   <div className='text-center py-16'>
                     <Bookmark className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
-                    <p className='text-muted-foreground mb-1'>No bookmarks yet</p>
+                    <p className='text-muted-foreground mb-1'>
+                      No bookmarks yet
+                    </p>
                     <p className='text-xs text-muted-foreground'>
                       Bookmark discussions you want to revisit
                     </p>
@@ -292,20 +295,21 @@ export default function DiscussionsPage() {
           </motion.div>
         )}
 
-        {/* ── ALL DISCUSSIONS TAB ───────────────────────────────── */}
+        {/* ── ALL DISCUSSIONS TAB ────────────────────────────────────── */}
         {activeTab === 'all' && (
           <>
-            {/* Category filter */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 }}
               className='mb-4'
             >
-              <CategoryFilter selected={categoryFilter} onSelect={setCategoryFilter} />
+              <CategoryFilter
+                selected={categoryFilter}
+                onSelect={setCategoryFilter}
+              />
             </motion.div>
 
-            {/* Search & Sort */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -333,23 +337,23 @@ export default function DiscussionsPage() {
               </Select>
             </motion.div>
 
-            {/* Loading state */}
             {isLoading && (
               <div className='flex items-center justify-center py-16'>
                 <Loader2 className='h-8 w-8 animate-spin text-primary' />
               </div>
             )}
-
-            {/* Error state */}
             {isError && (
               <div className='text-center py-16'>
                 <MessageSquare className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
-                <p className='text-muted-foreground mb-1'>Failed to load discussions</p>
-                <p className='text-xs text-muted-foreground'>Please try again later</p>
+                <p className='text-muted-foreground mb-1'>
+                  Failed to load discussions
+                </p>
+                <p className='text-xs text-muted-foreground'>
+                  Please try again later
+                </p>
               </div>
             )}
 
-            {/* Discussion List */}
             {!isLoading && !isError && (
               <div className='space-y-3'>
                 {paginatedItems.map((discussion, index) => (
@@ -364,7 +368,6 @@ export default function DiscussionsPage() {
                     isVotePending={isVotePending}
                   />
                 ))}
-
                 {filtered.length === 0 && (
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -372,7 +375,9 @@ export default function DiscussionsPage() {
                     className='text-center py-16'
                   >
                     <MessageSquare className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
-                    <p className='text-muted-foreground mb-1'>No discussions found</p>
+                    <p className='text-muted-foreground mb-1'>
+                      No discussions found
+                    </p>
                     <p className='text-xs text-muted-foreground'>
                       Try a different search or category filter
                     </p>
@@ -381,7 +386,6 @@ export default function DiscussionsPage() {
               </div>
             )}
 
-            {/* Pagination */}
             {pagination.totalPages > 1 && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -404,7 +408,6 @@ export default function DiscussionsPage() {
                         }
                       />
                     </PaginationItem>
-
                     {pagination.pageNumbers.map((page, idx) =>
                       page === 'ellipsis' ? (
                         <PaginationItem key={`ellipsis-${idx}`}>
@@ -423,9 +426,8 @@ export default function DiscussionsPage() {
                             {page}
                           </PaginationLink>
                         </PaginationItem>
-                      ),
+                      )
                     )}
-
                     <PaginationItem>
                       <PaginationNext
                         onClick={(e) => {
@@ -441,7 +443,6 @@ export default function DiscussionsPage() {
                     </PaginationItem>
                   </PaginationContent>
                 </Pagination>
-
                 <p className='text-xs text-muted-foreground'>
                   Showing {pagination.startIndex + 1}–{pagination.endIndex} of{' '}
                   {filtered.length} discussions
