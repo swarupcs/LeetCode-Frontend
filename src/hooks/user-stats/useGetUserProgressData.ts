@@ -8,7 +8,7 @@ export const useGetUserProgressData = () => {
     queryFn: getUserProgressDataRequest,
     staleTime: 5 * 60 * 1000,
   });
-
+ 
   return {
     ...query,
     progressData: query.data?.data ?? null,

@@ -8,9 +8,9 @@ export const useGetUserHeatMapData = () => {
     queryFn: getUserHeatMapDataRequest,
     staleTime: 5 * 60 * 1000,
   });
-
+ 
   return {
     ...query,
-    heatMapData: query.data?.heatmap ?? [],
+    heatMapData: query.data?.data?.heatmap ?? [],
   };
 };

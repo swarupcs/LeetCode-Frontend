@@ -1,13 +1,31 @@
+export interface ApiSuccess<T> {
+  success: true;
+  statusCode: number;
+  message: string;
+  timestamp: string;
+  data: T;
+}
+
+export interface ApiError {
+  success: false;
+  statusCode: number;
+  message: string;
+  timestamp: string;
+  path: string;
+  data: null;
+  errors: Array<{ field: string; message: string }> | null;
+}
+
+// ─── Heatmap ──────────────────────────────────────────────────────────────────
+
 export interface HeatMapEntry {
   date: string;
   count: number;
 }
 
-export interface HeatMapResponse {
-  success: boolean;
-  message: string;
-  heatmap: HeatMapEntry[]; // ← 'heatmap' not 'data'
-}
+export type HeatMapResponse = ApiSuccess<{ heatmap: HeatMapEntry[] }>;
+
+// ─── Solved stats ─────────────────────────────────────────────────────────────
 
 export interface DifficultyStats {
   EASY: number;
@@ -26,11 +44,9 @@ export interface SolvedStats {
   acceptanceRate: number;
 }
 
-export interface SolvedStatsResponse {
-  success: boolean;
-  message: string;
-  data: SolvedStats;
-}
+export type SolvedStatsResponse = ApiSuccess<SolvedStats>;
+
+// ─── Progress ─────────────────────────────────────────────────────────────────
 
 export interface WeeklyDay {
   date: string;
@@ -68,13 +84,4 @@ export interface ProgressData {
   recentSubmissions: RecentSubmission[];
 }
 
-export interface UserProgressResponse {
-  success: boolean;
-  message: string;
-  data: ProgressData;
-}
-
-export interface ApiError {
-  message: string;
-  statusCode?: number;
-}
+export type UserProgressResponse = ApiSuccess<ProgressData>;
