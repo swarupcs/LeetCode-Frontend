@@ -1,3 +1,4 @@
+// src/pages/admin/AdminSheetsPage.tsx
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -41,38 +42,45 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetAllSheetDetails } from '@/hooks/sheets/useGetAllSheetDetails';
-
-import type { Sheet } from '@/types/sheet.types';
 import { useDeleteSheet } from '@/hooks/sheets/useDeleteSheet';
+import type { Sheet } from '@/types/sheet.types';
 
 export default function AdminSheetsPage() {
-  const { sheets, isLoading, isError, error } = useGetAllSheetDetails();
+  const {
+    sheets,
+    isPending: isLoading,
+    isError,
+    error,
+  } = useGetAllSheetDetails();
   const { deleteSheetMutation, isPending: isDeleting } = useDeleteSheet();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Sheet | null>(null);
 
-  const filteredSheets = useMemo(() => {
-    return sheets.filter(
-      (s) =>
-        s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.allTags?.some((t) =>
-          t.toLowerCase().includes(searchQuery.toLowerCase()),
-        ),
-    );
-  }, [searchQuery, sheets]);
+  const filteredSheets = useMemo(
+    () =>
+      sheets.filter(
+        (s) =>
+          s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.allTags?.some((t) =>
+            t.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      ),
+    [searchQuery, sheets]
+  );
 
-  const stats = useMemo(() => {
-    return {
+  const stats = useMemo(
+    () => ({
       total: sheets.length,
       totalProblems: sheets.reduce((acc, s) => acc + s.totalProblems, 0),
       easy: sheets.filter((s) => s.allDifficulties?.includes('EASY')).length,
       medium: sheets.filter((s) => s.allDifficulties?.includes('MEDIUM'))
         .length,
       hard: sheets.filter((s) => s.allDifficulties?.includes('HARD')).length,
-    };
-  }, [sheets]);
+    }),
+    [sheets]
+  );
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -82,9 +90,9 @@ export default function AdminSheetsPage() {
         description: `"${deleteTarget.name}" has been removed.`,
       });
     } catch (err: unknown) {
-      const error = err as { message?: string };
+      const e = err as { message?: string };
       toast.error('Failed to delete sheet', {
-        description: error?.message ?? 'Something went wrong.',
+        description: e?.message ?? 'Something went wrong.',
       });
     } finally {
       setDeleteTarget(null);
@@ -134,45 +142,49 @@ export default function AdminSheetsPage() {
         </div>
       </motion.div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className='grid grid-cols-2 md:grid-cols-5 gap-4 mb-8'
       >
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-foreground'>
-            {stats.total}
+        {[
+          {
+            value: stats.total,
+            label: 'Total Sheets',
+            color: 'text-foreground',
+          },
+          {
+            value: stats.totalProblems,
+            label: 'Total Problems',
+            color: 'text-primary',
+          },
+          {
+            value: stats.easy,
+            label: 'Has Easy',
+            color: 'text-[hsl(var(--emerald))]',
+          },
+          {
+            value: stats.medium,
+            label: 'Has Medium',
+            color: 'text-[hsl(var(--amber))]',
+          },
+          {
+            value: stats.hard,
+            label: 'Has Hard',
+            color: 'text-destructive',
+            colSpan: true,
+          },
+        ].map(({ value, label, color, colSpan }) => (
+          <div
+            key={label}
+            className={`glass-card p-4 text-center ${colSpan ? 'col-span-2 md:col-span-1' : ''}`}
+          >
+            <div className={`text-2xl font-bold ${color}`}>{value}</div>
+            <div className='text-xs text-muted-foreground mt-1'>{label}</div>
           </div>
-          <div className='text-xs text-muted-foreground mt-1'>Total Sheets</div>
-        </div>
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-primary'>
-            {stats.totalProblems}
-          </div>
-          <div className='text-xs text-muted-foreground mt-1'>
-            Total Problems
-          </div>
-        </div>
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-[hsl(var(--emerald))]'>
-            {stats.easy}
-          </div>
-          <div className='text-xs text-muted-foreground mt-1'>Has Easy</div>
-        </div>
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-[hsl(var(--amber))]'>
-            {stats.medium}
-          </div>
-          <div className='text-xs text-muted-foreground mt-1'>Has Medium</div>
-        </div>
-        <div className='glass-card p-4 text-center col-span-2 md:col-span-1'>
-          <div className='text-2xl font-bold text-destructive'>
-            {stats.hard}
-          </div>
-          <div className='text-xs text-muted-foreground mt-1'>Has Hard</div>
-        </div>
+        ))}
       </motion.div>
 
       {/* Search */}
@@ -232,7 +244,6 @@ export default function AdminSheetsPage() {
                   exit={{ opacity: 0 }}
                   className='border-border/30 hover:bg-surface-2/50 transition-colors group'
                 >
-                  {/* Name & description */}
                   <TableCell>
                     <span className='font-medium text-sm text-foreground group-hover:text-primary transition-colors'>
                       {sheet.name}
@@ -244,7 +255,6 @@ export default function AdminSheetsPage() {
                     )}
                   </TableCell>
 
-                  {/* Tags */}
                   <TableCell className='hidden md:table-cell'>
                     <div className='flex flex-wrap gap-1'>
                       {sheet.allTags?.slice(0, 3).map((tag) => (
@@ -263,7 +273,6 @@ export default function AdminSheetsPage() {
                     </div>
                   </TableCell>
 
-                  {/* Difficulties */}
                   <TableCell className='hidden md:table-cell'>
                     <div className='flex flex-wrap gap-1'>
                       {sheet.allDifficulties?.map((d) => (
@@ -284,28 +293,25 @@ export default function AdminSheetsPage() {
                     </div>
                   </TableCell>
 
-                  {/* Problems count */}
                   <TableCell className='text-center text-sm text-muted-foreground hidden sm:table-cell'>
                     {sheet.totalProblems}
                   </TableCell>
 
-                  {/* Created by */}
                   <TableCell className='hidden md:table-cell'>
                     <div className='flex items-center gap-2'>
                       {sheet.user?.image && (
                         <img
                           src={sheet.user.image}
-                          alt={sheet.user.name}
+                          alt={sheet.user.name ?? ''}
                           className='h-5 w-5 rounded-full object-cover'
                         />
                       )}
                       <span className='text-xs text-muted-foreground'>
-                        {sheet.user?.name}
+                        {sheet.user?.name ?? sheet.user?.username ?? 'Unknown'}
                       </span>
                     </div>
                   </TableCell>
 
-                  {/* Actions */}
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

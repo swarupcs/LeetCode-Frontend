@@ -1,26 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-
-import type {
-  CreateSheetPayload,
-  CreateSheetResponse,
-  ApiErrorResponse,
-} from '@/types/sheet.types';
 import { createSheetRequest } from '@/services/sheets.service';
-
+import type { CreateSheetPayload, CreateSheetResponse, ApiError } from '@/types/sheet.types';
+ 
 export const useCreateSheet = () => {
   const queryClient = useQueryClient();
-
-  const mutation = useMutation<
-    CreateSheetResponse,
-    ApiErrorResponse,
-    CreateSheetPayload
-  >({
-    mutationFn: (payload) => createSheetRequest(payload),
+ 
+  const mutation = useMutation<CreateSheetResponse, ApiError, CreateSheetPayload>({
+    mutationFn: createSheetRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sheetDetails'] });
     },
   });
-
+ 
   return {
     isPending: mutation.isPending,
     isSuccess: mutation.isSuccess,

@@ -1,3 +1,4 @@
+// src/pages/SheetsPage.tsx
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -10,28 +11,27 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { BookOpen, Search, Target, ArrowRight, Loader2 } from 'lucide-react';
-
 import type { Sheet } from '@/types/sheet.types';
 import { useGetAllSheetDetails } from '@/hooks/sheets/useGetAllSheetDetails';
 
 export default function SheetsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { sheets, isLoading, isError, error } = useGetAllSheetDetails();
+  const { sheets, isPending, isError, error } = useGetAllSheetDetails();
 
-  console.log('sheets', sheets);
+  const filteredSheets = useMemo(
+    () =>
+      sheets.filter(
+        (s) =>
+          s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.allTags?.some((t) =>
+            t.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      ),
+    [searchQuery, sheets]
+  );
 
-  const filteredSheets = useMemo(() => {
-    return sheets.filter(
-      (s) =>
-        s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.allTags?.some((t) =>
-          t.toLowerCase().includes(searchQuery.toLowerCase()),
-        ),
-    );
-  }, [searchQuery, sheets]);
-
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <Loader2 className='h-8 w-8 animate-spin text-primary' />
@@ -117,7 +117,6 @@ export default function SheetsPage() {
           </div>
         </motion.div>
 
-        {/* Empty state */}
         {filteredSheets.length === 0 && (
           <div className='flex flex-col items-center justify-center py-20 text-center'>
             <Search className='h-10 w-10 text-muted-foreground mb-3' />
@@ -130,7 +129,7 @@ export default function SheetsPage() {
           </div>
         )}
 
-        {/* Sheets Grid */}
+        {/* Grid */}
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
           {filteredSheets.map((sheet: Sheet, i: number) => (
             <motion.div
@@ -151,9 +150,13 @@ export default function SheetsPage() {
                           {sheet.allDifficulties.slice(0, 2).map((d) => (
                             <span
                               key={d}
-                              className={`text-[10px] px-1.5 py-0.5 rounded border font-medium
-                                ${d === 'EASY' ? 'difficulty-easy' : d === 'MEDIUM' ? 'difficulty-medium' : 'difficulty-hard'}
-                              `}
+                              className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${
+                                d === 'EASY'
+                                  ? 'difficulty-easy'
+                                  : d === 'MEDIUM'
+                                    ? 'difficulty-medium'
+                                    : 'difficulty-hard'
+                              }`}
                             >
                               {d}
                             </span>
@@ -165,11 +168,10 @@ export default function SheetsPage() {
                       {sheet.name}
                     </CardTitle>
                     <CardDescription className='text-sm line-clamp-2'>
-                      {sheet.description || 'No description provided.'}
+                      {sheet.description ?? 'No description provided.'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className='mt-auto'>
-                    {/* Tags */}
                     {sheet.allTags.length > 0 && (
                       <div className='flex flex-wrap gap-1 mb-4'>
                         {sheet.allTags.slice(0, 4).map((tag) => (
@@ -182,17 +184,14 @@ export default function SheetsPage() {
                         ))}
                       </div>
                     )}
-
-                    {/* Problem count */}
                     <div className='flex justify-between text-sm mb-3'>
                       <span className='text-muted-foreground'>
                         {sheet.totalProblems} problems
                       </span>
                       <span className='text-xs text-muted-foreground'>
-                        by {sheet.user.name}
+                        by {sheet.user.name ?? sheet.user.username ?? 'Unknown'}
                       </span>
                     </div>
-
                     <div className='flex items-center justify-end mt-2 text-xs text-primary font-medium group-hover:gap-2 transition-all'>
                       <span>View Sheet</span>
                       <ArrowRight className='h-3.5 w-3.5 ml-1 group-hover:translate-x-1 transition-transform' />

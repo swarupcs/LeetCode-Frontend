@@ -1,20 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-
-
 import { getAllSheetDetailsRequest } from '@/services/sheets.service';
-import type { ApiErrorResponse, GetAllSheetDetailsResponse } from '@/types/sheet.types';
-
+import type { GetAllSheetsResponse, ApiError } from '@/types/sheet.types';
+ 
 export const useGetAllSheetDetails = () => {
-  const query = useQuery<GetAllSheetDetailsResponse, ApiErrorResponse>({
+  const query = useQuery<GetAllSheetsResponse, ApiError>({
     queryKey: ['sheetDetails'],
-    queryFn: () => getAllSheetDetailsRequest(),
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    queryFn: getAllSheetDetailsRequest,
+    staleTime: 5 * 60 * 1000,
   });
-
-  console.log("query", query)
-
+ 
   return {
     ...query,
-    sheets: query.data?.sdeSheets ?? [],
+    // data.data is Sheet[]
+    sheets: query.data?.data ?? [],
   };
 };

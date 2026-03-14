@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+// src/pages/admin/CreateSheetPage.tsx  (also used for Edit via useParams id)
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -25,57 +26,49 @@ import { useUpdateSheet } from '@/hooks/sheets/useUpdateSheet';
 import { useGetSheetById } from '@/hooks/sheets/useGetSheetById';
 import { useProblems } from '@/hooks/problems/useGetAllProblems';
 
+type Difficulty = 'Easy' | 'Medium' | 'Hard' | 'Mixed';
+
 export default function CreateSheetPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
   const isEditing = !!id;
 
   const { createSheetMutation, isPending: isCreating } = useCreateSheet();
   const { updateSheetMutation, isPending: isUpdating } = useUpdateSheet();
-  const { problems, isLoading: isProblemsLoading } = useProblems();
-
-  // Fetch existing sheet data when editing
-  const { sheet: existingSheet, isLoading: isSheetLoading } = useGetSheetById(
-    isEditing ? id : undefined,
+  // useProblems returns data.data (Problem[]) via the hook's unwrap
+  const { problems, isPending: isProblemsLoading } = useProblems();
+  const { sheet: existingSheet, isPending: isSheetLoading } = useGetSheetById(
+    isEditing ? id : undefined
   );
 
   const isPending = isCreating || isUpdating;
 
-  // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-const [difficulty, setDifficulty] = useState<
-  'Easy' | 'Medium' | 'Hard' | 'Mixed'
->('Easy');
+  const [difficulty, setDifficulty] = useState<Difficulty>('Easy');
   const [tags, setTags] = useState<string[]>([]);
-  const [topics, setTopics] = useState<SheetTopic[]>([
-    { name: '', problemIds: [] },
-  ]);
+  const [topics, setTopics] = useState<SheetTopic[]>(() => {
+    if (existingSheet?.problems?.length) {
+      return [
+        {
+          name: 'Problems',
+          problemIds: existingSheet.problems.map((p) => p.problemId),
+        },
+      ];
+    }
+    return [{ name: '', problemIds: [] }];
+  });
   const [activeSection, setActiveSection] = useState('basics');
 
-  // Populate form when editing and sheet data is loaded
-  useEffect(() => {
-    if (isEditing && existingSheet) {
-      setName(existingSheet.name ?? '');
-      setDescription(existingSheet.description ?? '');
 
-      // Rebuild topics from flat problems list
-      // Since backend has no topics, treat all problems as one default topic
-      const problemIds = existingSheet.problems.map((p) => p.problem.id);
-      if (problemIds.length > 0) {
-        setTopics([{ name: 'Problems', problemIds }]);
-      }
-    }
-  }, [isEditing, existingSheet]);
 
-  const totalProblems = useMemo(() => {
-    const ids = new Set(topics.flatMap((t) => t.problemIds));
-    return ids.size;
-  }, [topics]);
+  const totalProblems = useMemo(
+    () => new Set(topics.flatMap((t) => t.problemIds)).size,
+    [topics]
+  );
 
   const canSave =
-    name.trim() && topics.some((t) => t.name.trim()) && !isPending;
+    !!name.trim() && topics.some((t) => t.name.trim()) && !isPending;
 
   const handleSave = async () => {
     if (!canSave) {
@@ -108,7 +101,7 @@ const [difficulty, setDifficulty] = useState<
         {
           description:
             error?.message ?? 'Something went wrong. Please try again.',
-        },
+        }
       );
     }
   };
@@ -132,7 +125,6 @@ const [difficulty, setDifficulty] = useState<
           ? 'difficulty-hard'
           : 'border-primary/30 text-primary';
 
-  // Show loader while fetching existing sheet
   if (isEditing && isSheetLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
@@ -313,38 +305,30 @@ const [difficulty, setDifficulty] = useState<
                 </Label>
                 <Select
                   value={difficulty}
-                  onValueChange={(v) =>
-                    setDifficulty(v as 'Easy' | 'Medium' | 'Hard' | 'Mixed')
-                  }
+                  onValueChange={(v) => setDifficulty(v as Difficulty)}
                 >
                   <SelectTrigger className='bg-surface-1 border-border/50 h-11 w-full max-w-xs'>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value='Easy'>
-                      <span className='flex items-center gap-2'>
-                        <span className='h-2 w-2 rounded-full bg-[hsl(var(--emerald))]' />
-                        Easy
-                      </span>
-                    </SelectItem>
-                    <SelectItem value='Medium'>
-                      <span className='flex items-center gap-2'>
-                        <span className='h-2 w-2 rounded-full bg-[hsl(var(--amber))]' />
-                        Medium
-                      </span>
-                    </SelectItem>
-                    <SelectItem value='Hard'>
-                      <span className='flex items-center gap-2'>
-                        <span className='h-2 w-2 rounded-full bg-destructive' />
-                        Hard
-                      </span>
-                    </SelectItem>
-                    <SelectItem value='Mixed'>
-                      <span className='flex items-center gap-2'>
-                        <span className='h-2 w-2 rounded-full bg-primary' />
-                        Mixed
-                      </span>
-                    </SelectItem>
+                    {(['Easy', 'Medium', 'Hard', 'Mixed'] as const).map((d) => (
+                      <SelectItem key={d} value={d}>
+                        <span className='flex items-center gap-2'>
+                          <span
+                            className={`h-2 w-2 rounded-full ${
+                              d === 'Easy'
+                                ? 'bg-[hsl(var(--emerald))]'
+                                : d === 'Medium'
+                                  ? 'bg-[hsl(var(--amber))]'
+                                  : d === 'Hard'
+                                    ? 'bg-destructive'
+                                    : 'bg-primary'
+                            }`}
+                          />
+                          {d}
+                        </span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
