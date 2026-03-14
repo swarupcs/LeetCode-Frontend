@@ -1,8 +1,9 @@
 // src/types/auth.types.ts
+import type { ApiSuccess, ApiError } from './problem.types';
+export type { ApiError };
 
-/* ============================= */
-/*         REQUEST TYPES         */
-/* ============================= */
+// ─── Request payloads ─────────────────────────────────────────────────────────
+
 export interface SignUpPayload {
   email: string;
   password: string;
@@ -14,31 +15,6 @@ export interface SignInPayload {
   password: string;
 }
 
-/* ============================= */
-/*          USER TYPES           */
-/* ============================= */
-export interface User {
-  id: string;
-  name: string;
-  username: string;
-  email: string;
-  role: string;
-}
-
-// Extended user shape returned by getUserDetails — includes profile fields
-export interface UserProfile extends User {
-  displayName: string | null;
-  avatarUrl: string | null;
-  bio: string | null;
-  location: string | null;
-  github: string | null;
-  twitter: string | null;
-  website: string | null;
-  joinDate: string;
-  rank: number;
-}
-
-// Payload for PATCH /auth/updateProfile
 export interface UpdateProfilePayload {
   name?: string;
   bio?: string;
@@ -48,7 +24,37 @@ export interface UpdateProfilePayload {
   website?: string;
 }
 
-// Shape of the updated fields returned after a profile update
+// ─── User shapes ──────────────────────────────────────────────────────────────
+
+// Minimal user — stored in Redux, returned on login/register
+export interface User {
+  id: string;
+  name: string | null;
+  username: string | null;
+  email: string;
+  role: string;
+  image: string | null;
+}
+
+// Full profile — returned by GET /auth/profile
+// Mirrors backend UserProfile exactly
+export interface UserProfile {
+  id: string;
+  email: string;
+  username: string | null;
+  displayName: string | null;
+  role: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  location: string | null;
+  github: string | null;    // username only, e.g. "swarupd1999"
+  twitter: string | null;   // username only
+  website: string | null;
+  joinDate: string;          // e.g. "Nov 2025"
+  rank: number;
+}
+
+// Fields returned by PATCH /auth/profile
 export interface UpdatedProfileFields {
   id: string;
   name: string | null;
@@ -59,38 +65,14 @@ export interface UpdatedProfileFields {
   website: string | null;
 }
 
-/* ============================= */
-/*        RESPONSE TYPES         */
-/* ============================= */
-export interface AuthResponse {
-  message: string;
-  data: User;
-}
+// ─── API responses ────────────────────────────────────────────────────────────
 
-export interface GetUserProfileResponse {
-  success: boolean;
-  message: string;
-  user: UserProfile;
-}
+// POST /api/v1/auth/login  → ApiSuccess<User>
+// POST /api/v1/auth/register → ApiSuccess<User>
+export type AuthResponse = ApiSuccess<User>;
 
-export interface UpdateUserProfileResponse {
-  success: boolean;
-  message: string;
-  user: UpdatedProfileFields;
-}
+// GET  /api/v1/auth/profile  → ApiSuccess<UserProfile>
+export type GetUserProfileResponse = ApiSuccess<UserProfile>;
 
-export type UserDetails = User;
-
-/* ============================= */
-/*          ERROR TYPE           */
-/* ============================= */
-export interface ApiError {
-  message: string;
-}
-
-
-export interface GetUserDetailsResponse {
-  success: boolean;
-  message: string;
-  user: UserProfile;
-}
+// PATCH /api/v1/auth/profile → ApiSuccess<UpdatedProfileFields>
+export type UpdateUserProfileResponse = ApiSuccess<UpdatedProfileFields>;

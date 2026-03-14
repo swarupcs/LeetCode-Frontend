@@ -1,3 +1,4 @@
+// src/services/auth.service.ts
 import type { AxiosError } from 'axios';
 import type {
   SignUpPayload,
@@ -6,23 +7,13 @@ import type {
   ApiError,
   UpdateProfilePayload,
   UpdateUserProfileResponse,
-  UserProfile,
-  GetUserDetailsResponse,
+  GetUserProfileResponse,
 } from '@/types/auth.types';
 import { axiosInstance } from '@/config/axiosConfig';
 
-/**
- * Register
- */
-export const signUpRequest = async (
-  payload: SignUpPayload,
-): Promise<AuthResponse> => {
+export const signUpRequest = async (payload: SignUpPayload): Promise<AuthResponse> => {
   try {
-    const { data } = await axiosInstance.post<AuthResponse>(
-      '/auth/register',
-      payload,
-    );
-
+    const { data } = await axiosInstance.post<AuthResponse>('/auth/register', payload);
     return data;
   } catch (error) {
     const err = error as AxiosError<ApiError>;
@@ -30,18 +21,9 @@ export const signUpRequest = async (
   }
 };
 
-/**
- * Login
- */
-export const signInRequest = async (
-  payload: SignInPayload,
-): Promise<AuthResponse> => {
+export const signInRequest = async (payload: SignInPayload): Promise<AuthResponse> => {
   try {
-    const { data } = await axiosInstance.post<AuthResponse>(
-      '/auth/login',
-      payload,
-    );
-
+    const { data } = await axiosInstance.post<AuthResponse>('/auth/login', payload);
     return data;
   } catch (error) {
     const err = error as AxiosError<ApiError>;
@@ -58,32 +40,27 @@ export const logoutRequest = async (): Promise<void> => {
   }
 };
 
-/**
- * Get Logged-in User
- */
-export const getUserDetails = async (): Promise<UserProfile> => {
+// GET /api/v1/auth/profile
+export const getUserDetails = async (): Promise<GetUserProfileResponse> => {
   try {
-    const { data } = await axiosInstance.get<GetUserDetailsResponse>(
-      '/auth/getUserDetails',
-    );
-    console.log("data", data)
-
-    return data?.user;
+    const { data } = await axiosInstance.get<GetUserProfileResponse>('/auth/profile');
+    return data;
   } catch (error) {
     const err = error as AxiosError<ApiError>;
     throw err.response?.data ?? { message: 'Something went wrong' };
   }
 };
 
+// PATCH /api/v1/auth/profile
 export const updateUserProfile = async (
   payload: UpdateProfilePayload,
 ): Promise<UpdateUserProfileResponse> => {
   try {
-    const response = await axiosInstance.patch<UpdateUserProfileResponse>(
-      '/auth/updateUserProfile',
+    const { data } = await axiosInstance.patch<UpdateUserProfileResponse>(
+      '/auth/profile',
       payload,
     );
-    return response.data;
+    return data;
   } catch (error) {
     const err = error as AxiosError<ApiError>;
     throw err.response?.data ?? { message: 'Something went wrong' };
