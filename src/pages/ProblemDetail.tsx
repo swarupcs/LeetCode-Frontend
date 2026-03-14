@@ -36,8 +36,8 @@ import {
   Cpu,
   Hash,
   Loader2,
+  Palette,
 } from 'lucide-react';
-import { Palette } from 'lucide-react';
 import CodeEditor from '@/components/CodeEditor';
 import {
   editorThemes,
@@ -49,15 +49,15 @@ import { useExecuteProblem } from '@/hooks/problems/useRunProblem';
 import { useSubmitCode } from '@/hooks/problems/useSubmitProblem';
 import { useUserSubmissionSpecificProblem } from '@/hooks/problems/useUserSubmissionSpecificProblem';
 import type {
-  SubmissionDetails,
-  SubmitCodeResponse,
   TestCaseResult,
+  SubmitData,
+  ProblemSubmission,
 } from '@/types/code.types';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/app/store';
 import { toast } from 'sonner';
 
-// ─── Constants ────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const languageIdMap: Record<string, number> = {
   python: 71,
@@ -71,7 +71,7 @@ const difficultyConfig: Record<string, { class: string; label: string }> = {
   HARD: { class: 'difficulty-hard', label: 'Hard' },
 };
 
-// ─── Submission types ─────────────────────────────────────────────
+// ─── Local submission shape (UI-only, built from API data) ────────────────────
 
 interface Submission {
   id: string;
@@ -97,7 +97,7 @@ function formatTimeAgo(date: Date): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-// ─── Shared sub-components ────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function TestCaseResultCard({
   result,
@@ -125,9 +125,7 @@ function TestCaseResultCard({
             <XCircle className='h-3 w-3 text-destructive' />
           )}
           <span
-            className={`text-xs font-medium ${
-              result.passed ? 'text-primary' : 'text-destructive'
-            }`}
+            className={`text-xs font-medium ${result.passed ? 'text-primary' : 'text-destructive'}`}
           >
             {result.passed ? 'Passed' : 'Failed'}
           </span>
@@ -137,13 +135,12 @@ function TestCaseResultCard({
       <div className='font-mono text-xs space-y-1.5'>
         <div className='flex gap-2'>
           <span className='text-muted-foreground shrink-0'>Expected:</span>
-          <span className='text-foreground/80'>{result.expected}</span>{' '}
-          {/* ← was result.expectedOutput */}
+          <span className='text-foreground/80'>{result.expected}</span>
         </div>
         <div className='flex gap-2'>
           <span className='text-muted-foreground shrink-0'>Output:</span>
           <span className={result.passed ? 'text-primary' : 'text-destructive'}>
-            {result.stdout} {/* ← was result.actualOutput */}
+            {result.stdout}
           </span>
         </div>
         {result.stderr && (
@@ -160,7 +157,6 @@ function TestCaseResultCard({
         )}
       </div>
 
-      {/* Performance — only show if available */}
       {(result.time || result.memory) && (
         <div className='flex gap-3 mt-2 pt-2 border-t border-border/20'>
           {result.time && (
@@ -204,9 +200,7 @@ function ResultsPanel({
             <XCircle className='h-4 w-4 text-destructive' />
           )}
           <span
-            className={`text-sm font-semibold ${
-              allPassed ? 'text-primary' : 'text-destructive'
-            }`}
+            className={`text-sm font-semibold ${allPassed ? 'text-primary' : 'text-destructive'}`}
           >
             {label}
           </span>
@@ -222,7 +216,7 @@ function ResultsPanel({
   );
 }
 
-// ─── Editor state — isolated so it can be reset via key ──────────
+// ─── Editor state ─────────────────────────────────────────────────────────────
 
 type SupportedLanguage = 'python' | 'javascript' | 'java';
 
@@ -231,10 +225,11 @@ interface EditorPanelState {
   code: string;
   outputTab: string;
   hasRun: boolean;
-  submitResult: SubmitCodeResponse | null;
+  // Store the unwrapped SubmitData (not the full ApiSuccess envelope)
+  submitData: SubmitData | null;
   activeSubmission: Submission | null;
   activeCase: number;
-  newSubmissions: Submission[]; // submissions added this session
+  newSubmissions: Submission[];
 }
 
 const DEFAULT_EDITOR_STATE: EditorPanelState = {
@@ -242,45 +237,43 @@ const DEFAULT_EDITOR_STATE: EditorPanelState = {
   code: '',
   outputTab: 'testcases',
   hasRun: false,
-  submitResult: null,
+  submitData: null,
   activeSubmission: null,
   activeCase: 0,
   newSubmissions: [],
 };
 
-// ─── Main page ────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProblemDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const { problem, isPending, isError } = useProblem(id ?? '');
+
+  // useExecuteProblem now returns runData (unwrapped RunData | null)
   const {
     mutateAsync: runProblemMutation,
     isPending: isExecuting,
-    data: executionData,
+    runData,
   } = useExecuteProblem();
 
-  console.log('executionData', executionData);
+  // useSubmitCode now returns submitData (unwrapped SubmitData | null)
   const { submitProblem, isPending: isSubmitting } = useSubmitCode();
 
-  // ── Editor state ─────────────────────────────────────────────────
-  // Grouped so that resetting on problem navigation is a single setState call
   const [editorState, setEditorState] =
     useState<EditorPanelState>(DEFAULT_EDITOR_STATE);
   const [editorTheme, setEditorTheme] = useState<EditorThemeId>('algodrill');
   const [activeTab, setActiveTab] = useState('description');
 
   const user = useSelector((state: RootState) => state.auth);
-
   const isLoggedIn = user.isAuthenticated;
 
-  // Destructure for readability
   const {
     language,
     code,
     outputTab,
     hasRun,
-    submitResult,
+    submitData,
     activeSubmission,
     activeCase,
     newSubmissions,
@@ -289,9 +282,10 @@ export default function ProblemDetailPage() {
   const set = useCallback(
     (patch: Partial<EditorPanelState>) =>
       setEditorState((prev) => ({ ...prev, ...patch })),
-    [],
+    []
   );
 
+  // Reset editor state on problem navigation
   const [prevId, setPrevId] = useState<string | undefined>(undefined);
   if (prevId !== id) {
     setPrevId(id);
@@ -299,51 +293,53 @@ export default function ProblemDetailPage() {
     setActiveTab('description');
   }
 
-  // ── Fetch persisted submissions ───────────────────────────────────
+  // Fetch persisted submissions for this problem
   const problemId = problem?.id;
   const { submissions: fetchedSubmissions, isPending: isLoadingSubmissions } =
-    useUserSubmissionSpecificProblem(problemId ?? '', true);
+    useUserSubmissionSpecificProblem(problemId ?? '', isLoggedIn);
 
-  // Derive mapped submissions from API data — no setState in an effect
+  // Map API ProblemSubmission → local Submission shape
+  // ProblemSubmission already has pre-formatted runtime/memory strings from backend
   const persistedSubmissions = useMemo<Submission[]>(() => {
-    return fetchedSubmissions.map((s: SubmissionDetails) => ({
+    return fetchedSubmissions.map((s: ProblemSubmission) => ({
       id: s.id,
       status: s.status as Submission['status'],
       language: s.language,
-      runtime: s.runtime != null ? `${s.runtime}ms` : '—',
+      runtime: s.runtime, // already "12.34ms" from backend
       runtimePercentile: '—',
-      memory: s.memory != null ? `${s.memory} KB` : '—',
+      memory: s.memory, // already "1.23 MB" from backend
       memoryPercentile: '—',
       testCasesPassed: 0,
       totalTestCases: 0,
-      timestamp: new Date(s.createdAt),
+      timestamp: new Date(s.date), // "Mar 5, 2026" → Date
     }));
   }, [fetchedSubmissions]);
 
-  // Merge persisted + new submissions added this session, deduped by id
+  // Merge persisted + new submissions, deduped by id
   const submissions = useMemo<Submission[]>(() => {
     const ids = new Set(persistedSubmissions.map((s) => s.id));
     const fresh = newSubmissions.filter((s) => !ids.has(s.id));
     return [...persistedSubmissions, ...fresh];
   }, [persistedSubmissions, newSubmissions]);
 
-  // ── Derived code value ────────────────────────────────────────────
+  // Use the saved snippet as default, fall back to empty
   const currentCode = useMemo(() => {
     if (code) return code;
     return problem?.codeSnippets?.[language] ?? '';
   }, [problem, language, code]);
 
-  // ── Handlers ─────────────────────────────────────────────────────
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+
   const handleLanguageChange = useCallback(
     (lang: string) => {
       set({
         language: lang as SupportedLanguage,
         code: '',
         hasRun: false,
-        submitResult: null,
+        submitData: null,
       });
     },
-    [set],
+    [set]
   );
 
   const handleRun = useCallback(async () => {
@@ -352,10 +348,10 @@ export default function ProblemDetailPage() {
       return;
     }
     if (!problemId) return;
-    set({ hasRun: true, submitResult: null, outputTab: 'output' });
+    set({ hasRun: true, submitData: null, outputTab: 'output' });
     await runProblemMutation({
       source_code: currentCode,
-      language_id: languageIdMap[language],
+      language_id: languageIdMap[language] ?? 71,
       problemId,
     });
   }, [isLoggedIn, problemId, currentCode, language, runProblemMutation, set]);
@@ -366,33 +362,38 @@ export default function ProblemDetailPage() {
       return;
     }
     if (!problemId) return;
-    set({ hasRun: true, outputTab: 'output', submitResult: null });
+    set({ hasRun: true, outputTab: 'output', submitData: null });
 
-    const result = await submitProblem({
+    // submitProblem returns the full ApiSuccess<SubmitData> envelope
+    const response = await submitProblem({
       source_code: currentCode,
-      language_id: languageIdMap[language],
+      language_id: languageIdMap[language] ?? 71,
       problemId,
     });
 
-    const [passed, total] = (result.submission.testCasesPassed ?? '0/0')
+    // Unwrap — response.data is SubmitData
+    const sd = response.data;
+    if (!sd) return;
+
+    const [passed, total] = (sd.submission.testCasesPassed ?? '0/0')
       .split('/')
       .map(Number);
 
     const newSubmission: Submission = {
       id: crypto.randomUUID(),
-      status: result.submission.status as Submission['status'],
-      language: result.submission.language,
-      runtime: result.submission.performance.totalTime,
+      status: sd.submission.status as Submission['status'],
+      language: sd.submission.language,
+      runtime: sd.submission.performance.totalTime,
       runtimePercentile: '—',
-      memory: result.submission.performance.totalMemory,
+      memory: sd.submission.performance.totalMemory,
       memoryPercentile: '—',
-      testCasesPassed: passed,
-      totalTestCases: total,
+      testCasesPassed: passed ?? 0,
+      totalTestCases: total ?? 0,
       timestamp: new Date(),
     };
 
     set({
-      submitResult: result,
+      submitData: sd,
       activeSubmission: newSubmission,
       newSubmissions: [...newSubmissions, newSubmission],
     });
@@ -408,15 +409,11 @@ export default function ProblemDetailPage() {
   ]);
 
   const handleReset = useCallback(() => {
-    set({
-      code: '',
-      hasRun: false,
-      submitResult: null,
-      activeSubmission: null,
-    });
+    set({ code: '', hasRun: false, submitData: null, activeSubmission: null });
   }, [set]);
 
-  // ── Loading ───────────────────────────────────────────────────────
+  // ── Loading / error states ────────────────────────────────────────────────────
+
   if (isPending) {
     return (
       <div className='flex items-center justify-center min-h-[60vh]'>
@@ -428,7 +425,6 @@ export default function ProblemDetailPage() {
     );
   }
 
-  // ── Error / not found ─────────────────────────────────────────────
   if (isError || !problem) {
     return (
       <div className='flex items-center justify-center min-h-[60vh]'>
@@ -455,7 +451,7 @@ export default function ProblemDetailPage() {
 
   return (
     <div className='h-[calc(100vh-4rem)] flex flex-col'>
-      {/* ── Top Bar ─────────────────────────────────────────────── */}
+      {/* ── Top Bar ──────────────────────────────────────────────────────────── */}
       <div className='flex items-center justify-between px-4 py-2 border-b border-border/50 bg-surface-1/50 backdrop-blur-sm shrink-0'>
         <div className='flex items-center gap-3'>
           <Link
@@ -536,7 +532,7 @@ export default function ProblemDetailPage() {
         </div>
       </div>
 
-      {/* ── Main Split Pane ──────────────────────────────────────── */}
+      {/* ── Main Split Pane ───────────────────────────────────────────────────── */}
       <ResizablePanelGroup className='flex-1'>
         {/* Left Panel */}
         <ResizablePanel defaultSize={45} minSize={30}>
@@ -555,13 +551,6 @@ export default function ProblemDetailPage() {
                     <BookOpen className='h-3 w-3' />
                     Description
                   </TabsTrigger>
-                  {/* <TabsTrigger
-                    value='hints'
-                    className='data-[state=active]:bg-surface-2 data-[state=active]:text-foreground text-muted-foreground rounded-md px-3 h-7 text-xs gap-1.5'
-                  >
-                    <Lightbulb className='h-3 w-3' />
-                    Hints
-                  </TabsTrigger> */}
                   <TabsTrigger
                     value='submissions'
                     className='data-[state=active]:bg-surface-2 data-[state=active]:text-foreground text-muted-foreground rounded-md px-3 h-7 text-xs gap-1.5'
@@ -569,13 +558,6 @@ export default function ProblemDetailPage() {
                     <Clock className='h-3 w-3' />
                     Submissions
                   </TabsTrigger>
-                  {/* <TabsTrigger
-                    value='ai'
-                    className='data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-muted-foreground rounded-md px-3 h-7 text-xs gap-1.5'
-                  >
-                    <Sparkles className='h-3 w-3' />
-                    AI
-                  </TabsTrigger> */}
                 </TabsList>
               </div>
 
@@ -614,7 +596,7 @@ export default function ProblemDetailPage() {
                           className='text-sm text-foreground/90 leading-relaxed mb-3'
                         >
                           {parts.map((part, j) => {
-                            if (part.startsWith('**') && part.endsWith('**')) {
+                            if (part.startsWith('**') && part.endsWith('**'))
                               return (
                                 <strong
                                   key={j}
@@ -623,8 +605,7 @@ export default function ProblemDetailPage() {
                                   {part.slice(2, -2)}
                                 </strong>
                               );
-                            }
-                            if (part.startsWith('`') && part.endsWith('`')) {
+                            if (part.startsWith('`') && part.endsWith('`'))
                               return (
                                 <code
                                   key={j}
@@ -633,7 +614,6 @@ export default function ProblemDetailPage() {
                                   {part.slice(1, -1)}
                                 </code>
                               );
-                            }
                             return part;
                           })}
                         </p>
@@ -714,7 +694,7 @@ export default function ProblemDetailPage() {
                 </div>
               </TabsContent>
 
-              {/* Hints */}
+              {/* Hints (hidden in nav but kept for future use) */}
               <TabsContent
                 value='hints'
                 className='flex-1 overflow-auto m-0 p-0'
@@ -724,8 +704,7 @@ export default function ProblemDetailPage() {
                     <Lightbulb className='h-8 w-8 text-amber mx-auto mb-3' />
                     <h3 className='font-semibold mb-1'>Need a hint?</h3>
                     <p className='text-sm text-muted-foreground mb-4'>
-                      Try solving it yourself first. Hints will guide you
-                      without giving away the solution.
+                      Try solving it yourself first.
                     </p>
                     <div className='space-y-3'>
                       {[1, 2].map((n) => (
@@ -822,7 +801,6 @@ export default function ProblemDetailPage() {
                                   : 'border-border/40 bg-surface-1/30 hover:bg-surface-2/40 hover:border-border/60'
                               }`}
                             >
-                              {/* Header row */}
                               <div className='flex items-center justify-between mb-1'>
                                 <div className='flex items-center gap-2'>
                                   <StatusIcon
@@ -839,7 +817,6 @@ export default function ProblemDetailPage() {
                                 </span>
                               </div>
 
-                              {/* Stats row */}
                               <div className='grid grid-cols-3 gap-3 text-[11px] mt-2'>
                                 {[
                                   { label: 'Language', value: sub.language },
@@ -857,7 +834,6 @@ export default function ProblemDetailPage() {
                                 ))}
                               </div>
 
-                              {/* Expanded detail */}
                               <AnimatePresence>
                                 {isActive && (
                                   <motion.div
@@ -868,7 +844,6 @@ export default function ProblemDetailPage() {
                                     className='overflow-hidden'
                                   >
                                     <div className='mt-3 pt-3 border-t border-border/30 space-y-3'>
-                                      {/* Runtime / Memory cards */}
                                       <div className='grid grid-cols-2 gap-3'>
                                         {[
                                           {
@@ -920,11 +895,10 @@ export default function ProblemDetailPage() {
                                                 </>
                                               )}
                                             </div>
-                                          ),
+                                          )
                                         )}
                                       </div>
 
-                                      {/* Test cases progress — only show if data exists */}
                                       {sub.totalTestCases > 0 && (
                                         <>
                                           <div className='flex items-center justify-between text-[11px]'>
@@ -948,11 +922,7 @@ export default function ProblemDetailPage() {
                                             }).map((_, i) => (
                                               <div
                                                 key={i}
-                                                className={`h-1.5 flex-1 rounded-full ${
-                                                  i < sub.testCasesPassed
-                                                    ? 'bg-primary'
-                                                    : 'bg-destructive/60'
-                                                }`}
+                                                className={`h-1.5 flex-1 rounded-full ${i < sub.testCasesPassed ? 'bg-primary' : 'bg-destructive/60'}`}
                                               />
                                             ))}
                                           </div>
@@ -1085,9 +1055,7 @@ export default function ProblemDetailPage() {
                         {label}
                         {key === 'output' && hasRun && (
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              submitResult ? 'bg-primary' : 'bg-amber'
-                            }`}
+                            className={`w-1.5 h-1.5 rounded-full ${submitData ? 'bg-primary' : 'bg-amber'}`}
                           />
                         )}
                       </button>
@@ -1096,7 +1064,7 @@ export default function ProblemDetailPage() {
 
                   {/* Content */}
                   <div className='flex-1 overflow-auto p-4'>
-                    {/* ── Testcases tab ── */}
+                    {/* Testcases tab */}
                     {outputTab === 'testcases' && (
                       <div className='space-y-4'>
                         <div className='flex items-center gap-2'>
@@ -1120,12 +1088,12 @@ export default function ProblemDetailPage() {
                             {[
                               {
                                 label: 'Input',
-                                value: (problem.testCases ?? [])[activeCase]
+                                value: (problem.testCases ?? [])[activeCase]!
                                   .input,
                               },
                               {
                                 label: 'Expected Output',
-                                value: (problem.testCases ?? [])[activeCase]
+                                value: (problem.testCases ?? [])[activeCase]!
                                   .expected,
                               },
                             ].map(({ label, value }) => (
@@ -1143,7 +1111,7 @@ export default function ProblemDetailPage() {
                       </div>
                     )}
 
-                    {/* ── Output tab ── */}
+                    {/* Output tab */}
                     {outputTab === 'output' && (
                       <div>
                         {!hasRun ? (
@@ -1160,85 +1128,78 @@ export default function ProblemDetailPage() {
                               {isSubmitting ? 'Submitting...' : 'Executing...'}
                             </p>
                           </div>
-                        ) : submitResult ? (
+                        ) : submitData ? (
+                          // ── Submit result ──────────────────────────────────
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className='space-y-3'
                           >
-                            {/* Summary card */}
                             <div
                               className={`rounded-lg border p-4 ${
-                                submitResult.allPassedFlag
+                                submitData.allPassed
                                   ? 'border-primary/30 bg-primary/5'
                                   : 'border-destructive/30 bg-destructive/5'
                               }`}
                             >
                               <div className='flex items-center justify-between mb-3'>
                                 <div className='flex items-center gap-2'>
-                                  {submitResult.allPassedFlag ? (
+                                  {submitData.allPassed ? (
                                     <CheckCircle2 className='h-5 w-5 text-primary' />
                                   ) : (
                                     <XCircle className='h-5 w-5 text-destructive' />
                                   )}
                                   <span
-                                    className={`text-sm font-semibold ${
-                                      submitResult.allPassedFlag
-                                        ? 'text-primary'
-                                        : 'text-destructive'
-                                    }`}
+                                    className={`text-sm font-semibold ${submitData.allPassed ? 'text-primary' : 'text-destructive'}`}
                                   >
-                                    {submitResult.submission.status}
+                                    {submitData.submission.status}
                                   </span>
                                 </div>
                                 <span className='text-xs text-muted-foreground'>
-                                  {submitResult.submission.testCasesPassed}{' '}
-                                  passed
+                                  {submitData.submission.testCasesPassed} passed
                                 </span>
                               </div>
 
                               <div className='grid grid-cols-2 gap-3'>
-                                <div className='rounded-md bg-surface-2/40 px-3 py-2'>
-                                  <div className='flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1'>
-                                    <Timer className='h-3 w-3' />
-                                    Runtime
+                                {[
+                                  {
+                                    icon: Timer,
+                                    label: 'Runtime',
+                                    value:
+                                      submitData.submission.performance
+                                        .totalTime,
+                                  },
+                                  {
+                                    icon: Cpu,
+                                    label: 'Memory',
+                                    value:
+                                      submitData.submission.performance
+                                        .totalMemory,
+                                  },
+                                ].map(({ icon: Icon, label, value }) => (
+                                  <div
+                                    key={label}
+                                    className='rounded-md bg-surface-2/40 px-3 py-2'
+                                  >
+                                    <div className='flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1'>
+                                      <Icon className='h-3 w-3' />
+                                      {label}
+                                    </div>
+                                    <div className='text-sm font-semibold text-foreground'>
+                                      {value}
+                                    </div>
                                   </div>
-                                  <div className='text-sm font-semibold text-foreground'>
-                                    {
-                                      submitResult.submission.performance
-                                        .totalTime
-                                    }
-                                  </div>
-                                </div>
-                                <div className='rounded-md bg-surface-2/40 px-3 py-2'>
-                                  <div className='flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1'>
-                                    <Cpu className='h-3 w-3' />
-                                    Memory
-                                  </div>
-                                  <div className='text-sm font-semibold text-foreground'>
-                                    {
-                                      submitResult.submission.performance
-                                        .totalMemory
-                                    }
-                                  </div>
-                                </div>
+                                ))}
                               </div>
-
-                              {submitResult.message && (
-                                <p className='text-xs text-muted-foreground mt-3 pt-3 border-t border-border/20'>
-                                  {submitResult.message}
-                                </p>
-                              )}
                             </div>
                           </motion.div>
-                        ) : executionData?.results ? (
+                        ) : runData ? (
+                          // ── Run result ─────────────────────────────────────
                           <ResultsPanel
-                            results={executionData.results}
-                            allPassed={executionData.results.every(
-                              (r) => r.passed,
-                            )}
+                            results={runData.results}
+                            allPassed={runData.allPassed}
                             label={
-                              executionData.results.every((r) => r.passed)
+                              runData.allPassed
                                 ? 'All Tests Passed'
                                 : 'Some Tests Failed'
                             }

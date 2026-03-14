@@ -1,78 +1,52 @@
+// src/services/code.service.ts
 import { axiosInstance } from '@/config/axiosConfig';
+import type { AxiosError } from 'axios';
 import type {
   RunCodePayload,
   RunCodeResponse,
-  ApiError,
   SubmitCodePayload,
   SubmitCodeResponse,
-  ApiErrorResponse,
   GetSubmissionResponse,
+  ApiError,
 } from '@/types/code.types';
-import type { AxiosError } from 'axios';
 
+// POST /api/v1/code/run
 export const runCodeRequest = async (
   payload: RunCodePayload,
 ): Promise<RunCodeResponse> => {
   try {
-    const { data } = await axiosInstance.post<RunCodeResponse>(
-      '/codeExecutor/runCode',
-      payload,
-    );
-
+    const { data } = await axiosInstance.post<RunCodeResponse>('/code/run', payload);
     return data;
-  } catch (error) {
-    const err = error as AxiosError<ApiError>;
-    throw err.response?.data ?? { message: 'Something went wrong' };
+  } catch (err) {
+    const error = err as AxiosError<ApiError>;
+    throw error.response?.data ?? { message: 'Something went wrong' };
   }
 };
 
+// POST /api/v1/code/submit
 export const submitCode = async (
   payload: SubmitCodePayload,
 ): Promise<SubmitCodeResponse> => {
   try {
-    const { data } = await axiosInstance.post<SubmitCodeResponse>(
-      '/codeExecutor/submitCode',
-      payload,
-    );
-
+    const { data } = await axiosInstance.post<SubmitCodeResponse>('/code/submit', payload);
     return data;
   } catch (err) {
-    const error = err as AxiosError<ApiErrorResponse>;
-
-    // If backend sends structured error
-    if (error.response?.data) {
-      throw error.response.data;
-    }
-
-    // Network / unexpected error
-    throw {
-      message: error.message || 'Something went wrong',
-    };
+    const error = err as AxiosError<ApiError>;
+    throw error.response?.data ?? { message: 'Something went wrong' };
   }
 };
 
+// GET /api/v1/submissions/problem/:problemId
 export const getUserSubmissionSpecificProblemDetails = async (
   problemId: string,
 ): Promise<GetSubmissionResponse> => {
-  if (!problemId) {
-    throw { message: 'Problem ID is required' };
-  }
-
   try {
     const { data } = await axiosInstance.get<GetSubmissionResponse>(
-      `/submission/getUserSubmissionsForSpecificProblem/${problemId}`,
+      `/submissions/problem/${problemId}`,
     );
-
     return data;
   } catch (err) {
-    const error = err as AxiosError<ApiErrorResponse>;
-
-    if (error.response?.data) {
-      throw error.response.data;
-    }
-
-    throw {
-      message: error.message || 'Something went wrong',
-    };
+    const error = err as AxiosError<ApiError>;
+    throw error.response?.data ?? { message: 'Something went wrong' };
   }
 };

@@ -1,3 +1,27 @@
+// src/types/problem.types.ts
+
+// ─── Base API envelope ────────────────────────────────────────────────────────
+
+export interface ApiSuccess<T> {
+  success: true;
+  statusCode: number;
+  message: string;
+  timestamp: string;
+  data: T | null;
+}
+
+export interface ApiError {
+  success: false;
+  statusCode: number;
+  message: string;
+  timestamp: string;
+  path: string;
+  data: null;
+  errors: Array<{ field: string; message: string }> | null;
+}
+
+// ─── Problem ──────────────────────────────────────────────────────────────────
+
 export interface Problem {
   id: string;
   title: string;
@@ -28,22 +52,23 @@ export interface Problem {
   createdAt: string;
   updatedAt: string;
   isSolved?: boolean;
-  isPublished?: boolean;
 }
+
+// ─── Get all problems ─────────────────────────────────────────────────────────
 
 export interface GetAllProblemsPayload {
   userId?: string | null;
 }
 
-export interface GetAllProblemsResponse {
-  success: boolean;
-  message: string;
-  problems: Problem[];
-}
+// backend returns ApiSuccess<Problem[]>
+// the array is directly in data, so data.data is Problem[]
+export type GetAllProblemsResponse = ApiSuccess<Problem[]>;
 
-export interface ApiError {
-  message: string;
-}
+// ─── Get single problem ───────────────────────────────────────────────────────
+
+export type GetProblemResponse = ApiSuccess<Problem>;
+
+// ─── Create problem ───────────────────────────────────────────────────────────
 
 export interface CreateProblemPayload {
   problemNumber: number;
@@ -74,49 +99,38 @@ export interface CreateProblemPayload {
   }[];
 }
 
-export interface CreateProblemResponse {
-  success: boolean;
-  message: string;
-  problem: Problem;
-}
+export type CreateProblemResponse = ApiSuccess<Problem>;
+
+// ─── Update problem ───────────────────────────────────────────────────────────
 
 export interface UpdateProblemPayload {
   problemId: string;
-  problemNumber: number;
-  problem: {
-    title: string;
-    description: string;
-    difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-    constraints: string;
-    tags: string[];
+  problemNumber?: number;
+  problem?: {
+    title?: string;
+    description?: string;
+    difficulty?: 'EASY' | 'MEDIUM' | 'HARD';
+    constraints?: string;
+    tags?: string[];
     hints?: string;
     editorial?: string;
     companyTags?: string[];
-    examples: {
+    examples?: {
       input: string;
       output: string;
       explanation?: string;
     }[];
-    codeSnippets: {
+    codeSnippets?: {
       python?: string;
       javascript?: string;
       java?: string;
     };
-    referenceSolutions: Record<string, string>;
+    referenceSolutions?: Record<string, string>;
   };
-  testCases: {
-    input: string;
-    expected: string;
-  }[];
 }
 
-export interface UpdateProblemResponse {
-  success: boolean;
-  message: string;
-  problem: Problem;
-}
+export type UpdateProblemResponse = ApiSuccess<Problem>;
 
-export interface DeleteProblemResponse {
-  success: boolean;
-  message: string;
-}
+// ─── Delete problem ───────────────────────────────────────────────────────────
+
+export type DeleteProblemResponse = ApiSuccess<null>;

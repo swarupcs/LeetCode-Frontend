@@ -1,32 +1,29 @@
-
-import { submitCode } from '@/services/code.service';
-import type { ApiErrorResponse, SubmitCodePayload } from '@/types/code.types';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-
+import { submitCode } from '@/services/code.service';
+import type { SubmitCodePayload, SubmitCodeResponse, ApiError } from '@/types/code.types';
+ 
 export const useSubmitCode = () => {
-  const mutation = useMutation({
-    mutationFn: (payload: SubmitCodePayload) => submitCode(payload),
-
-    onSuccess: (data) => {
-      console.log('Successfully submitted problem', data);
-
-      toast.success(data.message || 'Problem submitted successfully 🚀');
+  const mutation = useMutation<SubmitCodeResponse, ApiError, SubmitCodePayload>({
+    mutationFn: submitCode,
+    onSuccess: (response) => {
+      if (response.data?.allPassed) {
+        toast.success('All test cases passed! 🚀');
+      } else {
+        toast.warning(response.message || 'Some test cases failed.');
+      }
     },
-
-    onError: (error: ApiErrorResponse) => {
-      console.error('Failed to submit problem', error);
-
-      toast.error(
-        error?.message || 'Failed to submit problem. Please try again.',
-      );
+    onError: (error) => {
+      toast.error(error.message || 'Failed to submit. Please try again.');
     },
   });
-
+ 
   return {
     isPending: mutation.isPending,
     isSuccess: mutation.isSuccess,
     error: mutation.error,
     submitProblem: mutation.mutateAsync,
+    // unwrapped convenience fields — data.data is SubmitData
+    submitData: mutation.data?.data ?? null,
   };
 };
