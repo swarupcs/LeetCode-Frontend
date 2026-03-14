@@ -8,7 +8,7 @@ import { MarkdownEditor } from './MarkdownEditor';
 import { Clock, Reply, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import type { Comment } from '@/data/discussions';
+import type { Comment } from '@/types/discussion.types';
 import {
   AlertDialog,
   AlertDialogAction,

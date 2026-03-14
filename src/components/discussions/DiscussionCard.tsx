@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Clock, MessageSquare, Trash2, Code2, Building2 } from 'lucide-react';
 import { VoteButton } from './VoteButton';
 import { getCategoryStyle, getCategoryIcon } from '@/data/discussions';
-import type { Discussion } from '@/data/discussions';
+import type { Discussion } from '@/types/discussion.types';
 import {
   AlertDialog,
   AlertDialogAction,

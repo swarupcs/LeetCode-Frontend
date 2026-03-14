@@ -41,7 +41,6 @@ import { useDeleteDiscussion } from '@/hooks/discussions/useDeleteDiscussion';
 import { useVoteDiscussion } from '@/hooks/discussions/useVoteDiscussion';
 import type {
   CreateDiscussionPayload,
-  DiscussionCategory,
 } from '@/types/discussion.types';
 
 type TabView = 'all' | 'bookmarks';
