@@ -1,3 +1,4 @@
+// src/pages/RoadmapsPage.tsx
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -32,13 +33,14 @@ import { TopicSearch } from '@/components/roadmaps/TopicSearch';
 import { StudyPlanner } from '@/components/roadmaps/StudyPlanner';
 import { useGetRoadmaps } from '@/hooks/roadmaps/useGetRoadmaps';
 import { useAppSelector } from '@/hooks/redux';
+import type { Roadmap } from '@/types/roadmap.types';
 
 const STORAGE_KEY = 'roadmap-progress';
 
 function getLocalProgress(): Record<string, string[]> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    return raw ? (JSON.parse(raw) as Record<string, string[]>) : {};
   } catch {
     return {};
   }
@@ -75,7 +77,12 @@ const colorTextMap: Record<string, string> = {
 
 export default function RoadmapsPage() {
   const currentUserId = useAppSelector((state) => state.auth.id);
-  const { roadmaps: published, isLoading, isError } = useGetRoadmaps();
+  // useGetRoadmaps now returns data.data (Roadmap[]) pre-unwrapped
+  const {
+    roadmaps: published,
+    isPending: isLoading,
+    isError,
+  } = useGetRoadmaps();
   const {
     currentStreak,
     longestStreak,
@@ -87,13 +94,14 @@ export default function RoadmapsPage() {
     weekActivity,
   } = useLearningStreak();
 
-  // Progress: logged-in users → from API (completedTopicIds on each roadmap)
-  //           anonymous       → from localStorage
-  const localProgress = useMemo(() => (currentUserId ? {} : getLocalProgress()), [currentUserId]);
+  const localProgress = useMemo(
+    () => (currentUserId ? {} : getLocalProgress()),
+    [currentUserId]
+  );
 
   const totalTopics = useMemo(
     () => published.reduce((a, r) => a + getRoadmapStats(r).totalTopics, 0),
-    [published],
+    [published]
   );
 
   const totalCompleted = useMemo(
@@ -102,10 +110,12 @@ export default function RoadmapsPage() {
         const completedIds = currentUserId
           ? (r.completedTopicIds ?? [])
           : (localProgress[r.id] ?? []);
-        const allTopicIds = r.sections.flatMap((s) => s.topics.map((t) => t.id));
+        const allTopicIds = r.sections.flatMap((s) =>
+          s.topics.map((t) => t.id)
+        );
         return a + completedIds.filter((id) => allTopicIds.includes(id)).length;
       }, 0),
-    [published, currentUserId, localProgress],
+    [published, currentUserId, localProgress]
   );
 
   if (isLoading) {
@@ -121,7 +131,9 @@ export default function RoadmapsPage() {
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
           <Map className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
-          <p className='text-muted-foreground'>Failed to load roadmaps. Please try again later.</p>
+          <p className='text-muted-foreground'>
+            Failed to load roadmaps. Please try again later.
+          </p>
         </div>
       </div>
     );
@@ -156,16 +168,23 @@ export default function RoadmapsPage() {
           className='grid grid-cols-2 md:grid-cols-3 gap-4 mb-8'
         >
           <div className='glass-card p-4 text-center'>
-            <div className='text-2xl font-bold text-foreground'>{published.length}</div>
+            <div className='text-2xl font-bold text-foreground'>
+              {published.length}
+            </div>
             <div className='text-xs text-muted-foreground mt-1'>Roadmaps</div>
           </div>
           <div className='glass-card p-4 text-center'>
             <div className='text-2xl font-bold text-primary'>{totalTopics}</div>
-            <div className='text-xs text-muted-foreground mt-1'>Total Topics</div>
+            <div className='text-xs text-muted-foreground mt-1'>
+              Total Topics
+            </div>
           </div>
           <div className='glass-card p-4 text-center col-span-2 md:col-span-1'>
             <div className='text-2xl font-bold text-[hsl(var(--emerald))]'>
-              {totalTopics > 0 ? Math.round((totalCompleted / totalTopics) * 100) : 0}%
+              {totalTopics > 0
+                ? Math.round((totalCompleted / totalTopics) * 100)
+                : 0}
+              %
             </div>
             <div className='text-xs text-muted-foreground mt-1'>Completion</div>
           </div>
@@ -185,8 +204,12 @@ export default function RoadmapsPage() {
                 <Flame className='h-5 w-5 text-[hsl(var(--amber))]' />
               </div>
               <div>
-                <h3 className='text-sm font-semibold text-foreground'>Learning Streak</h3>
-                <p className='text-xs text-muted-foreground'>Keep the momentum going!</p>
+                <h3 className='text-sm font-semibold text-foreground'>
+                  Learning Streak
+                </h3>
+                <p className='text-xs text-muted-foreground'>
+                  Keep the momentum going!
+                </p>
               </div>
               <div className='ml-auto text-right'>
                 <div className='text-2xl font-bold text-[hsl(var(--amber))]'>
@@ -222,7 +245,10 @@ export default function RoadmapsPage() {
             </div>
             <div className='flex items-center justify-between gap-1'>
               {weekActivity.map((day) => (
-                <div key={day.date} className='flex flex-col items-center gap-1 flex-1'>
+                <div
+                  key={day.date}
+                  className='flex flex-col items-center gap-1 flex-1'
+                >
                   <div
                     className={`h-6 w-full max-w-[2rem] rounded transition-colors ${
                       day.count > 0
@@ -233,13 +259,16 @@ export default function RoadmapsPage() {
                     }`}
                     title={`${day.date}: ${day.count} topic${day.count !== 1 ? 's' : ''}`}
                   />
-                  <span className='text-[9px] text-muted-foreground'>{day.label}</span>
+                  <span className='text-[9px] text-muted-foreground'>
+                    {day.label}
+                  </span>
                 </div>
               ))}
             </div>
             {longestStreak > 0 && (
               <div className='text-[10px] text-muted-foreground mt-2 text-right'>
-                Longest streak: {longestStreak} day{longestStreak !== 1 ? 's' : ''}
+                Longest streak: {longestStreak} day
+                {longestStreak !== 1 ? 's' : ''}
               </div>
             )}
           </div>
@@ -251,7 +280,9 @@ export default function RoadmapsPage() {
                 <Target className='h-5 w-5 text-[hsl(var(--cyan))]' />
               </div>
               <div>
-                <h3 className='text-sm font-semibold text-foreground'>Daily Goal</h3>
+                <h3 className='text-sm font-semibold text-foreground'>
+                  Daily Goal
+                </h3>
                 <p className='text-xs text-muted-foreground'>
                   {todayCompleted}/{dailyGoal} topics today
                 </p>
@@ -268,12 +299,16 @@ export default function RoadmapsPage() {
                 className='h-full rounded-full transition-all duration-500'
                 style={{
                   width: `${goalProgress}%`,
-                  backgroundColor: goalReached ? 'hsl(var(--emerald))' : 'hsl(var(--cyan))',
+                  backgroundColor: goalReached
+                    ? 'hsl(var(--emerald))'
+                    : 'hsl(var(--cyan))',
                 }}
               />
             </div>
             <div className='flex items-center justify-between'>
-              <span className='text-xs text-muted-foreground'>Topics per day</span>
+              <span className='text-xs text-muted-foreground'>
+                Topics per day
+              </span>
               <div className='flex items-center gap-2'>
                 <Button
                   variant='outline'
@@ -284,7 +319,9 @@ export default function RoadmapsPage() {
                 >
                   <Minus className='h-3 w-3' />
                 </Button>
-                <span className='text-sm font-semibold w-6 text-center'>{dailyGoal}</span>
+                <span className='text-sm font-semibold w-6 text-center'>
+                  {dailyGoal}
+                </span>
                 <Button
                   variant='outline'
                   size='icon'
@@ -306,16 +343,22 @@ export default function RoadmapsPage() {
 
         {/* Roadmap Cards */}
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-          {published.map((roadmap, i) => {
+          {published.map((roadmap: Roadmap, i: number) => {
             const stats = getRoadmapStats(roadmap);
             const completedIds = currentUserId
               ? (roadmap.completedTopicIds ?? [])
               : (localProgress[roadmap.id] ?? []);
-            const allTopicIds = roadmap.sections.flatMap((s) => s.topics.map((t) => t.id));
-            const userCompleted = completedIds.filter((id) => allTopicIds.includes(id)).length;
+            const allTopicIds = roadmap.sections.flatMap((s) =>
+              s.topics.map((t) => t.id)
+            );
+            const userCompleted = completedIds.filter((id) =>
+              allTopicIds.includes(id)
+            ).length;
             const progress =
-              stats.totalTopics > 0 ? Math.round((userCompleted / stats.totalTopics) * 100) : 0;
-            const Icon = iconMap[roadmap.icon] || Binary;
+              stats.totalTopics > 0
+                ? Math.round((userCompleted / stats.totalTopics) * 100)
+                : 0;
+            const Icon = iconMap[roadmap.icon] ?? Binary;
 
             return (
               <motion.div
@@ -331,7 +374,9 @@ export default function RoadmapsPage() {
                         <div
                           className={`p-2.5 rounded-lg border ${colorBgMap[roadmap.color]} relative`}
                         >
-                          <Icon className={`h-5 w-5 ${colorTextMap[roadmap.color]}`} />
+                          <Icon
+                            className={`h-5 w-5 ${colorTextMap[roadmap.color]}`}
+                          />
                           {progress === 100 && (
                             <div className='absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground rounded-full p-0.5'>
                               <Trophy className='h-2.5 w-2.5' />
@@ -380,7 +425,9 @@ export default function RoadmapsPage() {
                             <span className='text-xs text-muted-foreground'>
                               ~{Math.round(stats.totalMinutes / 60)}h
                             </span>
-                            <span className='text-primary font-medium'>{progress}%</span>
+                            <span className='text-primary font-medium'>
+                              {progress}%
+                            </span>
                           </div>
                           <div className='h-1.5 bg-surface-3 rounded-full overflow-hidden'>
                             <div

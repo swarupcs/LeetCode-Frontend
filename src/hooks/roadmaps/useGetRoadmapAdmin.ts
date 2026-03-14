@@ -1,16 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
-import { getRoadmapAdminRequest, type RoadmapWithProgress } from '@/services/roadmap.service';
-
+import { getRoadmapAdminRequest } from '@/services/roadmap.service';
+import type { GetRoadmapAdminResponse, ApiError } from '@/types/roadmap.types';
+ 
 export const useGetRoadmapAdmin = (id: string) => {
-  const query = useQuery<{ message: string; data: RoadmapWithProgress }, { message: string }>({
+  const query = useQuery<GetRoadmapAdminResponse, ApiError>({
     queryKey: ['roadmapAdmin', id],
     queryFn: () => getRoadmapAdminRequest(id),
-    staleTime: 1000 * 60 * 2,
+    staleTime: 2 * 60 * 1000,
     enabled: !!id,
   });
-
+ 
   return {
     ...query,
     roadmap: query.data?.data ?? null,
   };
 };
+ 

@@ -1,161 +1,128 @@
+// src/services/roadmap.service.ts
 import { axiosInstance } from '@/config/axiosConfig';
 import type { AxiosError } from 'axios';
-import type { Roadmap, RoadmapSection } from '@/data/roadmaps';
+import type {
+  Roadmap,
+  CreateRoadmapPayload,
+  UpdateRoadmapPayload,
+  GetAllRoadmapsResponse,
+  GetRoadmapResponse,
+  GetAllRoadmapsAdminResponse,
+  GetRoadmapAdminResponse,
+  CreateRoadmapResponse,
+  UpdateRoadmapResponse,
+  DeleteRoadmapResponse,
+  TogglePublishResponse,
+  SaveProgressResponse,
+  ResetProgressResponse,
+  ApiError,
+} from '@/types/roadmap.types';
 
-interface ApiErrorResponse {
-  message: string;
-}
+// Re-export Roadmap so existing imports of RoadmapWithProgress can be migrated
+export type { Roadmap };
+/** @deprecated Use Roadmap instead */
+export type RoadmapWithProgress = Roadmap;
 
-export interface RoadmapWithProgress extends Omit<Roadmap, 'sections'> {
-  sections: RoadmapSection[];
-  completedTopicIds: string[];
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const handleError = (err: unknown): never => {
-  const error = err as AxiosError<ApiErrorResponse>;
-  if (error.response?.data) throw error.response.data;
-  throw { message: (err as Error).message || 'Something went wrong' };
+const throwError = (err: unknown): never => {
+  const error = err as AxiosError<ApiError>;
+  throw error.response?.data ?? { message: (err as Error).message || 'Something went wrong' };
 };
 
 // ─── Public ───────────────────────────────────────────────────────────────────
 
-export const getAllRoadmapsRequest = async (): Promise<{
-  message: string;
-  data: RoadmapWithProgress[];
-}> => {
+// GET /api/v1/roadmaps
+export const getAllRoadmapsRequest = async (): Promise<GetAllRoadmapsResponse> => {
   try {
-    const { data } = await axiosInstance.get('/roadmaps/getAllRoadmaps');
+    const { data } = await axiosInstance.get<GetAllRoadmapsResponse>('/roadmaps');
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
-export const getRoadmapRequest = async (slug: string): Promise<{
-  message: string;
-  data: RoadmapWithProgress;
-}> => {
+// GET /api/v1/roadmaps/:slug
+export const getRoadmapRequest = async (slug: string): Promise<GetRoadmapResponse> => {
   try {
-    const { data } = await axiosInstance.get(`/roadmaps/getRoadmap/${slug}`);
+    const { data } = await axiosInstance.get<GetRoadmapResponse>(`/roadmaps/${slug}`);
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
 // ─── Progress ─────────────────────────────────────────────────────────────────
 
+// POST /api/v1/roadmaps/:id/progress
 export const saveProgressRequest = async (
   id: string,
   completedTopicIds: string[],
-): Promise<{ message: string; data: { completedTopicIds: string[] } }> => {
+): Promise<SaveProgressResponse> => {
   try {
-    const { data } = await axiosInstance.post(`/roadmaps/progress/${id}`, {
-      completedTopicIds,
-    });
+    const { data } = await axiosInstance.post<SaveProgressResponse>(
+      `/roadmaps/${id}/progress`,
+      { completedTopicIds },
+    );
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
-export const resetProgressRequest = async (
-  id: string,
-): Promise<{ message: string }> => {
+// DELETE /api/v1/roadmaps/:id/progress
+export const resetProgressRequest = async (id: string): Promise<ResetProgressResponse> => {
   try {
-    const { data } = await axiosInstance.delete(`/roadmaps/progress/${id}`);
+    const { data } = await axiosInstance.delete<ResetProgressResponse>(
+      `/roadmaps/${id}/progress`,
+    );
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
-export const getAllRoadmapsAdminRequest = async (): Promise<{
-  message: string;
-  data: RoadmapWithProgress[];
-}> => {
+// GET /api/v1/roadmaps/admin/all
+export const getAllRoadmapsAdminRequest = async (): Promise<GetAllRoadmapsAdminResponse> => {
   try {
-    const { data } = await axiosInstance.get('/roadmaps/admin/getAll');
+    const { data } = await axiosInstance.get<GetAllRoadmapsAdminResponse>('/roadmaps/admin/all');
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
-export const getRoadmapAdminRequest = async (id: string): Promise<{
-  message: string;
-  data: RoadmapWithProgress;
-}> => {
+// GET /api/v1/roadmaps/admin/:id
+export const getRoadmapAdminRequest = async (id: string): Promise<GetRoadmapAdminResponse> => {
   try {
-    const { data } = await axiosInstance.get(`/roadmaps/admin/get/${id}`);
+    const { data } = await axiosInstance.get<GetRoadmapAdminResponse>(`/roadmaps/admin/${id}`);
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
-export const createRoadmapRequest = async (payload: {
-  name: string;
-  slug: string;
-  description: string;
-  icon: string;
-  color: string;
-  isPublished: boolean;
-  sections: unknown;
-  order?: number;
-}): Promise<{ message: string; data: RoadmapWithProgress }> => {
+// POST /api/v1/roadmaps
+export const createRoadmapRequest = async (
+  payload: CreateRoadmapPayload,
+): Promise<CreateRoadmapResponse> => {
   try {
-    const { data } = await axiosInstance.post('/roadmaps/createRoadmap', payload);
+    const { data } = await axiosInstance.post<CreateRoadmapResponse>('/roadmaps', payload);
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
+// PUT /api/v1/roadmaps/:id
 export const updateRoadmapRequest = async (
   id: string,
-  payload: {
-    name?: string;
-    slug?: string;
-    description?: string;
-    icon?: string;
-    color?: string;
-    isPublished?: boolean;
-    sections?: unknown;
-    order?: number;
-  },
-): Promise<{ message: string; data: RoadmapWithProgress }> => {
+  payload: Omit<UpdateRoadmapPayload, 'id'>,
+): Promise<UpdateRoadmapResponse> => {
   try {
-    const { data } = await axiosInstance.put(`/roadmaps/updateRoadmap/${id}`, payload);
+    const { data } = await axiosInstance.put<UpdateRoadmapResponse>(`/roadmaps/${id}`, payload);
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
-export const deleteRoadmapRequest = async (
-  id: string,
-): Promise<{ message: string }> => {
+// DELETE /api/v1/roadmaps/:id
+export const deleteRoadmapRequest = async (id: string): Promise<DeleteRoadmapResponse> => {
   try {
-    const { data } = await axiosInstance.delete(`/roadmaps/deleteRoadmap/${id}`);
+    const { data } = await axiosInstance.delete<DeleteRoadmapResponse>(`/roadmaps/${id}`);
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };
 
-export const togglePublishRequest = async (
-  id: string,
-): Promise<{ message: string; data: RoadmapWithProgress }> => {
+// PATCH /api/v1/roadmaps/:id/publish
+export const togglePublishRequest = async (id: string): Promise<TogglePublishResponse> => {
   try {
-    const { data } = await axiosInstance.patch(`/roadmaps/togglePublish/${id}`);
+    const { data } = await axiosInstance.patch<TogglePublishResponse>(`/roadmaps/${id}/publish`);
     return data;
-  } catch (err) {
-    return handleError(err);
-  }
+  } catch (err) { return throwError(err); }
 };

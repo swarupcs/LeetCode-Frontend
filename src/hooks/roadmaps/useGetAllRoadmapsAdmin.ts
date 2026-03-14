@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAllRoadmapsAdminRequest, type RoadmapWithProgress } from '@/services/roadmap.service';
-
+import { getAllRoadmapsAdminRequest } from '@/services/roadmap.service';
+import type { GetAllRoadmapsAdminResponse, ApiError } from '@/types/roadmap.types';
+ 
 export const useGetAllRoadmapsAdmin = () => {
-  const query = useQuery<{ message: string; data: RoadmapWithProgress[] }, { message: string }>({
+  const query = useQuery<GetAllRoadmapsAdminResponse, ApiError>({
     queryKey: ['roadmapsAdmin'],
     queryFn: getAllRoadmapsAdminRequest,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 2 * 60 * 1000,
   });
-
+ 
   return {
     ...query,
     roadmaps: query.data?.data ?? [],

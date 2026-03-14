@@ -1,3 +1,4 @@
+// src/pages/admin/AdminRoadmapsPage.tsx
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -49,34 +50,42 @@ import {
   Layers,
   Loader2,
 } from 'lucide-react';
-import { getRoadmapStats, type Roadmap } from '@/data/roadmaps';
+import { getRoadmapStats } from '@/data/roadmaps';
 import { toast } from 'sonner';
 import { useGetAllRoadmapsAdmin } from '@/hooks/roadmaps/useGetAllRoadmapsAdmin';
 import { useDeleteRoadmap } from '@/hooks/roadmaps/useDeleteRoadmap';
 import { useToggleRoadmapPublish } from '@/hooks/roadmaps/useToggleRoadmapPublish';
-import type { RoadmapWithProgress } from '@/services/roadmap.service';
+import type { Roadmap } from '@/types/roadmap.types';
 
 export default function AdminRoadmapsPage() {
-  const { roadmaps: list, isLoading, isError } = useGetAllRoadmapsAdmin();
+  // roadmaps is already Roadmap[] (data.data unwrapped in the hook)
+  const {
+    roadmaps: list,
+    isPending: isLoading,
+    isError,
+  } = useGetAllRoadmapsAdmin();
   const { deleteRoadmapMutation, isPending: isDeleting } = useDeleteRoadmap();
-  const { togglePublishMutation, isPending: isToggling } = useToggleRoadmapPublish();
+  const { togglePublishMutation, isPending: isToggling } =
+    useToggleRoadmapPublish();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [deleteTarget, setDeleteTarget] = useState<RoadmapWithProgress | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Roadmap | null>(null);
 
-  const filtered = useMemo(() => {
-    return list.filter((r) => {
-      const matchSearch =
-        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'published' && r.isPublished) ||
-        (statusFilter === 'draft' && !r.isPublished);
-      return matchSearch && matchStatus;
-    });
-  }, [list, searchQuery, statusFilter]);
+  const filtered = useMemo(
+    () =>
+      list.filter((r) => {
+        const matchSearch =
+          r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          r.description.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchStatus =
+          statusFilter === 'all' ||
+          (statusFilter === 'published' && r.isPublished) ||
+          (statusFilter === 'draft' && !r.isPublished);
+        return matchSearch && matchStatus;
+      }),
+    [list, searchQuery, statusFilter]
+  );
 
   const stats = useMemo(() => {
     const published = list.filter((r) => r.isPublished).length;
@@ -97,12 +106,15 @@ export default function AdminRoadmapsPage() {
     }
   };
 
-  const handleTogglePublish = async (roadmap: RoadmapWithProgress) => {
+  const handleTogglePublish = async (roadmap: Roadmap) => {
     try {
       await togglePublishMutation(roadmap.id);
-      toast.success(roadmap.isPublished ? 'Roadmap unpublished' : 'Roadmap published', {
-        description: `"${roadmap.name}" is now ${roadmap.isPublished ? 'a draft' : 'live'}.`,
-      });
+      toast.success(
+        roadmap.isPublished ? 'Roadmap unpublished' : 'Roadmap published',
+        {
+          description: `"${roadmap.name}" is now ${roadmap.isPublished ? 'a draft' : 'live'}.`,
+        }
+      );
     } catch {
       toast.error('Failed to update roadmap. Please try again.');
     }
@@ -138,18 +150,20 @@ export default function AdminRoadmapsPage() {
         transition={{ delay: 0.1 }}
         className='grid grid-cols-3 gap-4 mb-8'
       >
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-foreground'>{stats.total}</div>
-          <div className='text-xs text-muted-foreground mt-1'>Total</div>
-        </div>
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-primary'>{stats.published}</div>
-          <div className='text-xs text-muted-foreground mt-1'>Published</div>
-        </div>
-        <div className='glass-card p-4 text-center'>
-          <div className='text-2xl font-bold text-muted-foreground'>{stats.draft}</div>
-          <div className='text-xs text-muted-foreground mt-1'>Drafts</div>
-        </div>
+        {[
+          { value: stats.total, label: 'Total', color: 'text-foreground' },
+          { value: stats.published, label: 'Published', color: 'text-primary' },
+          {
+            value: stats.draft,
+            label: 'Drafts',
+            color: 'text-muted-foreground',
+          },
+        ].map(({ value, label, color }) => (
+          <div key={label} className='glass-card p-4 text-center'>
+            <div className={`text-2xl font-bold ${color}`}>{value}</div>
+            <div className='text-xs text-muted-foreground mt-1'>{label}</div>
+          </div>
+        ))}
       </motion.div>
 
       {/* Toolbar */}
@@ -181,7 +195,6 @@ export default function AdminRoadmapsPage() {
         </Select>
       </motion.div>
 
-      {/* Loading / error */}
       {isLoading && (
         <div className='flex items-center justify-center py-16'>
           <Loader2 className='h-8 w-8 animate-spin text-primary' />
@@ -190,11 +203,12 @@ export default function AdminRoadmapsPage() {
       {isError && (
         <div className='text-center py-16'>
           <Map className='h-10 w-10 text-muted-foreground/30 mx-auto mb-3' />
-          <p className='text-muted-foreground text-sm'>Failed to load roadmaps.</p>
+          <p className='text-muted-foreground text-sm'>
+            Failed to load roadmaps.
+          </p>
         </div>
       )}
 
-      {/* Table */}
       {!isLoading && !isError && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -205,7 +219,9 @@ export default function AdminRoadmapsPage() {
           <Table>
             <TableHeader>
               <TableRow className='border-border/50 hover:bg-transparent'>
-                <TableHead className='text-muted-foreground text-xs font-semibold'>Name</TableHead>
+                <TableHead className='text-muted-foreground text-xs font-semibold'>
+                  Name
+                </TableHead>
                 <TableHead className='text-muted-foreground text-xs font-semibold w-[100px]'>
                   Status
                 </TableHead>
@@ -220,8 +236,9 @@ export default function AdminRoadmapsPage() {
             </TableHeader>
             <TableBody>
               <AnimatePresence>
-                {filtered.map((roadmap) => {
-                  const s = getRoadmapStats(roadmap as unknown as Roadmap);
+                {filtered.map((roadmap: Roadmap) => {
+                  // getRoadmapStats accepts Roadmap directly — no cast needed
+                  const s = getRoadmapStats(roadmap);
                   return (
                     <motion.tr
                       key={roadmap.id}
@@ -254,7 +271,9 @@ export default function AdminRoadmapsPage() {
                               ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
                               : 'bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted'
                           }`}
-                          onClick={() => !isToggling && handleTogglePublish(roadmap)}
+                          onClick={() =>
+                            !isToggling && void handleTogglePublish(roadmap)
+                          }
                         >
                           {roadmap.isPublished ? 'Published' : 'Draft'}
                         </Badge>
@@ -279,8 +298,14 @@ export default function AdminRoadmapsPage() {
                               <MoreVertical className='h-4 w-4' />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align='end' className='w-44 bg-card border-border/50'>
-                            <DropdownMenuItem asChild className='text-sm cursor-pointer'>
+                          <DropdownMenuContent
+                            align='end'
+                            className='w-44 bg-card border-border/50'
+                          >
+                            <DropdownMenuItem
+                              asChild
+                              className='text-sm cursor-pointer'
+                            >
                               <Link
                                 to={`/roadmaps/${roadmap.slug}`}
                                 className='flex items-center gap-2'
@@ -289,7 +314,10 @@ export default function AdminRoadmapsPage() {
                                 View
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild className='text-sm cursor-pointer'>
+                            <DropdownMenuItem
+                              asChild
+                              className='text-sm cursor-pointer'
+                            >
                               <Link
                                 to={`/admin/roadmaps/edit/${roadmap.id}`}
                                 className='flex items-center gap-2'
@@ -301,7 +329,9 @@ export default function AdminRoadmapsPage() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className='text-sm cursor-pointer flex items-center gap-2'
-                              onClick={() => !isToggling && handleTogglePublish(roadmap)}
+                              onClick={() =>
+                                !isToggling && void handleTogglePublish(roadmap)
+                              }
                             >
                               {roadmap.isPublished ? (
                                 <>
@@ -336,30 +366,43 @@ export default function AdminRoadmapsPage() {
           {filtered.length === 0 && (
             <div className='text-center py-12'>
               <Map className='h-10 w-10 text-muted-foreground/30 mx-auto mb-3' />
-              <p className='text-muted-foreground text-sm'>No roadmaps match your search.</p>
+              <p className='text-muted-foreground text-sm'>
+                No roadmaps match your search.
+              </p>
             </div>
           )}
         </motion.div>
       )}
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={() => setDeleteTarget(null)}
+      >
         <AlertDialogContent className='bg-card border-border/50'>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Roadmap</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete{' '}
-              <span className='font-semibold text-foreground'>"{deleteTarget?.name}"</span>? This
-              action cannot be undone.
+              <span className='font-semibold text-foreground'>
+                "{deleteTarget?.name}"
+              </span>
+              ? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className='border-border/50'>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className='border-border/50'>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={() => void handleDelete()}
               disabled={isDeleting}
               className='bg-destructive hover:bg-destructive/90 text-destructive-foreground'
             >
-              {isDeleting ? <Loader2 className='h-4 w-4 animate-spin' /> : 'Delete'}
+              {isDeleting ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
