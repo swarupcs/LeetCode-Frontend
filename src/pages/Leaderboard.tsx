@@ -1,3 +1,4 @@
+// src/pages/LeaderboardPage.tsx
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
@@ -16,7 +17,6 @@ import {
   Users,
   Crown,
 } from 'lucide-react';
-
 import type { LeaderboardEntry } from '@/types/leaderboard.types';
 import { useGetLeaderboard } from '@/hooks/leaderboard/useGetLeaderboard';
 
@@ -62,6 +62,7 @@ const getPodiumColor = (rank: number) => {
   };
 };
 
+// Backend guarantees these are non-null ('Unknown' fallback), but keep a local guard
 const getInitials = (entry: LeaderboardEntry) => {
   const name = entry.name || entry.username || '?';
   return name.slice(0, 2).toUpperCase();
@@ -148,7 +149,7 @@ function PodiumCard({
   );
 }
 
-// ── main page ─────────────────────────────────────────────────────────────────
+// ── page ──────────────────────────────────────────────────────────────────────
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const fadeUp = {
@@ -158,24 +159,24 @@ const fadeUp = {
 
 export default function LeaderboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { leaderboard, isLoading, isError } = useGetLeaderboard();
+  const { leaderboard, isPending: isLoading, isError } = useGetLeaderboard();
 
   const filtered = useMemo(
     () =>
       leaderboard.filter(
         (u) =>
           u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.name.toLowerCase().includes(searchQuery.toLowerCase()),
+          u.name.toLowerCase().includes(searchQuery.toLowerCase())
       ),
-    [leaderboard, searchQuery],
+    [leaderboard, searchQuery]
   );
 
   const top3 = leaderboard.slice(0, 3);
 
-  // Summary stats
   const totalUsers = leaderboard.length;
   const topScore = leaderboard[0]?.score ?? 0;
-  const topStreak = Math.max(...leaderboard.map((u) => u.streak), 0);
+  const topStreak =
+    leaderboard.length > 0 ? Math.max(...leaderboard.map((u) => u.streak)) : 0;
 
   return (
     <div className='min-h-screen'>
@@ -240,7 +241,7 @@ export default function LeaderboardPage() {
 
         {!isLoading && !isError && leaderboard.length > 0 && (
           <>
-            {/* Podium — only when not searching */}
+            {/* Podium */}
             {!searchQuery && top3.length === 3 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -248,10 +249,10 @@ export default function LeaderboardPage() {
                 transition={{ delay: 0.1 }}
                 className='grid grid-cols-3 gap-3 mb-10 items-end'
               >
-                {/* 2nd – 1st – 3rd display order */}
-                <PodiumCard entry={top3[1]} podiumRank={2} />
-                <PodiumCard entry={top3[0]} podiumRank={1} />
-                <PodiumCard entry={top3[2]} podiumRank={3} />
+                {/* Display order: 2nd – 1st – 3rd */}
+                <PodiumCard entry={top3[1]!} podiumRank={2} />
+                <PodiumCard entry={top3[0]!} podiumRank={1} />
+                <PodiumCard entry={top3[2]!} podiumRank={3} />
               </motion.div>
             )}
 
@@ -273,24 +274,22 @@ export default function LeaderboardPage() {
               </div>
             </motion.div>
 
-            {/* Full table */}
+            {/* Table */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.25 }}
             >
               <Card className='glass-card border-border/50 overflow-hidden'>
-                {/* Table header */}
                 <div className='hidden sm:grid grid-cols-[56px_1fr_100px_90px_90px_100px] gap-4 px-6 py-3 border-b border-border/50 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider'>
                   <div>Rank</div>
                   <div>User</div>
                   <div className='text-center'>Solved</div>
                   <div className='text-center'>Streak</div>
                   <div className='text-right'>Score</div>
-                  <div /> {/* spacer */}
+                  <div />
                 </div>
 
-                {/* Rows */}
                 <motion.div
                   variants={stagger}
                   initial='hidden'
@@ -372,7 +371,7 @@ export default function LeaderboardPage() {
                             </Badge>
                           </div>
 
-                          {/* Rank badge (mobile) — hidden on sm+ */}
+                          {/* Rank badge (mobile) */}
                           <div className='sm:hidden flex items-center gap-1 text-xs text-muted-foreground'>
                             <span>Rank #{user.rank}</span>
                           </div>
@@ -384,7 +383,6 @@ export default function LeaderboardPage() {
               </Card>
             </motion.div>
 
-            {/* Score formula note */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

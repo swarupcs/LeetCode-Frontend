@@ -1,4 +1,7 @@
-// ─── types/leaderboard.types.ts ───────────────────────────────────────────────
+// src/types/leaderboard.types.ts
+import type { ApiSuccess, ApiError } from './problem.types';
+export type { ApiError };
+
 export interface LeaderboardEntry {
   rank: number;
   username: string;
@@ -9,13 +12,13 @@ export interface LeaderboardEntry {
   score: number;
 }
 
-export interface LeaderboardResponse {
-  success: boolean;
-  message: string;
+// The service wraps LeaderboardResponse in ApiSuccess:
+// GET /api/v1/leaderboard → ApiSuccess<LeaderboardData>
+export interface LeaderboardData {
   data: LeaderboardEntry[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
-export interface ApiError {
-  message: string;
-  statusCode?: number;
-}
+export type LeaderboardResponse = ApiSuccess<LeaderboardData>;
