@@ -1,3 +1,4 @@
+// src/pages/RoadmapDetailPage.tsx
 import { useMemo, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { useParams, Link } from 'react-router-dom';
@@ -32,7 +33,6 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   GraduationCap as CourseIcon,
-  Loader2,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -68,21 +68,18 @@ const colorMap: Record<string, string> = {
   amber: 'hsl(var(--amber))',
   rose: 'hsl(var(--rose))',
 };
-
 const colorBgMap: Record<string, string> = {
   emerald: 'bg-[hsl(var(--emerald)/0.1)] border-[hsl(var(--emerald)/0.2)]',
   cyan: 'bg-[hsl(var(--cyan)/0.1)] border-[hsl(var(--cyan)/0.2)]',
   amber: 'bg-[hsl(var(--amber)/0.1)] border-[hsl(var(--amber)/0.2)]',
   rose: 'bg-[hsl(var(--rose)/0.1)] border-[hsl(var(--rose)/0.2)]',
 };
-
 const colorTextMap: Record<string, string> = {
   emerald: 'text-[hsl(var(--emerald))]',
   cyan: 'text-[hsl(var(--cyan))]',
   amber: 'text-[hsl(var(--amber))]',
   rose: 'text-[hsl(var(--rose))]',
 };
-
 const difficultyColors: Record<string, string> = {
   beginner:
     'bg-[hsl(var(--emerald)/0.1)] text-[hsl(var(--emerald))] border-[hsl(var(--emerald)/0.2)]',
@@ -91,7 +88,6 @@ const difficultyColors: Record<string, string> = {
   advanced:
     'bg-[hsl(var(--rose)/0.1)] text-[hsl(var(--rose))] border-[hsl(var(--rose)/0.2)]',
 };
-
 const resourceIcons: Record<string, React.ElementType> = {
   article: FileText,
   video: Video,
@@ -108,6 +104,234 @@ function formatTime(minutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+// ─── Skeleton primitive ───────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Skeleton: one topic card ─────────────────────────────────────────────────
+
+function SkeletonTopicCard({ index }: { index: number }) {
+  const base = index * 55;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: 0.35 + index * 0.05 }}
+      className='glass-card p-4'
+    >
+      <div className='flex items-start gap-3'>
+        {/* Checkbox */}
+        <Bone
+          w='w-4'
+          h='h-4'
+          rounded='rounded'
+          delay={base}
+          className='mt-0.5 shrink-0'
+        />
+        {/* Body */}
+        <div className='flex-1 min-w-0 space-y-2'>
+          {/* Title + difficulty + time */}
+          <div className='flex items-center gap-2 flex-wrap'>
+            <Bone
+              w={['w-40', 'w-48', 'w-36', 'w-44', 'w-32'][index % 5]!}
+              h='h-3.5'
+              delay={base + 20}
+            />
+            <Bone w='w-16' h='h-4' rounded='rounded' delay={base + 35} />
+            <Bone w='w-10' h='h-3' delay={base + 50} />
+          </div>
+          {/* Description */}
+          <div className='space-y-1.5'>
+            <Bone w='w-full' h='h-2.5' delay={base + 40} />
+            <Bone
+              w={['w-4/5', 'w-3/4', 'w-full', 'w-5/6'][index % 4]!}
+              h='h-2.5'
+              delay={base + 55}
+            />
+          </div>
+          {/* Resource chips */}
+          <div className='flex flex-wrap gap-1.5'>
+            {Array.from({ length: 2 + (index % 2) }).map((_, j) => (
+              <Bone
+                key={j}
+                w='w-20'
+                h='h-4'
+                rounded='rounded'
+                delay={base + 60 + j * 20}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Skeleton: one section ────────────────────────────────────────────────────
+
+function SkeletonSection({ index }: { index: number }) {
+  const base = index * 80;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 + index * 0.08 }}
+    >
+      {/* Section header */}
+      <div className='flex items-center gap-3 mb-2'>
+        <Bone w='w-7' h='h-7' rounded='rounded-full' delay={base} />
+        <div className='flex-1 space-y-1.5'>
+          <Bone
+            w={['w-40', 'w-52', 'w-44', 'w-36'][index % 4]!}
+            h='h-4'
+            delay={base + 20}
+          />
+          <Bone w='w-64' h='h-2.5' delay={base + 35} />
+        </div>
+        <div className='flex items-center gap-2'>
+          <Bone w='w-12' h='h-3' delay={base + 40} />
+          <Bone w='w-10' h='h-5' rounded='rounded-full' delay={base + 55} />
+          <Bone w='w-20' h='h-1.5' rounded='rounded-full' delay={base + 70} />
+          <Bone w='w-4' h='h-4' rounded='rounded' delay={base + 80} />
+        </div>
+      </div>
+
+      {/* Topics */}
+      <div className='space-y-2 pl-3 border-l-2 border-border/30 ml-3.5'>
+        {Array.from({ length: 3 + (index % 2) }).map((_, i) => (
+          <SkeletonTopicCard key={i} index={i} />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Full detail page skeleton ────────────────────────────────────────────────
+
+function RoadmapDetailSkeleton() {
+  return (
+    <div className='min-h-screen'>
+      <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Back link */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Bone w='w-28' h='h-4' delay={0} className='mb-6' />
+        </motion.div>
+
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className='mb-8'
+        >
+          <div className='flex items-start gap-4 mb-4'>
+            <Bone w='w-14' h='h-14' rounded='rounded-xl' delay={60} />
+            <div className='flex-1 space-y-2'>
+              <Bone w='w-3/5' h='h-8' rounded='rounded-lg' delay={75} />
+              <Bone w='w-4/5' h='h-4' delay={90} />
+              {/* Meta row */}
+              <div className='flex items-center gap-3'>
+                <Bone w='w-20' h='h-3' delay={105} />
+                <Bone w='w-2' h='h-2' rounded='rounded-full' delay={115} />
+                <Bone w='w-20' h='h-3' delay={120} />
+                <Bone w='w-2' h='h-2' rounded='rounded-full' delay={130} />
+                <Bone w='w-16' h='h-3' delay={135} />
+              </div>
+            </div>
+          </div>
+
+          {/* Search bar */}
+          <Bone
+            w='w-full'
+            h='h-9'
+            rounded='rounded-xl'
+            delay={140}
+            className='mb-3'
+          />
+
+          {/* Filter + Sort row */}
+          <div className='flex items-center justify-between gap-2 flex-wrap mb-3'>
+            <div className='flex items-center gap-2'>
+              <Bone w='w-10' h='h-3' delay={155} />
+              {['w-8', 'w-16', 'w-24', 'w-16'].map((w, i) => (
+                <Bone
+                  key={i}
+                  w={w}
+                  h='h-7'
+                  rounded='rounded-full'
+                  delay={165 + i * 20}
+                />
+              ))}
+            </div>
+            <div className='flex items-center gap-2'>
+              <Bone w='w-8' h='h-3' delay={170} />
+              {['w-14', 'w-24', 'w-24'].map((w, i) => (
+                <Bone
+                  key={i}
+                  w={w}
+                  h='h-7'
+                  rounded='rounded-full'
+                  delay={180 + i * 20}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Progress card */}
+          <div className='glass-card p-4'>
+            <div className='flex items-center justify-between mb-2'>
+              <Bone w='w-44' h='h-3.5' delay={220} />
+              <div className='flex items-center gap-3'>
+                <Bone w='w-8' h='h-3.5' delay={235} />
+                <Bone w='w-16' h='h-7' rounded='rounded-lg' delay={250} />
+              </div>
+            </div>
+            <Bone w='w-full' h='h-2' rounded='rounded-full' delay={260} />
+          </div>
+        </motion.div>
+
+        {/* Section controls */}
+        <div className='flex items-center justify-between mb-4'>
+          <div className='flex items-center gap-2'>
+            <Bone w='w-36' h='h-7' rounded='rounded-lg' delay={280} />
+          </div>
+        </div>
+
+        {/* Sections */}
+        <div className='space-y-8'>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonSection key={i} index={i} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function RoadmapDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const currentUserId = useAppSelector((state) => state.auth.id);
@@ -116,18 +340,17 @@ export default function RoadmapDetailPage() {
   const { saveProgressMutation } = useSaveProgress(roadmap?.id ?? '');
   const { resetProgressMutation } = useResetProgress(roadmap?.id ?? '');
 
-  const { isCompleted, toggleTopic, completedCount, resetProgress } = useRoadmapProgress(
-    roadmap?.id ?? '',
-    {
+  const { isCompleted, toggleTopic, completedCount, resetProgress } =
+    useRoadmapProgress(roadmap?.id ?? '', {
       currentUserId,
       serverCompletedIds: roadmap?.completedTopicIds ?? [],
       isServerLoaded: !isLoading && !!roadmap,
       onSave: (ids) => saveProgressMutation(ids),
       onReset: () => resetProgressMutation(),
-    },
-  );
+    });
 
-  const { recordActivity, newMilestone, milestoneMessage, clearMilestone } = useLearningStreak();
+  const { recordActivity, newMilestone, milestoneMessage, clearMilestone } =
+    useLearningStreak();
 
   const totalTopics = roadmap
     ? roadmap.sections.reduce((acc, s) => acc + s.topics.length, 0)
@@ -138,13 +361,16 @@ export default function RoadmapDetailPage() {
         0,
       )
     : 0;
-  const progress = totalTopics > 0 ? Math.round((completedCount / totalTopics) * 100) : 0;
+  const progress =
+    totalTopics > 0 ? Math.round((completedCount / totalTopics) * 100) : 0;
   const Icon = roadmap ? iconMap[roadmap.icon] || Binary : Binary;
 
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<string>('default');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    new Set(),
+  );
 
   const toggleSectionCollapse = (sectionId: string) => {
     setCollapsedSections((prev) => {
@@ -158,9 +384,7 @@ export default function RoadmapDetailPage() {
   const filteredSections = useMemo(() => {
     const sections = roadmap?.sections ?? [];
     const query = searchQuery.toLowerCase().trim();
-
     let filtered = sections;
-
     if (query) {
       filtered = filtered
         .map((s) => ({
@@ -173,7 +397,6 @@ export default function RoadmapDetailPage() {
         }))
         .filter((s) => s.topics.length > 0);
     }
-
     if (difficultyFilter !== 'all') {
       filtered = filtered
         .map((s) => ({
@@ -182,7 +405,6 @@ export default function RoadmapDetailPage() {
         }))
         .filter((s) => s.topics.length > 0);
     }
-
     if (sortOrder === 'default') return filtered;
     return filtered.map((s) => ({
       ...s,
@@ -197,9 +419,7 @@ export default function RoadmapDetailPage() {
   const handleToggle = (topicId: string) => {
     const wasCompleted = isCompleted(topicId);
     toggleTopic(topicId);
-    if (!wasCompleted) {
-      recordActivity();
-    }
+    if (!wasCompleted) recordActivity();
   };
 
   const handleSubtopicToggle = (
@@ -214,18 +434,13 @@ export default function RoadmapDetailPage() {
       const othersDone = allSubtopicIds
         .filter((id) => id !== subtopicId)
         .every((id) => isCompleted(id));
-      if (othersDone && !isCompleted(topicId)) {
-        toggleTopic(topicId);
-      }
+      if (othersDone && !isCompleted(topicId)) toggleTopic(topicId);
     } else {
-      if (isCompleted(topicId)) {
-        toggleTopic(topicId);
-      }
+      if (isCompleted(topicId)) toggleTopic(topicId);
     }
   };
 
   const prevCompletedRef = useRef(completedCount);
-
   useEffect(() => {
     if (
       completedCount === totalTopics &&
@@ -235,7 +450,12 @@ export default function RoadmapDetailPage() {
       const end = Date.now() + 1500;
       const frame = () => {
         confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } });
-        confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } });
+        confetti({
+          particleCount: 3,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+        });
         if (Date.now() < end) requestAnimationFrame(frame);
       };
       frame();
@@ -252,14 +472,10 @@ export default function RoadmapDetailPage() {
     }
   }, [newMilestone, milestoneMessage, clearMilestone]);
 
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='h-10 w-10 animate-spin text-primary' />
-      </div>
-    );
-  }
+  // ── Loading state ─────────────────────────────────────────────────────────
+  if (isLoading) return <RoadmapDetailSkeleton />;
 
+  // ── Error state ───────────────────────────────────────────────────────────
   if (isError || !roadmap) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
@@ -276,8 +492,10 @@ export default function RoadmapDetailPage() {
   return (
     <div className='min-h-screen'>
       <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Back link */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           <Link
             to='/roadmaps'
             className='inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6'
@@ -295,12 +513,16 @@ export default function RoadmapDetailPage() {
           className='mb-8'
         >
           <div className='flex items-start gap-4 mb-4'>
-            <div className={`p-3 rounded-xl border ${colorBgMap[roadmap.color]}`}>
+            <div
+              className={`p-3 rounded-xl border ${colorBgMap[roadmap.color]}`}
+            >
               <Icon className={`h-7 w-7 ${colorTextMap[roadmap.color]}`} />
             </div>
             <div className='flex-1'>
               <h1 className='text-2xl sm:text-3xl font-bold'>{roadmap.name}</h1>
-              <p className='text-muted-foreground mt-1'>{roadmap.description}</p>
+              <p className='text-muted-foreground mt-1'>
+                {roadmap.description}
+              </p>
               <div className='flex items-center gap-3 mt-2'>
                 <span className='inline-flex items-center gap-1 text-xs text-muted-foreground'>
                   <Clock className='h-3 w-3' />
@@ -311,12 +533,13 @@ export default function RoadmapDetailPage() {
                   {roadmap.sections.length} sections
                 </span>
                 <span className='text-xs text-muted-foreground'>·</span>
-                <span className='text-xs text-muted-foreground'>{totalTopics} topics</span>
+                <span className='text-xs text-muted-foreground'>
+                  {totalTopics} topics
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Search */}
           <div className='relative mb-3'>
             <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground' />
             <Input
@@ -327,11 +550,12 @@ export default function RoadmapDetailPage() {
             />
           </div>
 
-          {/* Filter & Sort */}
           <div className='flex items-center justify-between gap-2 mb-3 flex-wrap'>
             <div className='flex items-center gap-2'>
               <span className='text-xs text-muted-foreground'>Filter:</span>
-              {(searchQuery || difficultyFilter !== 'all' || sortOrder !== 'default') && (
+              {(searchQuery ||
+                difficultyFilter !== 'all' ||
+                sortOrder !== 'default') && (
                 <button
                   onClick={() => {
                     setSearchQuery('');
@@ -347,13 +571,7 @@ export default function RoadmapDetailPage() {
                 <button
                   key={level}
                   onClick={() => setDifficultyFilter(level)}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors capitalize ${
-                    difficultyFilter === level
-                      ? level === 'all'
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : difficultyColors[level] + ' font-semibold'
-                      : 'border-border/50 text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors capitalize ${difficultyFilter === level ? (level === 'all' ? 'bg-primary text-primary-foreground border-primary' : difficultyColors[level] + ' font-semibold') : 'border-border/50 text-muted-foreground hover:text-foreground'}`}
                 >
                   {level}
                 </button>
@@ -369,11 +587,7 @@ export default function RoadmapDetailPage() {
                 <button
                   key={opt.value}
                   onClick={() => setSortOrder(opt.value)}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                    sortOrder === opt.value
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border/50 text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${sortOrder === opt.value ? 'bg-primary text-primary-foreground border-primary' : 'border-border/50 text-muted-foreground hover:text-foreground'}`}
                 >
                   {opt.label}
                 </button>
@@ -381,14 +595,16 @@ export default function RoadmapDetailPage() {
             </div>
           </div>
 
-          {/* Progress bar */}
           <div className='glass-card p-4'>
             <div className='flex items-center justify-between text-sm mb-2'>
               <span className='text-muted-foreground'>
                 {completedCount} of {totalTopics} topics completed
               </span>
               <div className='flex items-center gap-3'>
-                <span className='font-semibold' style={{ color: colorMap[roadmap.color] }}>
+                <span
+                  className='font-semibold'
+                  style={{ color: colorMap[roadmap.color] }}
+                >
                   {progress}%
                 </span>
                 {completedCount > 0 && (
@@ -407,8 +623,8 @@ export default function RoadmapDetailPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Reset progress?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will clear all {completedCount} completed topics for this roadmap.
-                          This action cannot be undone.
+                          This will clear all {completedCount} completed topics
+                          for this roadmap. This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -428,7 +644,10 @@ export default function RoadmapDetailPage() {
             <div className='h-2 bg-surface-3 rounded-full overflow-hidden'>
               <div
                 className='h-full rounded-full transition-all duration-500'
-                style={{ width: `${progress}%`, backgroundColor: colorMap[roadmap.color] }}
+                style={{
+                  width: `${progress}%`,
+                  backgroundColor: colorMap[roadmap.color],
+                }}
               />
             </div>
           </div>
@@ -439,23 +658,26 @@ export default function RoadmapDetailPage() {
           <div className='flex items-center gap-2'>
             {(() => {
               const completedSectionIds = filteredSections
-                .filter((s) => s.topics.length > 0 && s.topics.every((t) => isCompleted(t.id)))
+                .filter(
+                  (s) =>
+                    s.topics.length > 0 &&
+                    s.topics.every((t) => isCompleted(t.id)),
+                )
                 .map((s) => s.id);
-              const hasCompletedSections = completedSectionIds.length > 0;
               return (
                 <>
-                  {hasCompletedSections && (
+                  {completedSectionIds.length > 0 && (
                     <Button
                       variant='outline'
                       size='sm'
                       className='h-7 px-2.5 text-xs gap-1.5'
-                      onClick={() => {
+                      onClick={() =>
                         setCollapsedSections((prev) => {
                           const next = new Set(prev);
                           completedSectionIds.forEach((id) => next.add(id));
                           return next;
-                        });
-                      }}
+                        })
+                      }
                     >
                       <ChevronsDownUp className='h-3 w-3' />
                       Collapse completed
@@ -486,8 +708,13 @@ export default function RoadmapDetailPage() {
             </p>
           )}
           {filteredSections.map((section, si) => {
-            const sectionCompleted = section.topics.filter((t) => isCompleted(t.id)).length;
-            const sectionMinutes = section.topics.reduce((a, t) => a + t.estimatedMinutes, 0);
+            const sectionCompleted = section.topics.filter((t) =>
+              isCompleted(t.id),
+            ).length;
+            const sectionMinutes = section.topics.reduce(
+              (a, t) => a + t.estimatedMinutes,
+              0,
+            );
             const sectionProgress =
               section.topics.length > 0
                 ? Math.round((sectionCompleted / section.topics.length) * 100)
@@ -513,7 +740,9 @@ export default function RoadmapDetailPage() {
                           {section.name}
                         </h2>
                         {section.description && (
-                          <p className='text-xs text-muted-foreground'>{section.description}</p>
+                          <p className='text-xs text-muted-foreground'>
+                            {section.description}
+                          </p>
                         )}
                       </div>
                       <div className='flex items-center gap-2'>
@@ -540,7 +769,10 @@ export default function RoadmapDetailPage() {
                           <span
                             className='text-[10px] font-semibold min-w-[28px] text-right'
                             style={{
-                              color: sectionProgress > 0 ? colorMap[roadmap.color] : undefined,
+                              color:
+                                sectionProgress > 0
+                                  ? colorMap[roadmap.color]
+                                  : undefined,
                             }}
                           >
                             {sectionProgress}%
@@ -552,7 +784,6 @@ export default function RoadmapDetailPage() {
                       </div>
                     </div>
                   </CollapsibleTrigger>
-
                   <CollapsibleContent>
                     <div className='space-y-2 pl-3 border-l-2 border-border/30 ml-3.5'>
                       {section.topics.map((topic) => {
@@ -563,11 +794,17 @@ export default function RoadmapDetailPage() {
                             className={`glass-card p-4 group hover:border-primary/30 transition-all ${done ? 'opacity-60' : ''}`}
                           >
                             <div className='flex items-start gap-3'>
-                              <div className='pt-0.5 cursor-pointer' onClick={() => handleToggle(topic.id)}>
+                              <div
+                                className='pt-0.5 cursor-pointer'
+                                onClick={() => handleToggle(topic.id)}
+                              >
                                 {done ? (
                                   <CheckCircle2 className='h-4.5 w-4.5 text-primary' />
                                 ) : (
-                                  <Checkbox className='h-4 w-4' checked={false} />
+                                  <Checkbox
+                                    className='h-4 w-4'
+                                    checked={false}
+                                  />
                                 )}
                               </div>
                               <div className='flex-1 min-w-0'>
@@ -593,28 +830,23 @@ export default function RoadmapDetailPage() {
                                   {topic.description}
                                 </p>
 
-                                {/* Subtopics */}
                                 {topic.subtopics.length > 0 && (
                                   <div className='mt-2 space-y-1'>
                                     <div className='flex items-center gap-2 mb-1'>
                                       <span className='text-[10px] text-muted-foreground font-medium'>
                                         Subtopics (
-                                        {topic.subtopics.filter((st) => isCompleted(st.id)).length}
+                                        {
+                                          topic.subtopics.filter((st) =>
+                                            isCompleted(st.id),
+                                          ).length
+                                        }
                                         /{topic.subtopics.length})
                                       </span>
                                       <div className='flex-1 h-1 bg-surface-3 rounded-full overflow-hidden max-w-[80px]'>
                                         <div
                                           className='h-full rounded-full transition-all duration-300 bg-primary'
                                           style={{
-                                            width: `${
-                                              topic.subtopics.length > 0
-                                                ? (topic.subtopics.filter((st) =>
-                                                    isCompleted(st.id),
-                                                  ).length /
-                                                    topic.subtopics.length) *
-                                                  100
-                                                : 0
-                                            }%`,
+                                            width: `${topic.subtopics.length > 0 ? (topic.subtopics.filter((st) => isCompleted(st.id)).length / topic.subtopics.length) * 100 : 0}%`,
                                           }}
                                         />
                                       </div>
@@ -636,7 +868,10 @@ export default function RoadmapDetailPage() {
                                           {stDone ? (
                                             <CheckCircle2 className='h-3 w-3 text-primary shrink-0' />
                                           ) : (
-                                            <Checkbox className='h-3 w-3 shrink-0' checked={false} />
+                                            <Checkbox
+                                              className='h-3 w-3 shrink-0'
+                                              checked={false}
+                                            />
                                           )}
                                           <span
                                             className={`text-[11px] ${stDone ? 'line-through text-muted-foreground' : 'text-foreground/80 group-hover/st:text-foreground'} transition-colors`}
@@ -649,11 +884,11 @@ export default function RoadmapDetailPage() {
                                   </div>
                                 )}
 
-                                {/* Resources */}
                                 {topic.resources.length > 0 && (
                                   <div className='flex flex-wrap gap-1.5 mt-2'>
                                     {topic.resources.map((r, ri) => {
-                                      const RIcon = resourceIcons[r.type] || BookOpen;
+                                      const RIcon =
+                                        resourceIcons[r.type] || BookOpen;
                                       return r.url ? (
                                         <a
                                           key={ri}

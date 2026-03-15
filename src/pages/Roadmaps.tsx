@@ -24,7 +24,6 @@ import {
   Minus,
   Plus,
   Check,
-  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getRoadmapStats } from '@/data/roadmaps';
@@ -60,14 +59,12 @@ const colorMap: Record<string, string> = {
   amber: 'hsl(var(--amber))',
   rose: 'hsl(var(--rose))',
 };
-
 const colorBgMap: Record<string, string> = {
   emerald: 'bg-[hsl(var(--emerald)/0.1)] border-[hsl(var(--emerald)/0.2)]',
   cyan: 'bg-[hsl(var(--cyan)/0.1)] border-[hsl(var(--cyan)/0.2)]',
   amber: 'bg-[hsl(var(--amber)/0.1)] border-[hsl(var(--amber)/0.2)]',
   rose: 'bg-[hsl(var(--rose)/0.1)] border-[hsl(var(--rose)/0.2)]',
 };
-
 const colorTextMap: Record<string, string> = {
   emerald: 'text-[hsl(var(--emerald))]',
   cyan: 'text-[hsl(var(--cyan))]',
@@ -75,9 +72,242 @@ const colorTextMap: Record<string, string> = {
   rose: 'text-[hsl(var(--rose))]',
 };
 
+// ─── Skeleton primitive ───────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Roadmaps page skeleton ───────────────────────────────────────────────────
+
+function RoadmapsSkeleton() {
+  return (
+    <div className='min-h-screen'>
+      <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className='mb-8'
+        >
+          <div className='flex items-center gap-3 mb-2'>
+            <Bone w='w-8' h='h-8' rounded='rounded-lg' />
+            <Bone w='w-52' h='h-8' rounded='rounded-lg' delay={30} />
+          </div>
+          <Bone w='w-96' h='h-4' delay={60} />
+          {/* TopicSearch placeholder */}
+          <Bone
+            w='w-full max-w-xl'
+            h='h-10'
+            rounded='rounded-xl'
+            delay={80}
+            className='mt-4'
+          />
+        </motion.div>
+
+        {/* 3 stat cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className='grid grid-cols-2 md:grid-cols-3 gap-4 mb-8'
+        >
+          {[0, 80, 160].map((d, i) => (
+            <div
+              key={i}
+              className={`glass-card p-4 text-center ${i === 2 ? 'col-span-2 md:col-span-1' : ''}`}
+            >
+              <Bone w='w-12 mx-auto' h='h-7' rounded='rounded-lg' delay={d} />
+              <Bone
+                w='w-20 mx-auto'
+                h='h-2.5'
+                delay={d + 30}
+                className='mt-2'
+              />
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Streak + Daily Goal cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-8'
+        >
+          {/* Streak card */}
+          <div className='glass-card p-5'>
+            <div className='flex items-center gap-3 mb-3'>
+              <Bone w='w-9' h='h-9' rounded='rounded-lg' delay={160} />
+              <div className='space-y-1.5 flex-1'>
+                <Bone w='w-28' h='h-3.5' delay={175} />
+                <Bone w='w-36' h='h-2.5' delay={190} />
+              </div>
+              <div className='text-right space-y-1.5'>
+                <Bone w='w-10' h='h-7' rounded='rounded' delay={200} />
+                <Bone w='w-14' h='h-2.5' delay={215} />
+              </div>
+            </div>
+            {/* Week bar mini-chart */}
+            <div className='flex items-center justify-between gap-1'>
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div
+                  key={i}
+                  className='flex flex-col items-center gap-1 flex-1'
+                >
+                  <div
+                    className='h-6 w-full max-w-[2rem] rounded bg-surface-3 animate-pulse'
+                    style={{ animationDelay: `${220 + i * 20}ms` }}
+                  />
+                  <Bone
+                    w='w-3'
+                    h='h-2'
+                    rounded='rounded'
+                    delay={230 + i * 20}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className='mt-2 flex justify-end'>
+              <Bone w='w-32' h='h-2.5' delay={380} />
+            </div>
+          </div>
+
+          {/* Daily goal card */}
+          <div className='glass-card p-5'>
+            <div className='flex items-center gap-3 mb-3'>
+              <Bone w='w-9' h='h-9' rounded='rounded-lg' delay={170} />
+              <div className='space-y-1.5 flex-1'>
+                <Bone w='w-20' h='h-3.5' delay={185} />
+                <Bone w='w-32' h='h-2.5' delay={200} />
+              </div>
+            </div>
+            <Bone
+              w='w-full'
+              h='h-2'
+              rounded='rounded-full'
+              delay={210}
+              className='mb-3'
+            />
+            <div className='flex items-center justify-between'>
+              <Bone w='w-24' h='h-3' delay={225} />
+              <div className='flex items-center gap-2'>
+                <Bone w='w-6' h='h-6' rounded='rounded-md' delay={240} />
+                <Bone w='w-5' h='h-4' delay={255} />
+                <Bone w='w-6' h='h-6' rounded='rounded-md' delay={270} />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Study Planner placeholder */}
+        <div className='mb-8'>
+          <Bone w='w-full' h='h-28' rounded='rounded-xl' delay={280} />
+        </div>
+
+        {/* Roadmap cards grid */}
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 + i * 0.05 }}
+            >
+              <Card className='glass-card border-border/50 h-full flex flex-col'>
+                <CardHeader className='pb-3'>
+                  <div className='flex items-start justify-between'>
+                    <Bone
+                      w='w-10'
+                      h='h-10'
+                      rounded='rounded-lg'
+                      delay={300 + i * 50}
+                    />
+                    <div className='flex items-center gap-1.5'>
+                      <Bone
+                        w='w-16'
+                        h='h-5'
+                        rounded='rounded-full'
+                        delay={315 + i * 50}
+                      />
+                    </div>
+                  </div>
+                  <Bone
+                    w={
+                      ['w-3/4', 'w-2/3', 'w-4/5', 'w-3/4', 'w-2/3', 'w-4/5'][i]!
+                    }
+                    h='h-5'
+                    rounded='rounded'
+                    delay={330 + i * 50}
+                    className='mt-3'
+                  />
+                  <div className='space-y-1.5 mt-1'>
+                    <Bone w='w-full' h='h-3' delay={345 + i * 50} />
+                    <Bone w='w-4/5' h='h-3' delay={358 + i * 50} />
+                  </div>
+                </CardHeader>
+                <CardContent className='mt-auto space-y-3'>
+                  {/* Section chips */}
+                  <div className='flex flex-wrap gap-1'>
+                    {Array.from({ length: 3 + (i % 2) }).map((_, j) => (
+                      <Bone
+                        key={j}
+                        w={['w-14', 'w-20', 'w-16', 'w-12'][j % 4]!}
+                        h='h-4'
+                        rounded='rounded'
+                        delay={360 + i * 50 + j * 15}
+                      />
+                    ))}
+                  </div>
+                  {/* Progress row + bar */}
+                  <div className='space-y-1.5'>
+                    <div className='flex justify-between'>
+                      <Bone w='w-24' h='h-3' delay={380 + i * 50} />
+                      <Bone w='w-8' h='h-3' delay={395 + i * 50} />
+                      <Bone w='w-8' h='h-3' delay={410 + i * 50} />
+                    </div>
+                    <Bone
+                      w='w-full'
+                      h='h-1.5'
+                      rounded='rounded-full'
+                      delay={420 + i * 50}
+                    />
+                  </div>
+                  {/* Explore link */}
+                  <div className='flex justify-end'>
+                    <Bone w='w-16' h='h-3.5' delay={430 + i * 50} />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function RoadmapsPage() {
   const currentUserId = useAppSelector((state) => state.auth.id);
-  // useGetRoadmaps now returns data.data (Roadmap[]) pre-unwrapped
   const {
     roadmaps: published,
     isPending: isLoading,
@@ -96,12 +326,12 @@ export default function RoadmapsPage() {
 
   const localProgress = useMemo(
     () => (currentUserId ? {} : getLocalProgress()),
-    [currentUserId]
+    [currentUserId],
   );
 
   const totalTopics = useMemo(
     () => published.reduce((a, r) => a + getRoadmapStats(r).totalTopics, 0),
-    [published]
+    [published],
   );
 
   const totalCompleted = useMemo(
@@ -111,21 +341,17 @@ export default function RoadmapsPage() {
           ? (r.completedTopicIds ?? [])
           : (localProgress[r.id] ?? []);
         const allTopicIds = r.sections.flatMap((s) =>
-          s.topics.map((t) => t.id)
+          s.topics.map((t) => t.id),
         );
         return a + completedIds.filter((id) => allTopicIds.includes(id)).length;
       }, 0),
-    [published, currentUserId, localProgress]
+    [published, currentUserId, localProgress],
   );
 
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='h-10 w-10 animate-spin text-primary' />
-      </div>
-    );
-  }
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (isLoading) return <RoadmapsSkeleton />;
 
+  // ── Error ─────────────────────────────────────────────────────────────────
   if (isError) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
@@ -197,7 +423,7 @@ export default function RoadmapsPage() {
           transition={{ delay: 0.15 }}
           className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-8'
         >
-          {/* Streak Card */}
+          {/* Streak */}
           <div className='glass-card p-5'>
             <div className='flex items-center gap-3 mb-3'>
               <div className='p-2 rounded-lg bg-[hsl(var(--amber)/0.1)] border border-[hsl(var(--amber)/0.2)]'>
@@ -250,13 +476,7 @@ export default function RoadmapsPage() {
                   className='flex flex-col items-center gap-1 flex-1'
                 >
                   <div
-                    className={`h-6 w-full max-w-[2rem] rounded transition-colors ${
-                      day.count > 0
-                        ? day.count >= dailyGoal
-                          ? 'bg-[hsl(var(--emerald))]'
-                          : 'bg-[hsl(var(--amber)/0.5)]'
-                        : 'bg-surface-3'
-                    }`}
+                    className={`h-6 w-full max-w-[2rem] rounded transition-colors ${day.count > 0 ? (day.count >= dailyGoal ? 'bg-[hsl(var(--emerald))]' : 'bg-[hsl(var(--amber)/0.5)]') : 'bg-surface-3'}`}
                     title={`${day.date}: ${day.count} topic${day.count !== 1 ? 's' : ''}`}
                   />
                   <span className='text-[9px] text-muted-foreground'>
@@ -273,7 +493,7 @@ export default function RoadmapsPage() {
             )}
           </div>
 
-          {/* Daily Goal Card */}
+          {/* Daily Goal */}
           <div className='glass-card p-5'>
             <div className='flex items-center gap-3 mb-3'>
               <div className='p-2 rounded-lg bg-[hsl(var(--cyan)/0.1)] border border-[hsl(var(--cyan)/0.2)]'>
@@ -336,12 +556,11 @@ export default function RoadmapsPage() {
           </div>
         </motion.div>
 
-        {/* Study Planner */}
         <div className='mb-8'>
           <StudyPlanner />
         </div>
 
-        {/* Roadmap Cards */}
+        {/* Roadmap cards */}
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
           {published.map((roadmap: Roadmap, i: number) => {
             const stats = getRoadmapStats(roadmap);
@@ -349,17 +568,16 @@ export default function RoadmapsPage() {
               ? (roadmap.completedTopicIds ?? [])
               : (localProgress[roadmap.id] ?? []);
             const allTopicIds = roadmap.sections.flatMap((s) =>
-              s.topics.map((t) => t.id)
+              s.topics.map((t) => t.id),
             );
             const userCompleted = completedIds.filter((id) =>
-              allTopicIds.includes(id)
+              allTopicIds.includes(id),
             ).length;
             const progress =
               stats.totalTopics > 0
                 ? Math.round((userCompleted / stats.totalTopics) * 100)
                 : 0;
             const Icon = iconMap[roadmap.icon] ?? Binary;
-
             return (
               <motion.div
                 key={roadmap.id}
