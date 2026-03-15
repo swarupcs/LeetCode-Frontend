@@ -37,17 +37,19 @@ export default function SignupPage() {
     e.preventDefault();
 
     try {
-      const data = await signupMutation({ name, email, password });
+      const response = await signupMutation({ name, email, password });
+
+      const data = response?.data;
 
       // data should be the response from your API: { success, message, user }
-      if (data?.user) {
+      if (data) {
         dispatch(
           loginSuccess({
-            user: data.user.name,
-            role: data.user.role,
-            id: data.user.id,
-            username: data.user.username,
-            email: data.user.email,
+            user: data.name ?? "",
+            role: data.role ?? "",
+            id: data.id ?? "",
+            username: data.username ?? "",
+            email: data.email ?? "",
           }),
         );
       }

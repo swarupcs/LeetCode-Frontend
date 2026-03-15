@@ -429,7 +429,7 @@ export default function SheetDetail() {
                     >
                       <div className='border-t border-border/30'>
                         {group.items.map((item) => (
-                          <ProblemRow key={item.id} problem={item.problem} />
+                          <ProblemRow key={item.sheetId} problem={item.problem} />
                         ))}
                       </div>
                     </motion.div>
