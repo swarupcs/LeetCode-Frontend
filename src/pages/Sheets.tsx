@@ -10,9 +10,165 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { BookOpen, Search, Target, ArrowRight, Loader2 } from 'lucide-react';
+import { BookOpen, Search, Target, ArrowRight } from 'lucide-react';
 import type { Sheet } from '@/types/sheet.types';
 import { useGetAllSheetDetails } from '@/hooks/sheets/useGetAllSheetDetails';
+
+// ─── Skeleton primitive ───────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Sheet card skeleton ──────────────────────────────────────────────────────
+
+function SkeletonSheetCard({ index }: { index: number }) {
+  const base = index * 55;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 + index * 0.05 }}
+    >
+      <Card className='glass-card border-border/50 h-full flex flex-col'>
+        <CardHeader className='pb-3'>
+          {/* Icon + difficulty chips */}
+          <div className='flex items-start justify-between'>
+            <Bone w='w-9' h='h-9' rounded='rounded-lg' delay={base} />
+            <div className='flex gap-1'>
+              <Bone w='w-10' h='h-5' rounded='rounded' delay={base + 20} />
+              <Bone w='w-14' h='h-5' rounded='rounded' delay={base + 35} />
+            </div>
+          </div>
+          {/* Title */}
+          <Bone
+            w={
+              ['w-3/4', 'w-2/3', 'w-4/5', 'w-3/5', 'w-3/4', 'w-2/3'][index % 6]!
+            }
+            h='h-5'
+            rounded='rounded'
+            delay={base + 40}
+            className='mt-3'
+          />
+          {/* Description */}
+          <div className='space-y-1.5 mt-1'>
+            <Bone w='w-full' h='h-3' delay={base + 55} />
+            <Bone
+              w={['w-4/5', 'w-3/4', 'w-5/6'][index % 3]!}
+              h='h-3'
+              delay={base + 68}
+            />
+          </div>
+        </CardHeader>
+        <CardContent className='mt-auto space-y-3'>
+          {/* Tags */}
+          <div className='flex flex-wrap gap-1'>
+            {Array.from({ length: 3 + (index % 2) }).map((_, j) => (
+              <Bone
+                key={j}
+                w={['w-12', 'w-16', 'w-10', 'w-14'][j % 4]!}
+                h='h-4'
+                rounded='rounded'
+                delay={base + 70 + j * 15}
+              />
+            ))}
+          </div>
+          {/* Problems count + author */}
+          <div className='flex justify-between'>
+            <Bone w='w-24' h='h-3.5' delay={base + 90} />
+            <Bone w='w-20' h='h-3.5' delay={base + 105} />
+          </div>
+          {/* View Sheet link */}
+          <div className='flex justify-end'>
+            <Bone w='w-20' h='h-3.5' delay={base + 115} />
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// ─── Full page skeleton ───────────────────────────────────────────────────────
+
+function SheetsSkeleton() {
+  return (
+    <div className='min-h-screen'>
+      <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className='mb-8'
+        >
+          <div className='flex items-center gap-3 mb-2'>
+            <Bone w='w-8' h='h-8' rounded='rounded-lg' />
+            <Bone w='w-44' h='h-8' rounded='rounded-lg' delay={30} />
+          </div>
+          <Bone w='w-32' h='h-4' delay={60} />
+        </motion.div>
+
+        {/* 3 stat cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className='grid grid-cols-2 md:grid-cols-3 gap-4 mb-8'
+        >
+          {[0, 80, 160].map((d, i) => (
+            <div
+              key={i}
+              className={`glass-card p-4 text-center ${i === 2 ? 'col-span-2 md:col-span-1' : ''}`}
+            >
+              <Bone w='w-12 mx-auto' h='h-7' rounded='rounded-lg' delay={d} />
+              <Bone
+                w='w-24 mx-auto'
+                h='h-2.5'
+                delay={d + 30}
+                className='mt-2'
+              />
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Search bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className='mb-6'
+        >
+          <Bone w='w-full' h='h-10' rounded='rounded-xl' delay={160} />
+        </motion.div>
+
+        {/* Sheet cards grid */}
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonSheetCard key={i} index={i} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SheetsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,20 +181,16 @@ export default function SheetsPage() {
           s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           s.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           s.allTags?.some((t) =>
-            t.toLowerCase().includes(searchQuery.toLowerCase())
-          )
+            t.toLowerCase().includes(searchQuery.toLowerCase()),
+          ),
       ),
-    [searchQuery, sheets]
+    [searchQuery, sheets],
   );
 
-  if (isPending) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='h-8 w-8 animate-spin text-primary' />
-      </div>
-    );
-  }
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (isPending) return <SheetsSkeleton />;
 
+  // ── Error ─────────────────────────────────────────────────────────────────
   if (isError) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
@@ -129,7 +281,6 @@ export default function SheetsPage() {
           </div>
         )}
 
-        {/* Grid */}
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
           {filteredSheets.map((sheet: Sheet, i: number) => (
             <motion.div
@@ -150,13 +301,7 @@ export default function SheetsPage() {
                           {sheet.allDifficulties.slice(0, 2).map((d) => (
                             <span
                               key={d}
-                              className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${
-                                d === 'EASY'
-                                  ? 'difficulty-easy'
-                                  : d === 'MEDIUM'
-                                    ? 'difficulty-medium'
-                                    : 'difficulty-hard'
-                              }`}
+                              className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${d === 'EASY' ? 'difficulty-easy' : d === 'MEDIUM' ? 'difficulty-medium' : 'difficulty-hard'}`}
                             >
                               {d}
                             </span>
