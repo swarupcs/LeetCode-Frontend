@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+// src/pages/admin/AdminUserDetailPage.tsx
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -47,14 +48,18 @@ import {
   ShieldCheck,
   Clock,
   MoreVertical,
-  Ban,
-  UserCheck,
   ShieldAlert,
   ShieldOff,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
-import { platformUsers, type PlatformUser } from '@/data/users';
 import { toast } from 'sonner';
+import {
+  useAdminUserDetail,
+  useUpdateUserRole,
+} from '@/hooks/admin/useAdminUserDetail';
 
+// ─── Config ───────────────────────────────────────────────────────────────────
 
 const difficultyConfig = [
   {
@@ -80,23 +85,6 @@ const difficultyConfig = [
   },
 ];
 
-const difficultyTotals = { Easy: 80, Medium: 120, Hard: 50 };
-
-const statusConfig: Record<string, { label: string; className: string }> = {
-  active: {
-    label: 'Active',
-    className: 'bg-primary/10 text-primary border-primary/20',
-  },
-  inactive: {
-    label: 'Inactive',
-    className: 'bg-muted/50 text-muted-foreground border-border/50',
-  },
-  banned: {
-    label: 'Banned',
-    className: 'bg-destructive/10 text-destructive border-destructive/20',
-  },
-};
-
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.06 } },
@@ -106,69 +94,90 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type ActionType = 'promote' | 'demote';
+
+interface ConfirmAction {
+  type: ActionType;
+  title: string;
+  description: string;
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function AdminUserDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id: userId = '' } = useParams<{ id: string }>();
 
-  const baseUser = platformUsers.find((u) => u.id === id);
+  const { user, isPending, isError, error } = useAdminUserDetail(userId);
+  const { mutateAsync: updateRole, isPending: isUpdatingRole } =
+    useUpdateUserRole(userId);
 
-  const [userOverrides, setUserOverrides] = useState<{
-    status?: PlatformUser['status'];
-    role?: PlatformUser['role'];
-  }>({});
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(
+    null,
+  );
 
-  const [confirmAction, setConfirmAction] = useState<{
-    type: 'ban' | 'unban' | 'promote' | 'demote';
-    title: string;
-    description: string;
-  } | null>(null);
+  // ── Handlers ─────────────────────────────────────────────────────────────
 
-  const user = useMemo(() => {
-    if (!baseUser) return null;
-    return { ...baseUser, ...userOverrides };
-  }, [baseUser, userOverrides]);
-
-  const breakdown = useMemo(() => {
-    if (!user) return [];
-    return difficultyConfig.map((d) => ({
-      ...d,
-      solved: user[d.key],
-      total: difficultyTotals[d.level as keyof typeof difficultyTotals],
-    }));
-  }, [user]);
-
-  const handleConfirmAction = () => {
+  const handleConfirmAction = async () => {
     if (!confirmAction || !user) return;
-
-    switch (confirmAction.type) {
-      case 'ban':
-        setUserOverrides((prev) => ({ ...prev, status: 'banned' }));
-        toast.success('User banned', {
-          description: `${user.displayName} has been banned from the platform.`,
-        });
-        break;
-      case 'unban':
-        setUserOverrides((prev) => ({ ...prev, status: 'active' }));
-        toast.success('User unbanned', {
-          description: `${user.displayName} has been restored to active status.`,
-        });
-        break;
-      case 'promote':
-        setUserOverrides((prev) => ({ ...prev, role: 'admin' }));
-        toast.success('Role updated', {
-          description: `${user.displayName} is now an admin.`,
-        });
-        break;
-      case 'demote':
-        setUserOverrides((prev) => ({ ...prev, role: 'user' }));
-        toast.success('Role updated', {
-          description: `${user.displayName} is now a regular user.`,
-        });
-        break;
+    try {
+      const newRole = confirmAction.type === 'promote' ? 'ADMIN' : 'USER';
+      await updateRole(newRole);
+      toast.success(
+        confirmAction.type === 'promote'
+          ? 'User promoted to admin'
+          : 'Admin role removed',
+        { description: `${user.displayName} role updated successfully.` },
+      );
+    } catch (err) {
+      const msg =
+        (err as { message?: string })?.message ?? 'Failed to update role';
+      toast.error('Action failed', { description: msg });
+    } finally {
+      setConfirmAction(null);
     }
-    setConfirmAction(null);
   };
 
-  if (!user) {
+  // ── Loading state ─────────────────────────────────────────────────────────
+
+  if (isPending) {
+    return (
+      <div className='p-6 lg:p-8 max-w-7xl'>
+        <div className='flex items-center gap-1.5 text-sm text-muted-foreground mb-6'>
+          <ChevronLeft className='h-4 w-4' />
+          Back to Users
+        </div>
+        <div className='glass-card p-6 mb-8 animate-pulse'>
+          <div className='flex items-start gap-5'>
+            <div className='h-16 w-16 rounded-xl bg-surface-3 shrink-0' />
+            <div className='flex-1 space-y-3'>
+              <div className='h-6 w-40 bg-surface-3 rounded' />
+              <div className='h-4 w-28 bg-surface-3 rounded' />
+              <div className='h-3 w-64 bg-surface-3 rounded' />
+            </div>
+          </div>
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-border/30'>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className='h-14 bg-surface-3 rounded-lg' />
+            ))}
+          </div>
+        </div>
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className={`glass-card h-64 animate-pulse bg-surface-2/40 ${i === 1 || i === 3 ? 'lg:col-span-2' : ''}`}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error / not found ─────────────────────────────────────────────────────
+
+  if (isError || !user) {
     return (
       <div className='p-6 lg:p-8 max-w-7xl'>
         <Link
@@ -178,12 +187,30 @@ export default function AdminUserDetailPage() {
           <ChevronLeft className='h-4 w-4' />
           Back to Users
         </Link>
-        <div className='text-center py-20'>
-          <p className='text-muted-foreground'>User not found.</p>
+        <div className='flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive mb-6'>
+          <AlertCircle className='h-4 w-4 shrink-0' />
+          <span>
+            {(error as { message?: string })?.message ?? 'User not found.'}
+          </span>
         </div>
       </div>
     );
   }
+
+  // ── Derived values ────────────────────────────────────────────────────────
+
+  const breakdown = difficultyConfig.map((d) => ({
+    ...d,
+    solved: user[d.key],
+    total:
+      d.level === 'Easy'
+        ? user.difficultyTotals.easy
+        : d.level === 'Medium'
+          ? user.difficultyTotals.medium
+          : user.difficultyTotals.hard,
+  }));
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className='p-6 lg:p-8 max-w-7xl'>
@@ -198,28 +225,33 @@ export default function AdminUserDetailPage() {
         </Link>
       </motion.div>
 
-      {/* User Header */}
+      {/* User Header Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className='glass-card p-6 glow-border mb-8'
       >
         <div className='flex flex-col sm:flex-row items-start gap-5'>
-          <div className='h-16 w-16 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 border-2 border-primary/30 flex items-center justify-center shrink-0'>
-            <span className='text-xl font-bold gradient-text'>
-              {user.initials}
-            </span>
-          </div>
+          {/* Avatar */}
+          {user.image ? (
+            <img
+              src={user.image}
+              alt={user.displayName}
+              className='h-16 w-16 rounded-xl object-cover shrink-0'
+            />
+          ) : (
+            <div className='h-16 w-16 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 border-2 border-primary/30 flex items-center justify-center shrink-0'>
+              <span className='text-xl font-bold gradient-text'>
+                {user.initials}
+              </span>
+            </div>
+          )}
+
+          {/* Info */}
           <div className='flex-1 min-w-0'>
             <div className='flex flex-wrap items-center gap-2 mb-1'>
               <h1 className='text-xl font-bold'>{user.displayName}</h1>
-              <Badge
-                variant='outline'
-                className={`text-[10px] font-medium border ${statusConfig[user.status].className}`}
-              >
-                {statusConfig[user.status].label}
-              </Badge>
-              {user.role === 'admin' && (
+              {user.role === 'ADMIN' && (
                 <Badge
                   variant='outline'
                   className='text-[10px] font-medium border bg-[hsl(var(--amber)/0.1)] text-[hsl(var(--amber))] border-[hsl(var(--amber)/0.2)]'
@@ -241,22 +273,29 @@ export default function AdminUserDetailPage() {
                 <Calendar className='h-3.5 w-3.5' />
                 Joined {user.joinDate}
               </span>
-              <span className='flex items-center gap-1.5'>
-                <Clock className='h-3.5 w-3.5' />
-                Last active {user.lastActive}
-              </span>
+              {user.lastActive && (
+                <span className='flex items-center gap-1.5'>
+                  <Clock className='h-3.5 w-3.5' />
+                  Last active {user.lastActive}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Admin Actions */}
+          {/* Admin Actions dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant='outline'
                 size='sm'
+                disabled={isUpdatingRole}
                 className='border-border/50 text-muted-foreground hover:text-foreground shrink-0 gap-1.5'
               >
-                <MoreVertical className='h-4 w-4' />
+                {isUpdatingRole ? (
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                ) : (
+                  <MoreVertical className='h-4 w-4' />
+                )}
                 Actions
               </Button>
             </DropdownMenuTrigger>
@@ -264,8 +303,8 @@ export default function AdminUserDetailPage() {
               align='end'
               className='w-48 bg-card border-border/50'
             >
-              {/* Role actions */}
-              {user.role === 'user' ? (
+              {/* Role toggle */}
+              {user.role === 'USER' ? (
                 <DropdownMenuItem
                   className='text-sm cursor-pointer flex items-center gap-2'
                   onClick={() =>
@@ -294,39 +333,13 @@ export default function AdminUserDetailPage() {
                   Remove Admin Role
                 </DropdownMenuItem>
               )}
-
               <DropdownMenuSeparator />
-
-              {/* Ban/Unban actions */}
-              {user.status === 'banned' ? (
-                <DropdownMenuItem
-                  className='text-sm cursor-pointer flex items-center gap-2 text-primary'
-                  onClick={() =>
-                    setConfirmAction({
-                      type: 'unban',
-                      title: 'Unban User',
-                      description: `Are you sure you want to unban "${user.displayName}"? They will regain access to the platform.`,
-                    })
-                  }
-                >
-                  <UserCheck className='h-3.5 w-3.5' />
-                  Unban User
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem
-                  className='text-sm cursor-pointer flex items-center gap-2 text-destructive'
-                  onClick={() =>
-                    setConfirmAction({
-                      type: 'ban',
-                      title: 'Ban User',
-                      description: `Are you sure you want to ban "${user.displayName}"? They will lose access to the platform.`,
-                    })
-                  }
-                >
-                  <Ban className='h-3.5 w-3.5' />
-                  Ban User
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem
+                className='text-xs text-muted-foreground cursor-default'
+                disabled
+              >
+                Ban/unban coming soon
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -356,7 +369,7 @@ export default function AdminUserDetailPage() {
               label: 'Acceptance',
               value: `${user.acceptanceRate}%`,
               icon: TrendingUp,
-              accent: 'text-[hsl(var(--emerald-light))]',
+              accent: 'text-[hsl(var(--emerald))]',
             },
           ].map((stat, i) => (
             <div
@@ -382,7 +395,7 @@ export default function AdminUserDetailPage() {
         animate='show'
         className='grid grid-cols-1 lg:grid-cols-3 gap-6'
       >
-        {/* Solved Problems Chart */}
+        {/* Solved by Difficulty — donut + bars */}
         <motion.div variants={item} className='lg:col-span-1'>
           <Card className='glass-card border-border/50 h-full'>
             <CardHeader>
@@ -392,7 +405,7 @@ export default function AdminUserDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className='flex flex-col items-center'>
-              {/* Donut chart */}
+              {/* Donut */}
               <div className='relative w-32 h-32 mb-5'>
                 <svg
                   className='w-32 h-32 transform -rotate-90'
@@ -461,7 +474,9 @@ export default function AdminUserDetailPage() {
                     <div className='h-1.5 bg-surface-3 rounded-full overflow-hidden'>
                       <div
                         className={`${d.color} h-full rounded-full transition-all duration-700`}
-                        style={{ width: `${(d.solved / d.total) * 100}%` }}
+                        style={{
+                          width: `${d.total > 0 ? (d.solved / d.total) * 100 : 0}%`,
+                        }}
                       />
                     </div>
                   </div>
@@ -471,7 +486,7 @@ export default function AdminUserDetailPage() {
           </Card>
         </motion.div>
 
-        {/* Topics Progress */}
+        {/* Skills by Topic */}
         <motion.div variants={item} className='lg:col-span-2'>
           <Card className='glass-card border-border/50 h-full'>
             <CardHeader>
@@ -484,7 +499,8 @@ export default function AdminUserDetailPage() {
               {user.topTopics.length > 0 ? (
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4'>
                   {user.topTopics.map((topic) => {
-                    const pct = (topic.solved / topic.total) * 100;
+                    const pct =
+                      topic.total > 0 ? (topic.solved / topic.total) * 100 : 0;
                     return (
                       <div key={topic.topic}>
                         <div className='flex justify-between text-xs mb-1.5'>
@@ -521,46 +537,25 @@ export default function AdminUserDetailPage() {
               <CardTitle className='text-base'>Stats</CardTitle>
             </CardHeader>
             <CardContent className='space-y-4'>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-muted-foreground'>
-                  Max Streak
-                </span>
-                <span className='text-sm font-semibold'>
-                  {user.maxStreak} days
-                </span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-muted-foreground'>
-                  Current Streak
-                </span>
-                <span className='text-sm font-semibold'>
-                  {user.currentStreak} days
-                </span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-muted-foreground'>
-                  Global Rank
-                </span>
-                <span className='text-sm font-semibold font-mono'>
-                  #{user.rank}
-                </span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-muted-foreground'>
-                  Total Submissions
-                </span>
-                <span className='text-sm font-semibold'>
-                  {user.totalSubmissions}
-                </span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-muted-foreground'>
-                  Acceptance Rate
-                </span>
-                <span className='text-sm font-semibold'>
-                  {user.acceptanceRate}%
-                </span>
-              </div>
+              {[
+                { label: 'Max Streak', value: `${user.maxStreak} days` },
+                {
+                  label: 'Current Streak',
+                  value: `${user.currentStreak} days`,
+                },
+                { label: 'Global Rank', value: `#${user.rank}`, mono: true },
+                { label: 'Total Submissions', value: user.totalSubmissions },
+                { label: 'Acceptance Rate', value: `${user.acceptanceRate}%` },
+              ].map(({ label, value, mono }) => (
+                <div key={label} className='flex justify-between items-center'>
+                  <span className='text-sm text-muted-foreground'>{label}</span>
+                  <span
+                    className={`text-sm font-semibold ${mono ? 'font-mono' : ''}`}
+                  >
+                    {value}
+                  </span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </motion.div>
@@ -575,89 +570,86 @@ export default function AdminUserDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className='p-0'>
-              <Table>
-                <TableHeader>
-                  <TableRow className='border-border/50 hover:bg-transparent'>
-                    <TableHead className='text-muted-foreground text-xs font-semibold'>
-                      Problem
-                    </TableHead>
-                    <TableHead className='text-muted-foreground text-xs font-semibold w-[100px]'>
-                      Status
-                    </TableHead>
-                    <TableHead className='text-muted-foreground text-xs font-semibold w-[80px] hidden sm:table-cell'>
-                      Lang
-                    </TableHead>
-                    <TableHead className='text-muted-foreground text-xs font-semibold w-[70px] hidden sm:table-cell'>
-                      Runtime
-                    </TableHead>
-                    <TableHead className='text-muted-foreground text-xs font-semibold w-[80px]'>
-                      Time
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {user.recentSubmissions.map((sub, i) => (
-                    <TableRow
-                      key={i}
-                      className='border-border/30 hover:bg-surface-2/50'
-                    >
-                      <TableCell>
-                        <Link
-                          to={`/problem/${sub.problemId}`}
-                          className='text-sm font-medium text-foreground hover:text-primary transition-colors'
-                        >
-                          {sub.problem}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <div className='flex items-center gap-1.5'>
-                          {sub.status === 'Accepted' ? (
-                            <CheckCircle className='h-3.5 w-3.5 text-primary shrink-0' />
-                          ) : (
-                            <Code2 className='h-3.5 w-3.5 text-destructive shrink-0' />
-                          )}
-                          <span
-                            className={`text-xs font-medium ${
-                              sub.status === 'Accepted'
-                                ? 'text-primary'
-                                : 'text-destructive'
-                            }`}
-                          >
-                            {sub.status === 'Accepted'
-                              ? 'AC'
-                              : sub.status === 'Wrong Answer'
-                                ? 'WA'
-                                : sub.status === 'Time Limit Exceeded'
-                                  ? 'TLE'
-                                  : 'RE'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className='hidden sm:table-cell'>
-                        <span className='text-xs text-muted-foreground'>
-                          {sub.language}
-                        </span>
-                      </TableCell>
-                      <TableCell className='hidden sm:table-cell'>
-                        <span className='text-xs text-muted-foreground font-mono'>
-                          {sub.runtime}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className='text-xs text-muted-foreground'>
-                          {sub.date}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {user.recentSubmissions.length === 0 && (
+              {user.recentSubmissions.length === 0 ? (
                 <div className='text-center py-8'>
                   <p className='text-sm text-muted-foreground'>
                     No submissions yet.
                   </p>
                 </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className='border-border/50 hover:bg-transparent'>
+                      <TableHead className='text-muted-foreground text-xs font-semibold'>
+                        Problem
+                      </TableHead>
+                      <TableHead className='text-muted-foreground text-xs font-semibold w-[100px]'>
+                        Status
+                      </TableHead>
+                      <TableHead className='text-muted-foreground text-xs font-semibold w-[80px] hidden sm:table-cell'>
+                        Lang
+                      </TableHead>
+                      <TableHead className='text-muted-foreground text-xs font-semibold w-[70px] hidden sm:table-cell'>
+                        Runtime
+                      </TableHead>
+                      <TableHead className='text-muted-foreground text-xs font-semibold w-[80px]'>
+                        Time
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {user.recentSubmissions.map((sub, i) => (
+                      <TableRow
+                        key={i}
+                        className='border-border/30 hover:bg-surface-2/50'
+                      >
+                        <TableCell>
+                          <Link
+                            to={`/problem/${sub.problemId}`}
+                            className='text-sm font-medium text-foreground hover:text-primary transition-colors'
+                          >
+                            {sub.problem}
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <div className='flex items-center gap-1.5'>
+                            {sub.status === 'Accepted' ? (
+                              <CheckCircle className='h-3.5 w-3.5 text-primary shrink-0' />
+                            ) : (
+                              <Code2 className='h-3.5 w-3.5 text-destructive shrink-0' />
+                            )}
+                            <span
+                              className={`text-xs font-medium ${sub.status === 'Accepted' ? 'text-primary' : 'text-destructive'}`}
+                            >
+                              {sub.status === 'Accepted'
+                                ? 'AC'
+                                : sub.status === 'Wrong Answer'
+                                  ? 'WA'
+                                  : sub.status === 'Time Limit Exceeded'
+                                    ? 'TLE'
+                                    : 'RE'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className='hidden sm:table-cell'>
+                          <span className='text-xs text-muted-foreground'>
+                            {sub.language}
+                          </span>
+                        </TableCell>
+                        <TableCell className='hidden sm:table-cell'>
+                          <span className='text-xs text-muted-foreground font-mono'>
+                            {sub.runtime}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className='text-xs text-muted-foreground'>
+                            {sub.date}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
@@ -681,20 +673,18 @@ export default function AdminUserDetailPage() {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleConfirmAction}
+              onClick={() => void handleConfirmAction()}
+              disabled={isUpdatingRole}
               className={
-                confirmAction?.type === 'ban'
+                confirmAction?.type === 'demote'
                   ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
                   : 'bg-primary hover:bg-primary/90 text-primary-foreground'
               }
             >
-              {confirmAction?.type === 'ban'
-                ? 'Ban User'
-                : confirmAction?.type === 'unban'
-                  ? 'Unban User'
-                  : confirmAction?.type === 'promote'
-                    ? 'Promote'
-                    : 'Remove Admin'}
+              {isUpdatingRole && (
+                <Loader2 className='h-3.5 w-3.5 animate-spin mr-1.5' />
+              )}
+              {confirmAction?.type === 'promote' ? 'Promote' : 'Remove Admin'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

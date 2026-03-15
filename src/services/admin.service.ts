@@ -3,6 +3,9 @@ import type { AxiosError } from 'axios';
 import type {
   AdminDashboardResponse,
   AdminUsersResponse,
+  AdminUserDetailResponse,
+  UpdateUserRoleResponse,
+  UpdateUserRolePayload,
   ApiError,
 } from '@/types/admin.types';
 import { axiosInstance } from '@/config/axiosConfig';
@@ -38,6 +41,36 @@ export const getAdminUsers = async (): Promise<AdminUsersResponse> => {
   try {
     const { data } =
       await axiosInstance.get<AdminUsersResponse>('/admin/users');
+    return data;
+  } catch (error) {
+    const err = error as AxiosError<ApiError>;
+    throw err.response?.data ?? { message: 'Something went wrong' };
+  }
+};
+
+export const getAdminUserDetail = async (
+  userId: string,
+): Promise<AdminUserDetailResponse> => {
+  try {
+    const { data } = await axiosInstance.get<AdminUserDetailResponse>(
+      `/admin/users/${userId}`,
+    );
+    return data;
+  } catch (error) {
+    const err = error as AxiosError<ApiError>;
+    throw err.response?.data ?? { message: 'Something went wrong' };
+  }
+};
+
+export const updateUserRole = async (
+  userId: string,
+  payload: UpdateUserRolePayload,
+): Promise<UpdateUserRoleResponse> => {
+  try {
+    const { data } = await axiosInstance.patch<UpdateUserRoleResponse>(
+      `/admin/users/${userId}/role`,
+      payload,
+    );
     return data;
   } catch (error) {
     const err = error as AxiosError<ApiError>;

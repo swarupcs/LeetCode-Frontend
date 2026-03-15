@@ -81,3 +81,69 @@ export interface AdminUsersData {
 
 // GET /api/v1/admin/users → ApiSuccess<AdminUsersData>
 export type AdminUsersResponse = ApiSuccess<AdminUsersData>;
+
+// ─── User Detail types ────────────────────────────────────────────────────────
+
+export interface AdminUserTopTopic {
+  topic: string;
+  solved: number;
+  total: number;
+}
+
+export interface AdminUserRecentSubmission {
+  problem: string;
+  problemId: string;
+  status: string;
+  language: string;
+  runtime: string;
+  date: string;
+}
+
+export interface AdminUserDetail {
+  // Identity
+  id: string;
+  displayName: string;
+  username: string;
+  email: string;
+  initials: string;
+  image: string | null;
+  role: 'ADMIN' | 'USER';
+  joinDate: string;
+  lastActive: string | null;
+
+  // Stats
+  totalSolved: number;
+  easySolved: number;
+  mediumSolved: number;
+  hardSolved: number;
+  totalSubmissions: number;
+  acceptanceRate: number;
+  currentStreak: number;
+  maxStreak: number;
+  rank: number;
+
+  // Platform totals for progress bars
+  difficultyTotals: { easy: number; medium: number; hard: number };
+
+  // Topic skills
+  topTopics: AdminUserTopTopic[];
+
+  // Recent activity
+  recentSubmissions: AdminUserRecentSubmission[];
+}
+
+// GET /api/v1/admin/users/:userId → ApiSuccess<AdminUserDetail>
+export type AdminUserDetailResponse = ApiSuccess<AdminUserDetail>;
+
+// PATCH /api/v1/admin/users/:userId/role
+export interface UpdateUserRolePayload {
+  role: 'ADMIN' | 'USER';
+}
+
+export interface UpdateUserRoleData {
+  id: string;
+  role: string;
+}
+
+// PATCH /api/v1/admin/users/:userId/role → ApiSuccess<UpdateUserRoleData>
+export type UpdateUserRoleResponse = ApiSuccess<UpdateUserRoleData>;
