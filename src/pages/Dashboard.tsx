@@ -1,3 +1,4 @@
+// src/pages/DashboardPage.tsx
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -14,7 +15,6 @@ import {
   Zap,
   PieChart,
   BookOpen,
-  Loader2,
   Trophy,
   Brain,
   BarChart2,
@@ -56,6 +56,476 @@ const LANG_COLOR: Record<string, string> = {
   'c++': C.emerald,
   typescript: C.primary,
 };
+
+// ─── Skeleton primitive ───────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Dashboard skeleton ───────────────────────────────────────────────────────
+
+function DashboardSkeleton() {
+  return (
+    <div className='min-h-screen relative'>
+      {/* Top ambient glow (same as real page) */}
+      <div
+        className='pointer-events-none absolute top-0 left-0 right-0 h-80 opacity-[0.04]'
+        style={{
+          background: `radial-gradient(ellipse at 50% -20%, ${C.primary}, transparent 70%)`,
+        }}
+      />
+
+      <div className='relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className='flex items-end justify-between mb-8'
+        >
+          <div className='space-y-2'>
+            <div className='flex items-center gap-2'>
+              <Bone w='w-2' h='h-2' rounded='rounded-full' delay={0} />
+              <Bone w='w-28' h='h-2.5' delay={20} />
+            </div>
+            <Bone w='w-56' h='h-9' rounded='rounded-lg' delay={40} />
+          </div>
+          <div className='hidden sm:block'>
+            <Bone w='w-32' h='h-3.5' delay={60} />
+          </div>
+        </motion.div>
+
+        {/* ── 6 Stat cards ───────────────────────────────────────────────── */}
+        <div className='grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6'>
+          {[C.primary, C.amber, C.accent, C.emerald, C.emerald, C.rose].map(
+            (color, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.07 }}
+              >
+                <Card className='glass-card border-border/40 h-full overflow-hidden relative'>
+                  {/* Colored top strip */}
+                  <div
+                    className='absolute top-0 left-0 right-0 h-[2px] animate-pulse'
+                    style={{ backgroundColor: color, opacity: 0.6 }}
+                  />
+                  <CardContent className='p-4 flex flex-col gap-2.5 pt-5'>
+                    <div className='flex items-center justify-between'>
+                      <Bone
+                        w='w-7'
+                        h='h-7'
+                        rounded='rounded-md'
+                        delay={i * 60}
+                      />
+                      <Bone w='w-10' h='h-2.5' delay={i * 60 + 20} />
+                    </div>
+                    <Bone
+                      w='w-14'
+                      h='h-7'
+                      rounded='rounded'
+                      delay={i * 60 + 30}
+                    />
+                    <Bone w='w-24' h='h-2.5' delay={i * 60 + 45} />
+                    <Bone
+                      w='w-full'
+                      h='h-1'
+                      rounded='rounded-full'
+                      delay={i * 60 + 55}
+                    />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ),
+          )}
+        </div>
+
+        {/* ── Row 1: Ring + Activity ──────────────────────────────────────── */}
+        <div className='grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5'>
+          {/* Ring card */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className='lg:col-span-2'
+          >
+            <Card className='glass-card border-border/40 h-full'>
+              <CardContent className='p-6 flex flex-col items-center'>
+                {/* Section heading */}
+                <div className='flex items-center gap-3 mb-5 w-full'>
+                  <Bone w='w-8' h='h-8' rounded='rounded-xl' delay={200} />
+                  <div className='space-y-1.5'>
+                    <Bone w='w-32' h='h-3.5' delay={215} />
+                    <Bone w='w-44' h='h-2.5' delay={230} />
+                  </div>
+                </div>
+                {/* SVG ring placeholder */}
+                <div className='relative w-44 h-44 mb-6 flex items-center justify-center'>
+                  <div className='w-44 h-44 rounded-full border-[10px] border-surface-3 animate-pulse' />
+                  <div className='absolute inset-0 flex flex-col items-center justify-center gap-1.5'>
+                    <Bone w='w-16' h='h-9' rounded='rounded-lg' delay={240} />
+                    <Bone w='w-12' h='h-2.5' delay={255} />
+                  </div>
+                </div>
+                {/* Difficulty bars */}
+                <div className='w-full space-y-3'>
+                  {[C.emerald, C.amber, C.rose].map((color, i) => (
+                    <div key={i}>
+                      <div className='flex justify-between mb-1.5'>
+                        <Bone w='w-12' h='h-3' delay={270 + i * 30} />
+                        <Bone w='w-10' h='h-3' delay={280 + i * 30} />
+                      </div>
+                      <Bone
+                        w='w-full'
+                        h='h-1.5'
+                        rounded='rounded-full'
+                        delay={290 + i * 30}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Activity card */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.25 }}
+            className='lg:col-span-3'
+          >
+            <Card className='glass-card border-border/40 h-full'>
+              <CardContent className='p-6 flex flex-col'>
+                {/* Section heading */}
+                <div className='flex items-center gap-3 mb-5'>
+                  <Bone w='w-8' h='h-8' rounded='rounded-xl' delay={240} />
+                  <div className='space-y-1.5'>
+                    <Bone w='w-36' h='h-3.5' delay={255} />
+                    <Bone w='w-40' h='h-2.5' delay={270} />
+                  </div>
+                </div>
+                {/* Tabs */}
+                <div className='flex gap-1 mb-5'>
+                  <Bone w='w-20' h='h-7' rounded='rounded-md' delay={280} />
+                  <Bone w='w-20' h='h-7' rounded='rounded-md' delay={300} />
+                </div>
+                {/* Bar chart */}
+                <div className='flex items-end justify-between gap-2 h-[140px] mb-5'>
+                  {[65, 40, 90, 55, 75, 30, 85].map((h, i) => (
+                    <div
+                      key={i}
+                      className='flex-1 flex flex-col items-center gap-2'
+                    >
+                      <Bone w='w-full' h='h-2.5' delay={300 + i * 20} />
+                      <div
+                        className='w-full rounded-t-md bg-surface-3 animate-pulse'
+                        style={{
+                          height: `${h}%`,
+                          animationDelay: `${310 + i * 25}ms`,
+                        }}
+                      />
+                      <Bone
+                        w='w-5'
+                        h='h-2.5'
+                        rounded='rounded'
+                        delay={320 + i * 20}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {/* 4 summary mini stats */}
+                <div className='grid grid-cols-4 gap-3 pt-4 border-t border-border/20 mt-auto'>
+                  {[0, 1, 2, 3].map((i) => (
+                    <div key={i} className='text-center space-y-1.5'>
+                      <Bone
+                        w='w-10 mx-auto'
+                        h='h-5'
+                        rounded='rounded'
+                        delay={380 + i * 30}
+                      />
+                      <Bone w='w-14 mx-auto' h='h-2.5' delay={395 + i * 30} />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* ── Row 2: Topics + Languages ───────────────────────────────────── */}
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5'>
+          {/* Topic mastery */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className='lg:col-span-2'
+          >
+            <Card className='glass-card border-border/40 h-full'>
+              <CardContent className='p-6'>
+                <div className='flex items-center gap-3 mb-5'>
+                  <Bone w='w-8' h='h-8' rounded='rounded-xl' delay={320} />
+                  <div className='space-y-1.5'>
+                    <Bone w='w-28' h='h-3.5' delay={335} />
+                    <Bone w='w-48' h='h-2.5' delay={350} />
+                  </div>
+                </div>
+                <div className='space-y-2'>
+                  {/* 8 topic rows with staggered widths */}
+                  {[
+                    ['w-16', 'w-24', 'w-[88%]'],
+                    ['w-20', 'w-20', 'w-[74%]'],
+                    ['w-14', 'w-28', 'w-[95%]'],
+                    ['w-24', 'w-16', 'w-[62%]'],
+                    ['w-18', 'w-24', 'w-[80%]'],
+                    ['w-20', 'w-20', 'w-[55%]'],
+                    ['w-16', 'w-24', 'w-[70%]'],
+                    ['w-22', 'w-20', 'w-[45%]'],
+                  ].map(([lw, rw, bw], i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.35 + i * 0.05 }}
+                      className='rounded-lg px-3 py-2 -mx-3'
+                    >
+                      <div className='flex justify-between mb-1.5'>
+                        <Bone w={lw} h='h-3' delay={360 + i * 35} />
+                        <Bone w={rw} h='h-3' delay={375 + i * 35} />
+                      </div>
+                      <Bone
+                        w={bw}
+                        h='h-1.5'
+                        rounded='rounded-full'
+                        delay={385 + i * 35}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Languages */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <Card className='glass-card border-border/40 h-full'>
+              <CardContent className='p-6'>
+                <div className='flex items-center gap-3 mb-5'>
+                  <Bone w='w-8' h='h-8' rounded='rounded-xl' delay={360} />
+                  <div className='space-y-1.5'>
+                    <Bone w='w-20' h='h-3.5' delay={375} />
+                  </div>
+                </div>
+                {/* Stacked bar */}
+                <Bone
+                  w='w-full'
+                  h='h-2.5'
+                  rounded='rounded-full'
+                  delay={390}
+                  className='mb-5'
+                />
+                {/* Language rows */}
+                <div className='space-y-3'>
+                  {[C.cyan, C.amber, C.rose, C.emerald].map((color, i) => (
+                    <div key={i} className='flex items-center justify-between'>
+                      <div className='flex items-center gap-2.5'>
+                        <div
+                          className='w-2 h-2 rounded-full animate-pulse'
+                          style={{ backgroundColor: color }}
+                        />
+                        <Bone w='w-16' h='h-3.5' delay={400 + i * 30} />
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <Bone w='w-8' h='h-3' delay={415 + i * 30} />
+                        <Bone w='w-6' h='h-2.5' delay={428 + i * 30} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* ── Heatmap ─────────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className='mb-5'
+        >
+          <Card className='glass-card border-border/40'>
+            <CardContent className='p-6'>
+              <div className='flex items-center gap-3 mb-5'>
+                <Bone w='w-8' h='h-8' rounded='rounded-xl' delay={440} />
+                <div className='space-y-1.5'>
+                  <Bone w='w-44' h='h-3.5' delay={455} />
+                  <Bone w='w-56' h='h-2.5' delay={470} />
+                </div>
+              </div>
+              {/* Stats row */}
+              <div className='flex items-center gap-6 mb-3'>
+                <Bone w='w-40' h='h-3' delay={480} />
+                <Bone w='w-24' h='h-3' delay={495} />
+              </div>
+              {/* Heatmap grid */}
+              <div className='space-y-1.5'>
+                {/* Month labels */}
+                <div className='flex gap-1 pl-7'>
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <Bone
+                      key={i}
+                      w='flex-1'
+                      h='h-2.5'
+                      rounded='rounded'
+                      delay={500 + i * 10}
+                    />
+                  ))}
+                </div>
+                {/* 7 rows of cells */}
+                {Array.from({ length: 7 }).map((_, row) => (
+                  <div key={row} className='flex items-center gap-1'>
+                    <Bone
+                      w='w-6'
+                      h='h-3'
+                      rounded='rounded'
+                      delay={510 + row * 15}
+                      className='shrink-0'
+                    />
+                    <div className='flex flex-1 gap-[3px]'>
+                      {Array.from({ length: 53 }).map((_, col) => (
+                        <div
+                          key={col}
+                          className='flex-1 rounded-[3px] bg-surface-3 animate-pulse'
+                          style={{
+                            height: 13,
+                            animationDelay: `${520 + row * 15 + col * 4}ms`,
+                            opacity: Math.random() > 0.7 ? 0.4 : 1,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {/* Legend */}
+                <div className='flex items-center justify-end gap-1.5 mt-1'>
+                  <Bone w='w-6' h='h-2.5' delay={580} />
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className='w-[11px] h-[11px] rounded-[3px] bg-surface-3 animate-pulse'
+                      style={{ animationDelay: `${590 + i * 15}ms` }}
+                    />
+                  ))}
+                  <Bone w='w-6' h='h-2.5' delay={665} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* ── Recent Submissions ──────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.48 }}
+        >
+          <Card className='glass-card border-border/40'>
+            <CardContent className='p-6'>
+              <div className='flex items-center gap-3 mb-5'>
+                <Bone w='w-8' h='h-8' rounded='rounded-xl' delay={580} />
+                <div className='space-y-1.5'>
+                  <Bone w='w-40' h='h-3.5' delay={595} />
+                  <Bone w='w-32' h='h-2.5' delay={610} />
+                </div>
+              </div>
+              {/* Column headers */}
+              <div className='hidden sm:grid grid-cols-[1fr_120px_90px_80px_80px_80px] gap-3 px-3 py-2 border-b border-border/20 mb-1'>
+                {[40, 32, 28, 28, 30, 24].map((w, i) => (
+                  <div key={i} className={i === 5 ? 'flex justify-end' : ''}>
+                    <Bone w={`w-${w}`} h='h-2.5' delay={620 + i * 15} />
+                  </div>
+                ))}
+              </div>
+              {/* 6 submission rows */}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.52 + i * 0.06 }}
+                  className='sm:grid sm:grid-cols-[1fr_120px_90px_80px_80px_80px] gap-3 items-center px-3 py-3 border-b border-border/10 last:border-0'
+                >
+                  {/* Problem name col */}
+                  <div className='flex items-center gap-2.5'>
+                    <Bone
+                      w='w-6'
+                      h='h-6'
+                      rounded='rounded'
+                      delay={640 + i * 50}
+                    />
+                    <div className='space-y-1.5 flex-1'>
+                      <div className='flex items-center gap-2'>
+                        <Bone
+                          w={
+                            ['w-36', 'w-44', 'w-32', 'w-40', 'w-28', 'w-36'][i]!
+                          }
+                          h='h-3.5'
+                          delay={655 + i * 50}
+                        />
+                        <Bone
+                          w='w-10'
+                          h='h-4'
+                          rounded='rounded'
+                          delay={670 + i * 50}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Status */}
+                  <Bone w='w-14' h='h-3' delay={660 + i * 50} />
+                  {/* Lang */}
+                  <Bone w='w-16' h='h-3' delay={670 + i * 50} />
+                  {/* Runtime */}
+                  <Bone w='w-14' h='h-3' delay={680 + i * 50} />
+                  {/* Memory */}
+                  <Bone w='w-14' h='h-3' delay={690 + i * 50} />
+                  {/* Date */}
+                  <div className='flex justify-end'>
+                    <Bone w='w-14' h='h-3' delay={700 + i * 50} />
+                  </div>
+                </motion.div>
+              ))}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Animated counter ─────────────────────────────────────────────────────────
 function AnimatedNumber({
@@ -250,7 +720,6 @@ function GuestDashboard() {
       desc: 'Runtime percentiles, memory usage, and trend lines per problem.',
     },
   ];
-
   const mockBars = [45, 80, 30, 95, 60, 75, 20];
   const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   const mockStats = [
@@ -262,7 +731,6 @@ function GuestDashboard() {
 
   return (
     <div className='min-h-screen relative overflow-hidden'>
-      {/* Ambient blobs */}
       <div className='pointer-events-none absolute inset-0 overflow-hidden'>
         <div
           className='absolute -top-60 -left-60 w-[700px] h-[700px] rounded-full opacity-[0.05]'
@@ -276,7 +744,6 @@ function GuestDashboard() {
             background: `radial-gradient(circle, ${C.accent}, transparent 70%)`,
           }}
         />
-        {/* Dot grid */}
         <div
           className='absolute inset-0 opacity-[0.03]'
           style={{
@@ -285,11 +752,8 @@ function GuestDashboard() {
           }}
         />
       </div>
-
       <div className='relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14'>
-        {/* ── Hero split layout ─────────────────────────────────────────── */}
         <div className='grid lg:grid-cols-2 gap-14 items-center mb-24'>
-          {/* Left: copy */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -312,7 +776,6 @@ function GuestDashboard() {
               />
               DASHBOARD LOCKED — SIGN IN TO ACCESS
             </motion.div>
-
             <h1 className='text-5xl sm:text-6xl font-black leading-[1.05] tracking-tight mb-5'>
               Your coding
               <br />
@@ -326,21 +789,17 @@ function GuestDashboard() {
                 command room.
               </span>
             </h1>
-
             <p className='text-muted-foreground leading-relaxed mb-9 max-w-md'>
               Every rep tracked. Every weak spot exposed. Every streak
               celebrated. Sign in and see your real numbers.
             </p>
           </motion.div>
-
-          {/* Right: blurred preview */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.55, delay: 0.15 }}
             className='relative'
           >
-            {/* Lock overlay */}
             <div
               className='absolute inset-0 z-20 rounded-2xl flex flex-col items-center justify-center'
               style={{
@@ -366,8 +825,6 @@ function GuestDashboard() {
                 Your real numbers are waiting
               </p>
             </div>
-
-            {/* Blurred mock */}
             <div
               className='blur-sm opacity-50 pointer-events-none select-none rounded-2xl p-5 border border-border/15'
               style={{ background: 'rgba(255,255,255,0.02)' }}
@@ -437,8 +894,6 @@ function GuestDashboard() {
             </div>
           </motion.div>
         </div>
-
-        {/* ── Feature grid ─────────────────────────────────────────────────── */}
         <div className='mb-20'>
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -503,8 +958,6 @@ function GuestDashboard() {
             ))}
           </div>
         </div>
-
-        {/* ── Bottom CTA ────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -556,7 +1009,6 @@ function AuthenticatedDashboard() {
   const { progressData, isLoading: l3 } = useGetUserProgressData();
 
   const weeklyData = progressData?.weeklyData ?? [];
-
   const topicProgress = useMemo(() => {
     if (!solvedStats) return [];
     return Object.entries(solvedStats.tagStats)
@@ -580,22 +1032,8 @@ function AuthenticatedDashboard() {
     };
   }, [weeklyData]);
 
-  if (l1 || l2 || l3)
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='flex flex-col items-center gap-3'>
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
-          >
-            <Loader2 className='h-8 w-8' style={{ color: C.primary }} />
-          </motion.div>
-          <p className='text-xs text-muted-foreground font-mono tracking-wider'>
-            LOADING STATS…
-          </p>
-        </div>
-      </div>
-    );
+  // ── Loading: full skeleton (AFTER all hooks) ──────────────────────────────
+  if (l1 || l2 || l3) return <DashboardSkeleton />;
 
   const easySolved = solvedStats?.difficultyStats.EASY ?? 0;
   const mediumSolved = solvedStats?.difficultyStats.MEDIUM ?? 0;
@@ -666,7 +1104,6 @@ function AuthenticatedDashboard() {
       progress: hardTotal > 0 ? (hardSolved / hardTotal) * 100 : 0,
     },
   ];
-
   const difficultyData = [
     { level: 'Easy', solved: easySolved, total: easyTotal, color: C.emerald },
     {
@@ -677,7 +1114,6 @@ function AuthenticatedDashboard() {
     },
     { level: 'Hard', solved: hardSolved, total: hardTotal, color: C.rose },
   ];
-
   const monthlyTrend = progressData?.monthlyTrend ?? [];
   const recentSubmissions = progressData?.recentSubmissions ?? [];
   const languageStats = (progressData?.languageStats ?? []).map((l) => ({
@@ -687,14 +1123,12 @@ function AuthenticatedDashboard() {
 
   return (
     <div className='min-h-screen relative'>
-      {/* Top ambient glow */}
       <div
         className='pointer-events-none absolute top-0 left-0 right-0 h-80 opacity-[0.04]'
         style={{
           background: `radial-gradient(ellipse at 50% -20%, ${C.primary}, transparent 70%)`,
         }}
       />
-      {/* Dot grid */}
       <div
         className='pointer-events-none absolute inset-0 opacity-[0.02]'
         style={{
@@ -704,7 +1138,6 @@ function AuthenticatedDashboard() {
       />
 
       <div className='relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
-        {/* ── Header ─────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -733,7 +1166,6 @@ function AuthenticatedDashboard() {
           </div>
         </motion.div>
 
-        {/* ── Stat cards ─────────────────────────────────────────────────── */}
         <div className='grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6'>
           {statCards.map((c, i) => (
             <motion.div
@@ -747,9 +1179,7 @@ function AuthenticatedDashboard() {
           ))}
         </div>
 
-        {/* ── Row 1: Ring + Activity ──────────────────────────────────────── */}
         <div className='grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5'>
-          {/* Ring card */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -828,7 +1258,6 @@ function AuthenticatedDashboard() {
             </Card>
           </motion.div>
 
-          {/* Activity */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -857,7 +1286,6 @@ function AuthenticatedDashboard() {
                       Monthly
                     </TabsTrigger>
                   </TabsList>
-
                   <TabsContent
                     value='weekly'
                     className='flex-1 flex flex-col m-0'
@@ -930,7 +1358,6 @@ function AuthenticatedDashboard() {
                       </div>
                     )}
                   </TabsContent>
-
                   <TabsContent
                     value='monthly'
                     className='flex-1 flex flex-col m-0'
@@ -1011,7 +1438,6 @@ function AuthenticatedDashboard() {
           </motion.div>
         </div>
 
-        {/* ── Row 2: Topics + Languages ───────────────────────────────────── */}
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5'>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1092,7 +1518,6 @@ function AuthenticatedDashboard() {
               </CardContent>
             </Card>
           </motion.div>
-
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1165,7 +1590,6 @@ function AuthenticatedDashboard() {
           </motion.div>
         </div>
 
-        {/* ── Heatmap ─────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1184,7 +1608,6 @@ function AuthenticatedDashboard() {
           </Card>
         </motion.div>
 
-        {/* ── Recent Submissions ──────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
