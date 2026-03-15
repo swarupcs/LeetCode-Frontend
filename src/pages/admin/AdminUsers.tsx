@@ -459,17 +459,59 @@ export default function AdminUsersPage() {
                           }}
                         >
                           {user.image ? (
-                            <img
-                              src={user.image}
-                              alt={user.displayName}
+                            <div
                               style={{
+                                position: 'relative',
                                 width: '34px',
                                 height: '34px',
-                                borderRadius: '10px',
-                                objectFit: 'cover',
                                 flexShrink: 0,
                               }}
-                            />
+                            >
+                              <img
+                                src={user.image}
+                                alt={user.displayName}
+                                style={{
+                                  width: '34px',
+                                  height: '34px',
+                                  borderRadius: '10px',
+                                  objectFit: 'cover',
+                                  display: 'block',
+                                }}
+                                onError={(e) => {
+                                  (
+                                    e.currentTarget as HTMLImageElement
+                                  ).style.display = 'none';
+                                  const fb = (
+                                    e.currentTarget as HTMLImageElement
+                                  ).nextElementSibling as HTMLElement | null;
+                                  if (fb) fb.style.display = 'flex';
+                                }}
+                              />
+                              <div
+                                style={{
+                                  display: 'none',
+                                  position: 'absolute',
+                                  inset: 0,
+                                  width: '34px',
+                                  height: '34px',
+                                  borderRadius: '10px',
+                                  background: 'hsl(210 100% 65% / 0.1)',
+                                  border: '1px solid hsl(210 100% 65% / 0.2)',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 800,
+                                    color: C.blue,
+                                  }}
+                                >
+                                  {user.initials}
+                                </span>
+                              </div>
+                            </div>
                           ) : (
                             <div
                               style={{
