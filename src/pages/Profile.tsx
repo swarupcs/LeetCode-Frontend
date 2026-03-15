@@ -1,3 +1,4 @@
+// src/pages/ProfilePage.tsx
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -33,7 +34,6 @@ import {
   Save,
 } from 'lucide-react';
 import ContributionGraph from '@/components/ContributionGraph';
-
 import { useGetUserSolvedStats } from '@/hooks/user-stats/useGetUserSolvedStats';
 import { useGetUserProgressData } from '@/hooks/user-stats/useGetUserProgressData';
 import { useGetUserHeatMapData } from '@/hooks/user-stats/useGetUserHeatMapData';
@@ -50,6 +50,351 @@ const C = {
   accent: '#a78bfa',
   track: 'rgba(255,255,255,0.08)',
 } as const;
+
+// ─── Skeleton primitive ───────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Profile page skeleton ────────────────────────────────────────────────────
+
+function ProfileSkeleton() {
+  return (
+    <div className='min-h-screen'>
+      <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
+        {/* ── Profile header card ──────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className='mb-8'
+        >
+          <div className='glass-card p-6 sm:p-8'>
+            <div className='flex flex-col sm:flex-row items-start gap-6'>
+              {/* Avatar */}
+              <Bone
+                w='w-24 sm:w-28'
+                h='h-24 sm:h-28'
+                rounded='rounded-2xl'
+                delay={0}
+                className='shrink-0'
+              />
+
+              {/* Info */}
+              <div className='flex-1 min-w-0 space-y-3'>
+                <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4'>
+                  <Bone w='w-48' h='h-8' rounded='rounded-lg' delay={40} />
+                  <Bone w='w-24' h='h-5' rounded='rounded-full' delay={60} />
+                </div>
+                <Bone w='w-32' h='h-4' delay={75} />
+                <div className='space-y-1.5'>
+                  <Bone w='w-full max-w-xl' h='h-3.5' delay={90} />
+                  <Bone w='w-3/4 max-w-lg' h='h-3.5' delay={105} />
+                </div>
+                {/* Social meta row */}
+                <div className='flex flex-wrap items-center gap-x-4 gap-y-2'>
+                  {[80, 96, 88, 76].map((w, i) => (
+                    <Bone
+                      key={i}
+                      w={`w-[${w}px]`}
+                      h='h-3'
+                      delay={120 + i * 20}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Edit button */}
+              <Bone
+                w='w-28'
+                h='h-9'
+                rounded='rounded-lg'
+                delay={80}
+                className='shrink-0'
+              />
+            </div>
+
+            {/* Quick stats row */}
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-border/30'>
+              {[C.primary, C.amber, C.accent, C.emerald].map((color, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 + i * 0.06 }}
+                  className='flex items-center gap-3 p-3 rounded-lg bg-surface-2/30'
+                >
+                  <div
+                    className='h-5 w-5 rounded shrink-0 bg-surface-3 animate-pulse'
+                    style={{ animationDelay: `${160 + i * 40}ms` }}
+                  />
+                  <div className='space-y-1.5'>
+                    <Bone
+                      w='w-12'
+                      h='h-5'
+                      rounded='rounded'
+                      delay={170 + i * 40}
+                    />
+                    <Bone w='w-16' h='h-2.5' delay={185 + i * 40} />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── Tab bar ───────────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <div className='flex gap-1 bg-surface-1 border border-border/50 rounded-lg p-1 w-fit h-10 mb-6'>
+            {[0, 1, 2].map((i) => (
+              <Bone
+                key={i}
+                w='w-24'
+                h='h-7'
+                rounded='rounded-md'
+                delay={240 + i * 25}
+              />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* ── Overview tab content skeleton ─────────────────────────────────── */}
+        <div className='space-y-6'>
+          {/* Heatmap card */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className='glass-card border-border/50'>
+              <CardHeader>
+                <div className='flex items-center gap-2'>
+                  <Bone w='w-4' h='h-4' rounded='rounded' delay={280} />
+                  <Bone w='w-36' h='h-4' delay={295} />
+                </div>
+                <Bone w='w-56' h='h-3' delay={310} />
+              </CardHeader>
+              <CardContent>
+                {/* Month labels + 7 rows of cells */}
+                <div className='space-y-1.5'>
+                  <div className='flex gap-1 pl-7'>
+                    {Array.from({ length: 12 }).map((_, i) => (
+                      <Bone
+                        key={i}
+                        w='flex-1'
+                        h='h-2.5'
+                        rounded='rounded'
+                        delay={320 + i * 8}
+                      />
+                    ))}
+                  </div>
+                  {Array.from({ length: 7 }).map((_, row) => (
+                    <div key={row} className='flex items-center gap-1'>
+                      <Bone
+                        w='w-6'
+                        h='h-3'
+                        rounded='rounded'
+                        delay={325 + row * 12}
+                        className='shrink-0'
+                      />
+                      <div className='flex flex-1 gap-[3px]'>
+                        {Array.from({ length: 53 }).map((_, col) => (
+                          <div
+                            key={col}
+                            className='flex-1 rounded-[3px] bg-surface-3 animate-pulse'
+                            style={{
+                              height: 12,
+                              animationDelay: `${330 + row * 12 + col * 3}ms`,
+                              opacity: Math.random() > 0.7 ? 0.4 : 1,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className='flex items-center justify-end gap-1.5 mt-1'>
+                    <Bone w='w-6' h='h-2.5' delay={500} />
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className='w-[11px] h-[11px] rounded-[3px] bg-surface-3 animate-pulse'
+                        style={{ animationDelay: `${510 + i * 15}ms` }}
+                      />
+                    ))}
+                    <Bone w='w-6' h='h-2.5' delay={585} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Donut + Topics + Recent Activity */}
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+            {/* Donut card */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.28 }}
+              className='lg:col-span-1'
+            >
+              <Card className='glass-card border-border/50 h-full'>
+                <CardHeader>
+                  <Bone w='w-32' h='h-4' delay={340} />
+                  <Bone w='w-20' h='h-3' delay={355} />
+                </CardHeader>
+                <CardContent className='flex flex-col items-center'>
+                  {/* Donut placeholder */}
+                  <div className='relative w-36 h-36 mb-6 flex items-center justify-center'>
+                    <div className='w-36 h-36 rounded-full border-[12px] border-surface-3 animate-pulse' />
+                    <div className='absolute inset-0 flex flex-col items-center justify-center gap-1.5'>
+                      <Bone w='w-10' h='h-7' rounded='rounded' delay={360} />
+                      <Bone w='w-10' h='h-2.5' delay={375} />
+                    </div>
+                  </div>
+                  {/* Difficulty bars */}
+                  <div className='w-full space-y-3'>
+                    {[C.emerald, C.amber, C.rose].map((color, i) => (
+                      <div key={i}>
+                        <div className='flex justify-between mb-1.5'>
+                          <Bone w='w-10' h='h-3' delay={380 + i * 30} />
+                          <Bone w='w-10' h='h-3' delay={392 + i * 30} />
+                        </div>
+                        <Bone
+                          w='w-full'
+                          h='h-1.5'
+                          rounded='rounded-full'
+                          delay={400 + i * 30}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Topics card */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.33 }}
+              className='lg:col-span-2'
+            >
+              <Card className='glass-card border-border/50 h-full'>
+                <CardHeader>
+                  <Bone w='w-28' h='h-4' delay={410} />
+                  <Bone w='w-48' h='h-3' delay={425} />
+                </CardHeader>
+                <CardContent>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4'>
+                    {[
+                      ['w-20', 'w-32'],
+                      ['w-16', 'w-28'],
+                      ['w-24', 'w-36'],
+                      ['w-18', 'w-30'],
+                      ['w-22', 'w-34'],
+                      ['w-16', 'w-26'],
+                      ['w-20', 'w-32'],
+                      ['w-18', 'w-28'],
+                    ].map(([lw, bw], i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.38 + i * 0.04 }}
+                      >
+                        <div className='flex justify-between mb-1.5'>
+                          <Bone w={lw} h='h-3' delay={430 + i * 25} />
+                          <Bone w='w-8' h='h-3' delay={442 + i * 25} />
+                        </div>
+                        <Bone
+                          w={bw}
+                          h='h-2'
+                          rounded='rounded-full'
+                          delay={450 + i * 25}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Recent Activity card */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.38 }}
+              className='lg:col-span-3'
+            >
+              <Card className='glass-card border-border/50'>
+                <CardHeader className='flex flex-row items-center justify-between'>
+                  <div className='space-y-1.5'>
+                    <Bone w='w-32' h='h-4' delay={520} />
+                    <Bone w='w-24' h='h-3' delay={535} />
+                  </div>
+                  <Bone w='w-16' h='h-7' rounded='rounded-lg' delay={545} />
+                </CardHeader>
+                <CardContent>
+                  <div className='divide-y divide-border/30'>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className='flex items-center justify-between py-3 first:pt-0 last:pb-0'
+                      >
+                        <div className='flex items-center gap-3 min-w-0'>
+                          <Bone
+                            w='w-7'
+                            h='h-7'
+                            rounded='rounded-md'
+                            delay={555 + i * 40}
+                            className='shrink-0'
+                          />
+                          <div className='space-y-1.5 min-w-0'>
+                            <Bone
+                              w={['w-48', 'w-56', 'w-40', 'w-52', 'w-44'][i]!}
+                              h='h-3.5'
+                              delay={565 + i * 40}
+                            />
+                            <Bone w='w-28' h='h-2.5' delay={578 + i * 40} />
+                          </div>
+                        </div>
+                        <div className='text-right shrink-0 ml-4 space-y-1.5'>
+                          <Bone w='w-14' h='h-3' delay={572 + i * 40} />
+                          <Bone w='w-20' h='h-2.5' delay={585 + i * 40} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Progress bar ──────────────────────────────────────────────────────────────
 function ProgressBar({
@@ -83,7 +428,7 @@ function ProgressBar({
   );
 }
 
-// ─── Static badges ─────────────────────────────────────────────────────────────
+// ─── Static badge list ────────────────────────────────────────────────────────
 const BADGES = [
   {
     name: 'First Blood',
@@ -123,7 +468,7 @@ const BADGES = [
   },
 ];
 
-// ─── Animation variants ────────────────────────────────────────────────────────
+// ─── Animation variants ───────────────────────────────────────────────────────
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.06 } },
@@ -133,17 +478,15 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-// ─── Edit Profile form state ───────────────────────────────────────────────────
-// Matches the shape we pre-fill from the API response
+// ─── Edit Profile modal ───────────────────────────────────────────────────────
 interface EditModalInitial {
   displayName: string | null | undefined;
   bio: string | null | undefined;
   location: string | null | undefined;
-  github: string | null | undefined; // username only (from API field `github`)
-  twitter: string | null | undefined; // username only (from API field `twitter`)
+  github: string | null | undefined;
+  twitter: string | null | undefined;
   website: string | null | undefined;
 }
-
 interface EditModalProps {
   open: boolean;
   onClose: () => void;
@@ -152,24 +495,20 @@ interface EditModalProps {
 
 function EditProfileModal({ open, onClose, initial }: EditModalProps) {
   const { updateProfile, isPending } = useUpdateUserProfile();
-
-  // Normalise nulls → empty strings for controlled inputs
   const [form, setForm] = useState({
     name: initial.displayName ?? '',
     bio: initial.bio ?? '',
     location: initial.location ?? '',
-    githubUrl: initial.github ?? '', // stored as username; API field name is githubUrl
-    twitterUrl: initial.twitter ?? '', // stored as username; API field name is twitterUrl
+    githubUrl: initial.github ?? '',
+    twitterUrl: initial.twitter ?? '',
     website: initial.website ?? '',
   });
-
   const set =
     (field: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleSave = async () => {
-    // Only send fields that have actually changed
     const changed: UpdateProfilePayload = {};
     if (form.name !== (initial.displayName ?? '')) changed.name = form.name;
     if (form.bio !== (initial.bio ?? '')) changed.bio = form.bio;
@@ -181,23 +520,19 @@ function EditProfileModal({ open, onClose, initial }: EditModalProps) {
       changed.twitterUrl = form.twitterUrl;
     if (form.website !== (initial.website ?? ''))
       changed.website = form.website;
-
     if (Object.keys(changed).length === 0) {
       onClose();
       return;
     }
-
     await updateProfile(changed);
     onClose();
   };
 
   if (!open) return null;
-
   return (
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -205,8 +540,6 @@ function EditProfileModal({ open, onClose, initial }: EditModalProps) {
             onClick={onClose}
             className='fixed inset-0 z-40 bg-black/60 backdrop-blur-sm'
           />
-
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -215,7 +548,6 @@ function EditProfileModal({ open, onClose, initial }: EditModalProps) {
             className='fixed inset-0 z-50 flex items-center justify-center p-4'
           >
             <div className='glass-card w-full max-w-lg p-6 rounded-2xl border border-border/50 shadow-2xl'>
-              {/* Header */}
               <div className='flex items-center justify-between mb-6'>
                 <h2 className='text-lg font-semibold'>Edit Profile</h2>
                 <button
@@ -225,8 +557,6 @@ function EditProfileModal({ open, onClose, initial }: EditModalProps) {
                   <X className='h-5 w-5' />
                 </button>
               </div>
-
-              {/* Fields */}
               <div className='space-y-4'>
                 <div>
                   <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
@@ -239,7 +569,6 @@ function EditProfileModal({ open, onClose, initial }: EditModalProps) {
                     className='bg-surface-2 border-border/40 text-sm'
                   />
                 </div>
-
                 <div>
                   <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
                     Bio
@@ -252,7 +581,6 @@ function EditProfileModal({ open, onClose, initial }: EditModalProps) {
                     className='bg-surface-2 border-border/40 text-sm resize-none'
                   />
                 </div>
-
                 <div>
                   <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
                     Location
@@ -264,7 +592,6 @@ function EditProfileModal({ open, onClose, initial }: EditModalProps) {
                     className='bg-surface-2 border-border/40 text-sm'
                   />
                 </div>
-
                 <div className='grid grid-cols-2 gap-3'>
                   <div>
                     <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
@@ -289,7 +616,6 @@ function EditProfileModal({ open, onClose, initial }: EditModalProps) {
                     />
                   </div>
                 </div>
-
                 <div>
                   <label className='text-xs font-medium text-muted-foreground mb-1.5 block'>
                     Website
@@ -302,8 +628,6 @@ function EditProfileModal({ open, onClose, initial }: EditModalProps) {
                   />
                 </div>
               </div>
-
-              {/* Actions */}
               <div className='flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border/30'>
                 <Button
                   variant='ghost'
@@ -336,23 +660,19 @@ function EditProfileModal({ open, onClose, initial }: EditModalProps) {
   );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [editModalOpen, setEditModalOpen] = useState(false);
 
-  // ── Data hooks ──────────────────────────────────────────────────────────────
   const { user: profile, isLoading: loadingProfile } = useGetUserProfile();
   const { solvedStats, isLoading: loadingSolved } = useGetUserSolvedStats();
   const { progressData, isLoading: loadingProgress } = useGetUserProgressData();
   const { heatMapData, isLoading: loadingHeatMap } = useGetUserHeatMapData();
 
-  // console.log("profile", profile)
-
   const isLoading =
     loadingProfile || loadingSolved || loadingProgress || loadingHeatMap;
 
-  // ── Derived stats ───────────────────────────────────────────────────────────
   const easySolved = solvedStats?.difficultyStats.EASY ?? 0;
   const mediumSolved = solvedStats?.difficultyStats.MEDIUM ?? 0;
   const hardSolved = solvedStats?.difficultyStats.HARD ?? 0;
@@ -386,8 +706,6 @@ export default function ProfilePage() {
 
   const recentSubmissions = progressData?.recentSubmissions ?? [];
 
-  // ── Avatar initials fallback ────────────────────────────────────────────────
-  // e.g. "Swarup Das" → "SD"
   const initials = profile?.displayName
     ? profile.displayName
         .split(' ')
@@ -397,7 +715,6 @@ export default function ProfilePage() {
         .toUpperCase()
     : (profile?.username?.[0]?.toUpperCase() ?? '?');
 
-  // ── Profile is truthy once loaded; check for missing optional fields ────────
   const hasSocialInfo = !!(
     profile?.bio ||
     profile?.location ||
@@ -406,18 +723,11 @@ export default function ProfilePage() {
     profile?.twitter
   );
 
-  // ── Loading state ───────────────────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='h-8 w-8 animate-spin text-primary' />
-      </div>
-    );
-  }
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (isLoading) return <ProfileSkeleton />;
 
   return (
     <div className='min-h-screen'>
-      {/* Edit Profile Modal — pass API field names directly */}
       <EditProfileModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
@@ -425,14 +735,14 @@ export default function ProfilePage() {
           displayName: profile?.displayName,
           bio: profile?.bio,
           location: profile?.location,
-          github: profile?.github, // username, e.g. "swarupd1999"
-          twitter: profile?.twitter, // username
+          github: profile?.github,
+          twitter: profile?.twitter,
           website: profile?.website,
         }}
       />
 
       <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8'>
-        {/* ── Profile Header ─────────────────────────────────────────────────── */}
+        {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -456,7 +766,6 @@ export default function ProfilePage() {
                     </span>
                   )}
                 </div>
-                {/* Online / verified dot */}
                 <div className='absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary border-2 border-background flex items-center justify-center'>
                   <svg
                     xmlns='http://www.w3.org/2000/svg'
@@ -475,10 +784,8 @@ export default function ProfilePage() {
 
               {/* Info */}
               <div className='flex-1 min-w-0'>
-                {/* Name + rank */}
                 <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-1'>
                   <h1 className='text-2xl sm:text-3xl font-bold truncate'>
-                    {/* API: displayName = "Swarup Das" */}
                     {profile?.displayName ?? profile?.username ?? '—'}
                   </h1>
                   {profile?.rank != null && (
@@ -490,30 +797,21 @@ export default function ProfilePage() {
                     </Badge>
                   )}
                 </div>
-
-                {/* @username — API: username = "swarupd1999" */}
                 <p className='text-sm text-muted-foreground mb-3 font-mono'>
                   @{profile?.username ?? '—'}
                 </p>
-
-                {/* Bio — API: bio (nullable) */}
                 {profile?.bio && (
                   <p className='text-sm text-foreground/80 leading-relaxed mb-3 max-w-2xl'>
                     {profile.bio}
                   </p>
                 )}
-
-                {/* Social / meta row */}
                 <div className='flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground'>
-                  {/* API: location (nullable) */}
                   {profile?.location && (
                     <span className='flex items-center gap-1.5'>
                       <MapPin className='h-3.5 w-3.5' />
                       {profile.location}
                     </span>
                   )}
-
-                  {/* API: website (nullable) */}
                   {profile?.website && (
                     <a
                       href={profile.website}
@@ -525,8 +823,6 @@ export default function ProfilePage() {
                       {profile.website.replace(/^https?:\/\//, '')}
                     </a>
                   )}
-
-                  {/* API: github = username string (nullable), not a full URL */}
                   {profile?.github && (
                     <a
                       href={`https://github.com/${profile.github}`}
@@ -538,8 +834,6 @@ export default function ProfilePage() {
                       {profile.github}
                     </a>
                   )}
-
-                  {/* API: twitter = username string (nullable), not a full URL */}
                   {profile?.twitter && (
                     <a
                       href={`https://twitter.com/${profile.twitter}`}
@@ -551,16 +845,12 @@ export default function ProfilePage() {
                       {profile.twitter}
                     </a>
                   )}
-
-                  {/* API: joinDate = "Nov 2025" */}
                   {profile?.joinDate && (
                     <span className='flex items-center gap-1.5'>
                       <Calendar className='h-3.5 w-3.5' />
                       Joined {profile.joinDate}
                     </span>
                   )}
-
-                  {/* Empty state prompt */}
                   {!hasSocialInfo && (
                     <span className='text-muted-foreground/50 italic'>
                       No bio yet — click Edit Profile to add one
@@ -569,7 +859,6 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Edit button */}
               <Button
                 variant='outline'
                 size='sm'
@@ -633,7 +922,7 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
-        {/* ── Tabs ───────────────────────────────────────────────────────────── */}
+        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -662,10 +951,9 @@ export default function ProfilePage() {
             </TabsList>
           </motion.div>
 
-          {/* ── Overview ───────────────────────────────────────────────────────── */}
+          {/* Overview */}
           <TabsContent value='overview' className='mt-0'>
             <div className='space-y-6'>
-              {/* Heatmap */}
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -693,7 +981,7 @@ export default function ProfilePage() {
                 animate='show'
                 className='grid grid-cols-1 lg:grid-cols-3 gap-6'
               >
-                {/* Solved donut */}
+                {/* Donut */}
                 <motion.div variants={item} className='lg:col-span-1'>
                   <Card className='glass-card border-border/50 h-full'>
                     <CardHeader>
@@ -705,7 +993,6 @@ export default function ProfilePage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className='flex flex-col items-center'>
-                      {/* Donut */}
                       <div className='relative w-36 h-36 mb-6'>
                         <svg
                           className='w-36 h-36 -rotate-90'
@@ -760,8 +1047,6 @@ export default function ProfilePage() {
                           </span>
                         </div>
                       </div>
-
-                      {/* Difficulty bars */}
                       <div className='w-full space-y-3'>
                         {difficultyBreakdown.map((d) => (
                           <div key={d.level}>
@@ -923,7 +1208,7 @@ export default function ProfilePage() {
             </div>
           </TabsContent>
 
-          {/* ── Submissions Tab ─────────────────────────────────────────────────── */}
+          {/* Submissions */}
           <TabsContent value='submissions' className='mt-0'>
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -937,7 +1222,6 @@ export default function ProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {/* Table header */}
                   <div className='hidden sm:grid grid-cols-[1fr_120px_100px_80px_80px_80px] gap-3 px-3 py-2 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-border/30 mb-1'>
                     <div>Problem</div>
                     <div>Status</div>
@@ -946,7 +1230,6 @@ export default function ProfilePage() {
                     <div>Memory</div>
                     <div>When</div>
                   </div>
-
                   <div className='divide-y divide-border/20'>
                     {recentSubmissions.length > 0 ? (
                       recentSubmissions.map((sub, i) => (
@@ -993,7 +1276,7 @@ export default function ProfilePage() {
             </motion.div>
           </TabsContent>
 
-          {/* ── Badges Tab ──────────────────────────────────────────────────────── */}
+          {/* Badges */}
           <TabsContent value='badges' className='mt-0'>
             <motion.div variants={container} initial='hidden' animate='show'>
               <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
