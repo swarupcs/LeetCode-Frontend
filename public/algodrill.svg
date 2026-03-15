@@ -1,0 +1,26 @@
+<svg width="600" height="150" viewBox="0 0 600 150" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="drillGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4" /> <stop offset="100%" stop-color="#3B82F6" /> </linearGradient>
+  </defs>
+
+  <g transform="translate(30, 25) scale(1.1)">
+    <path d="M 35,15 L 10,50 L 35,85" fill="none" stroke="#0F172A" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    
+    <path d="M 85,15 L 110,50 L 85,85" fill="none" stroke="#0F172A" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    
+    <path d="M 50,15 L 70,15 L 70,35 L 66,35 L 66,55 L 63,55 L 60,85 L 57,55 L 54,55 L 54,35 L 50,35 Z" fill="url(#drillGrad)" stroke="#0F172A" stroke-width="1.5" stroke-linejoin="round" />
+    
+    <line x1="48" y1="23" x2="72" y2="28" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
+    <line x1="52" y1="43" x2="68" y2="48" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
+    <line x1="55" y1="63" x2="65" y2="67" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
+  </g>
+
+  <text x="180" y="85" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="52" fill="#0F172A" letter-spacing="-1.5">
+    ALGO<tspan fill="url(#drillGrad)">DRILL</tspan>
+  </text>
+  
+  <text x="185" y="115" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="14" fill="#64748B" letter-spacing="5">
+    CODE. PRACTICE. MASTER.
+  </text>
+</svg>
