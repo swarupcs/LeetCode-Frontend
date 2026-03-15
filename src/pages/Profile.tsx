@@ -133,7 +133,7 @@ function ProfileSkeleton() {
 
             {/* Quick stats row */}
             <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-border/30'>
-              {[C.primary, C.amber, C.accent, C.emerald].map((color, i) => (
+              {[C.primary, C.amber, C.accent, C.emerald].map((_color, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 8 }}
@@ -274,7 +274,7 @@ function ProfileSkeleton() {
                   </div>
                   {/* Difficulty bars */}
                   <div className='w-full space-y-3'>
-                    {[C.emerald, C.amber, C.rose].map((color, i) => (
+                    {[C.emerald, C.amber, C.rose].map((_color, i) => (
                       <div key={i}>
                         <div className='flex justify-between mb-1.5'>
                           <Bone w='w-10' h='h-3' delay={380 + i * 30} />

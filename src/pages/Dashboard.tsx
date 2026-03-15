@@ -187,7 +187,7 @@ function DashboardSkeleton() {
                 </div>
                 {/* Difficulty bars */}
                 <div className='w-full space-y-3'>
-                  {[C.emerald, C.amber, C.rose].map((color, i) => (
+                  {[C.emerald, C.amber, C.rose].map((_color, i) => (
                     <div key={i}>
                       <div className='flex justify-between mb-1.5'>
                         <Bone w='w-12' h='h-3' delay={270 + i * 30} />
