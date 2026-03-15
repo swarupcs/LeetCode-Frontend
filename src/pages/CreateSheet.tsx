@@ -1,4 +1,4 @@
-// src/pages/admin/CreateSheetPage.tsx  (also used for Edit via useParams id)
+// src/pages/admin/CreateSheetPage.tsx
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -28,6 +28,121 @@ import { useProblems } from '@/hooks/problems/useGetAllProblems';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard' | 'Mixed';
 
+// ─── Skeleton primitive ───────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Edit-mode loading skeleton ───────────────────────────────────────────────
+
+function CreateSheetSkeleton() {
+  return (
+    <div className='min-h-screen'>
+      <div className='mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className='mb-8'
+        >
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-3'>
+              <Bone w='w-5' h='h-5' rounded='rounded' delay={0} />
+              <div className='space-y-2'>
+                <Bone w='w-44' h='h-7' rounded='rounded-lg' delay={30} />
+                <Bone w='w-64' h='h-4' delay={50} />
+              </div>
+            </div>
+            <div className='flex items-center gap-2'>
+              <Bone w='w-24' h='h-9' rounded='rounded-lg' delay={60} />
+              <Bone w='w-28' h='h-9' rounded='rounded-lg' delay={75} />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Tab bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+        >
+          <div className='flex gap-1 bg-surface-1 border border-border/50 rounded-lg p-1 w-fit h-10 mb-6'>
+            <Bone w='w-24' h='h-7' rounded='rounded-md' delay={80} />
+            <Bone w='w-36' h='h-7' rounded='rounded-md' delay={95} />
+          </div>
+        </motion.div>
+
+        {/* Basics tab content */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+          className='glass-card p-6 space-y-6'
+        >
+          {/* Name */}
+          <div className='space-y-2'>
+            <Bone w='w-24' h='h-4' delay={120} />
+            <Bone w='w-full' h='h-11' rounded='rounded-xl' delay={135} />
+            <Bone w='w-20' h='h-2.5' delay={148} />
+          </div>
+          {/* Description */}
+          <div className='space-y-2'>
+            <Bone w='w-24' h='h-4' delay={160} />
+            <Bone w='w-full' h='h-24' rounded='rounded-xl' delay={175} />
+            <Bone w='w-24' h='h-2.5' delay={188} />
+          </div>
+          {/* Difficulty select */}
+          <div className='space-y-2'>
+            <Bone w='w-28' h='h-4' delay={200} />
+            <Bone
+              w='w-full max-w-xs'
+              h='h-11'
+              rounded='rounded-xl'
+              delay={215}
+            />
+          </div>
+          {/* Tags */}
+          <div className='space-y-2'>
+            <Bone w='w-10' h='h-4' delay={230} />
+            <Bone w='w-full' h='h-10' rounded='rounded-xl' delay={245} />
+          </div>
+        </motion.div>
+
+        {/* Bottom action bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.22 }}
+          className='mt-6 flex items-center justify-between'
+        >
+          <Bone w='w-16' h='h-9' rounded='rounded-lg' delay={260} />
+          <Bone w='w-28' h='h-9' rounded='rounded-lg' delay={275} />
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function CreateSheetPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -35,10 +150,9 @@ export default function CreateSheetPage() {
 
   const { createSheetMutation, isPending: isCreating } = useCreateSheet();
   const { updateSheetMutation, isPending: isUpdating } = useUpdateSheet();
-  // useProblems returns data.data (Problem[]) via the hook's unwrap
   const { problems, isPending: isProblemsLoading } = useProblems();
   const { sheet: existingSheet, isPending: isSheetLoading } = useGetSheetById(
-    isEditing ? id : undefined
+    isEditing ? id : undefined,
   );
 
   const isPending = isCreating || isUpdating;
@@ -60,13 +174,10 @@ export default function CreateSheetPage() {
   });
   const [activeSection, setActiveSection] = useState('basics');
 
-
-
   const totalProblems = useMemo(
     () => new Set(topics.flatMap((t) => t.problemIds)).size,
-    [topics]
+    [topics],
   );
-
   const canSave =
     !!name.trim() && topics.some((t) => t.name.trim()) && !isPending;
 
@@ -77,7 +188,6 @@ export default function CreateSheetPage() {
       });
       return;
     }
-
     try {
       if (isEditing && id) {
         await updateSheetMutation({
@@ -101,19 +211,17 @@ export default function CreateSheetPage() {
         {
           description:
             error?.message ?? 'Something went wrong. Please try again.',
-        }
+        },
       );
     }
   };
 
   const handlePreview = () => {
-    if (isEditing && id) {
-      window.open(`/sheets/${id}`, '_blank');
-    } else {
+    if (isEditing && id) window.open(`/sheets/${id}`, '_blank');
+    else
       toast.warning('Save first', {
         description: 'Save the sheet before previewing.',
       });
-    }
   };
 
   const difficultyClass =
@@ -125,13 +233,8 @@ export default function CreateSheetPage() {
           ? 'difficulty-hard'
           : 'border-primary/30 text-primary';
 
-  if (isEditing && isSheetLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='h-8 w-8 animate-spin text-primary' />
-      </div>
-    );
-  }
+  // ── Loading (edit mode only) ──────────────────────────────────────────────
+  if (isEditing && isSheetLoading) return <CreateSheetSkeleton />;
 
   return (
     <div className='min-h-screen'>
@@ -251,7 +354,7 @@ export default function CreateSheetPage() {
             </TabsList>
           </motion.div>
 
-          {/* Basics Tab */}
+          {/* Basics */}
           <TabsContent value='basics'>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -278,7 +381,6 @@ export default function CreateSheetPage() {
                   {name.length}/100 characters
                 </p>
               </div>
-
               <div>
                 <Label
                   htmlFor='desc'
@@ -298,7 +400,6 @@ export default function CreateSheetPage() {
                   {description.length}/500 characters
                 </p>
               </div>
-
               <div>
                 <Label className='text-sm font-semibold mb-2 block'>
                   Difficulty Level
@@ -315,15 +416,7 @@ export default function CreateSheetPage() {
                       <SelectItem key={d} value={d}>
                         <span className='flex items-center gap-2'>
                           <span
-                            className={`h-2 w-2 rounded-full ${
-                              d === 'Easy'
-                                ? 'bg-[hsl(var(--emerald))]'
-                                : d === 'Medium'
-                                  ? 'bg-[hsl(var(--amber))]'
-                                  : d === 'Hard'
-                                    ? 'bg-destructive'
-                                    : 'bg-primary'
-                            }`}
+                            className={`h-2 w-2 rounded-full ${d === 'Easy' ? 'bg-[hsl(var(--emerald))]' : d === 'Medium' ? 'bg-[hsl(var(--amber))]' : d === 'Hard' ? 'bg-destructive' : 'bg-primary'}`}
                           />
                           {d}
                         </span>
@@ -332,12 +425,11 @@ export default function CreateSheetPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               <TagInput tags={tags} onChange={setTags} />
             </motion.div>
           </TabsContent>
 
-          {/* Topics & Problems Tab */}
+          {/* Topics & Problems */}
           <TabsContent value='topics'>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -360,7 +452,7 @@ export default function CreateSheetPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Bottom action bar */}
+        {/* Bottom bar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

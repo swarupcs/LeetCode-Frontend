@@ -1,3 +1,4 @@
+// src/pages/admin/AdminProblemsPage.tsx
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -57,12 +58,237 @@ import {
   Filter,
   Globe,
   EyeOff,
-  Loader2,
 } from 'lucide-react';
 import { usePagination } from '@/hooks/use-pagination';
-
 import { toast } from 'sonner';
 import { useProblems } from '@/hooks/problems/useGetAllProblems';
+
+// ─── Skeleton primitive ───────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Full page skeleton ───────────────────────────────────────────────────────
+
+function AdminProblemsSkeleton() {
+  return (
+    <div className='p-6 lg:p-8 max-w-7xl'>
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className='mb-8'
+      >
+        <div className='flex items-center justify-between'>
+          <div className='space-y-2'>
+            <Bone w='w-28' h='h-7' rounded='rounded-lg' />
+            <Bone w='w-72' h='h-4' delay={40} />
+          </div>
+          <Bone w='w-36' h='h-10' rounded='rounded-lg' delay={60} />
+        </div>
+      </motion.div>
+
+      {/* 6 stat cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className='grid grid-cols-2 md:grid-cols-6 gap-4 mb-8'
+      >
+        {[0, 60, 120, 180, 240, 300].map((d, i) => (
+          <div key={i} className='glass-card p-4 text-center'>
+            <Bone w='w-10 mx-auto' h='h-7' rounded='rounded-lg' delay={d} />
+            <Bone w='w-16 mx-auto' h='h-2.5' delay={d + 30} className='mt-2' />
+          </div>
+        ))}
+      </motion.div>
+
+      {/* Toolbar */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className='flex flex-col sm:flex-row gap-3 mb-6'
+      >
+        <Bone w='flex-1 w-full' h='h-10' rounded='rounded-xl' delay={320} />
+        <div className='flex gap-3'>
+          <Bone w='w-[140px]' h='h-10' rounded='rounded-xl' delay={340} />
+          <Bone w='w-[140px]' h='h-10' rounded='rounded-xl' delay={360} />
+        </div>
+      </motion.div>
+
+      {/* Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className='glass-card overflow-hidden'
+      >
+        <Table>
+          <TableHeader>
+            <TableRow className='border-border/50 hover:bg-transparent'>
+              {[
+                '#',
+                'Title',
+                'Difficulty',
+                'Status',
+                'Tags',
+                'Details',
+                '',
+              ].map((h, i) => (
+                <TableHead
+                  key={i}
+                  className={`text-muted-foreground text-xs font-semibold ${i === 0 ? 'w-[60px]' : i === 2 ? 'w-[100px]' : i === 3 ? 'w-[110px]' : i === 4 ? 'hidden md:table-cell' : i === 5 ? 'w-[80px] text-center' : i === 6 ? 'w-[50px]' : ''}`}
+                >
+                  {h}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 10 }).map((_, i) => (
+              <motion.tr
+                key={i}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, delay: 0.25 + i * 0.035 }}
+                className='border-border/30'
+              >
+                {/* Render as plain tds since SkeletonRow already uses TableRow */}
+                <TableCell className='w-[60px]'>
+                  <Bone w='w-8' h='h-3' rounded='rounded' delay={i * 50} />
+                </TableCell>
+                <TableCell>
+                  <Bone
+                    w={
+                      [
+                        'w-48',
+                        'w-56',
+                        'w-40',
+                        'w-52',
+                        'w-44',
+                        'w-36',
+                        'w-48',
+                        'w-52',
+                        'w-44',
+                        'w-40',
+                      ][i]!
+                    }
+                    h='h-3.5'
+                    delay={i * 50 + 15}
+                  />
+                </TableCell>
+                <TableCell className='w-[100px]'>
+                  <Bone
+                    w='w-14'
+                    h='h-5'
+                    rounded='rounded-full'
+                    delay={i * 50 + 25}
+                  />
+                </TableCell>
+                <TableCell className='w-[110px]'>
+                  <Bone
+                    w='w-20'
+                    h='h-5'
+                    rounded='rounded-full'
+                    delay={i * 50 + 35}
+                  />
+                </TableCell>
+                <TableCell className='hidden md:table-cell'>
+                  <div className='flex gap-1'>
+                    <Bone
+                      w='w-12'
+                      h='h-4'
+                      rounded='rounded'
+                      delay={i * 50 + 40}
+                    />
+                    <Bone
+                      w='w-16'
+                      h='h-4'
+                      rounded='rounded'
+                      delay={i * 50 + 52}
+                    />
+                    <Bone
+                      w='w-10'
+                      h='h-4'
+                      rounded='rounded'
+                      delay={i * 50 + 64}
+                    />
+                  </div>
+                </TableCell>
+                <TableCell className='w-[80px] text-center'>
+                  <div className='flex items-center justify-center gap-1'>
+                    <Bone
+                      w='w-3.5'
+                      h='h-3.5'
+                      rounded='rounded'
+                      delay={i * 50 + 45}
+                    />
+                    <Bone
+                      w='w-3.5'
+                      h='h-3.5'
+                      rounded='rounded'
+                      delay={i * 50 + 58}
+                    />
+                  </div>
+                </TableCell>
+                <TableCell className='w-[50px]'>
+                  <Bone
+                    w='w-7'
+                    h='h-7'
+                    rounded='rounded-md'
+                    delay={i * 50 + 50}
+                  />
+                </TableCell>
+              </motion.tr>
+            ))}
+          </TableBody>
+        </Table>
+      </motion.div>
+
+      {/* Pagination placeholder */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.55 }}
+        className='mt-6 flex items-center justify-between'
+      >
+        <Bone w='w-48' h='h-4' delay={540} />
+        <div className='flex items-center gap-1.5'>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <Bone
+              key={i}
+              w='w-9'
+              h='h-9'
+              rounded='rounded-lg'
+              delay={555 + i * 20}
+            />
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminProblemsPage() {
   const { problems, isLoading, isError } = useProblems();
@@ -144,15 +370,10 @@ export default function AdminProblemsPage() {
     );
   };
 
-  // ─── loading / error states ───────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='h-8 w-8 animate-spin text-primary' />
-      </div>
-    );
-  }
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (isLoading) return <AdminProblemsSkeleton />;
 
+  // ── Error ─────────────────────────────────────────────────────────────────
   if (isError) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
@@ -187,7 +408,7 @@ export default function AdminProblemsPage() {
         </div>
       </motion.div>
 
-      {/* Stats Cards */}
+      {/* Stat cards */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -260,7 +481,7 @@ export default function AdminProblemsPage() {
         </div>
       </motion.div>
 
-      {/* Problems Table */}
+      {/* Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -321,11 +542,7 @@ export default function AdminProblemsPage() {
                   <TableCell>
                     <Badge
                       variant='outline'
-                      className={`text-[10px] font-medium border ${
-                        problem.isPublished
-                          ? 'bg-primary/10 text-primary border-primary/20'
-                          : 'bg-destructive/10 text-destructive border-destructive/20 animate-pulse'
-                      }`}
+                      className={`text-[10px] font-medium border ${problem.isPublished ? 'bg-primary/10 text-primary border-primary/20' : 'bg-destructive/10 text-destructive border-destructive/20 animate-pulse'}`}
                     >
                       {problem.isPublished ? (
                         <span className='flex items-center gap-1'>
@@ -359,16 +576,12 @@ export default function AdminProblemsPage() {
                   </TableCell>
                   <TableCell className='text-center'>
                     <div className='flex items-center justify-center gap-1'>
-                      {problem.description ? (
-                        <Code2 className='h-3.5 w-3.5 text-primary' />
-                      ) : (
-                        <Code2 className='h-3.5 w-3.5 text-muted-foreground/30' />
-                      )}
-                      {problem.codeSnippets ? (
-                        <ListChecks className='h-3.5 w-3.5 text-primary' />
-                      ) : (
-                        <ListChecks className='h-3.5 w-3.5 text-muted-foreground/30' />
-                      )}
+                      <Code2
+                        className={`h-3.5 w-3.5 ${problem.description ? 'text-primary' : 'text-muted-foreground/30'}`}
+                      />
+                      <ListChecks
+                        className={`h-3.5 w-3.5 ${problem.codeSnippets ? 'text-primary' : 'text-muted-foreground/30'}`}
+                      />
                     </div>
                   </TableCell>
                   <TableCell>
@@ -493,7 +706,7 @@ export default function AdminProblemsPage() {
         </motion.div>
       )}
 
-      {/* Delete Dialog */}
+      {/* Delete dialog */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}

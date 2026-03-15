@@ -68,17 +68,223 @@ function createEmptyTopic(): RoadmapTopic {
     subtopics: [],
   };
 }
-
 function createEmptyResource(): RoadmapResource {
   return { title: '', type: 'article' };
 }
-
 function createEmptySubtopic(): RoadmapSubtopic {
   return {
     id: `st${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     name: '',
   };
 }
+
+// ─── Skeleton primitive ───────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Edit-mode loading skeleton ───────────────────────────────────────────────
+
+function CreateRoadmapSkeleton() {
+  return (
+    <div className='p-6 lg:p-8 max-w-4xl'>
+      {/* Back + header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Bone w='w-32' h='h-8' rounded='rounded-lg' className='mb-4' />
+        <div className='flex items-center justify-between mb-8'>
+          <div className='space-y-2'>
+            <Bone w='w-40' h='h-7' rounded='rounded-lg' delay={40} />
+            <Bone w='w-80' h='h-4' delay={60} />
+          </div>
+          <Bone w='w-20' h='h-10' rounded='rounded-lg' delay={80} />
+        </div>
+      </motion.div>
+
+      <div className='space-y-8'>
+        {/* Basic info card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className='glass-card p-6 space-y-5'
+        >
+          <Bone w='w-36' h='h-4' delay={100} />
+          {/* Name + slug */}
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+            <div className='space-y-2'>
+              <Bone w='w-10' h='h-3' delay={110} />
+              <Bone w='w-full' h='h-10' rounded='rounded-xl' delay={120} />
+            </div>
+            <div className='space-y-2'>
+              <Bone w='w-10' h='h-3' delay={130} />
+              <Bone w='w-full' h='h-10' rounded='rounded-xl' delay={140} />
+            </div>
+          </div>
+          {/* Description */}
+          <div className='space-y-2'>
+            <Bone w='w-20' h='h-3' delay={150} />
+            <Bone w='w-full' h='h-20' rounded='rounded-xl' delay={160} />
+          </div>
+          {/* Icon + color + published */}
+          <div className='grid grid-cols-2 sm:grid-cols-3 gap-4'>
+            <div className='space-y-2'>
+              <Bone w='w-8' h='h-3' delay={170} />
+              <Bone w='w-full' h='h-10' rounded='rounded-xl' delay={180} />
+            </div>
+            <div className='space-y-2'>
+              <Bone w='w-10' h='h-3' delay={190} />
+              <Bone w='w-full' h='h-10' rounded='rounded-xl' delay={200} />
+            </div>
+            <div className='flex items-end gap-2 pb-1'>
+              <Bone w='w-10' h='h-6' rounded='rounded-full' delay={210} />
+              <Bone w='w-16' h='h-3' delay={220} />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Sections & Topics card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className='glass-card p-6 space-y-5'
+        >
+          {/* Card heading row */}
+          <div className='flex items-center justify-between'>
+            <div className='space-y-1.5'>
+              <Bone w='w-36' h='h-4' delay={240} />
+              <Bone w='w-56' h='h-2.5' delay={255} />
+            </div>
+            <Bone w='w-24' h='h-7' rounded='rounded-lg' delay={265} />
+          </div>
+
+          {/* Search + expand controls */}
+          <div className='flex flex-col sm:flex-row gap-2'>
+            <Bone w='flex-1 w-full' h='h-8' rounded='rounded-xl' delay={275} />
+            <div className='flex gap-1.5 shrink-0'>
+              {[0, 1, 2, 3].map((i) => (
+                <Bone
+                  key={i}
+                  w='w-20'
+                  h='h-8'
+                  rounded='rounded-lg'
+                  delay={285 + i * 15}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* 3 skeleton section blocks */}
+          {[0, 1, 2].map((si) => (
+            <motion.div
+              key={si}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + si * 0.07 }}
+              className='rounded-lg border border-border/40 bg-surface-1/30 overflow-hidden'
+            >
+              {/* Section header */}
+              <div className='flex items-center gap-2 px-4 py-2.5 bg-surface-2/50 border-b border-border/30'>
+                <Bone w='w-4' h='h-4' rounded='rounded' delay={320 + si * 50} />
+                <Bone w='w-4' h='h-4' rounded='rounded' delay={330 + si * 50} />
+                <Bone
+                  w={['w-40', 'w-52', 'w-36'][si]!}
+                  h='h-5'
+                  rounded='rounded'
+                  delay={340 + si * 50}
+                  className='flex-1'
+                />
+                <Bone
+                  w='w-14'
+                  h='h-5'
+                  rounded='rounded-full'
+                  delay={350 + si * 50}
+                />
+                <Bone w='w-8' h='h-3' delay={358 + si * 50} />
+                <Bone
+                  w='w-6'
+                  h='h-6'
+                  rounded='rounded-md'
+                  delay={365 + si * 50}
+                />
+              </div>
+              {/* Topic rows inside (only first section expanded) */}
+              {si === 0 && (
+                <div className='p-4 space-y-2'>
+                  <Bone w='w-full' h='h-8' rounded='rounded-xl' delay={380} />
+                  {[0, 1, 2].map((ti) => (
+                    <div
+                      key={ti}
+                      className='rounded-lg border border-border/30 bg-surface-2/30 overflow-hidden'
+                    >
+                      <div className='flex items-center gap-2 px-3 py-2'>
+                        <Bone
+                          w='w-3'
+                          h='h-3'
+                          rounded='rounded'
+                          delay={395 + ti * 30}
+                        />
+                        <Bone
+                          w='w-3.5'
+                          h='h-3.5'
+                          rounded='rounded'
+                          delay={405 + ti * 30}
+                        />
+                        <Bone
+                          w={['w-36', 'w-44', 'w-32'][ti]!}
+                          h='h-3.5'
+                          delay={415 + ti * 30}
+                          className='flex-1'
+                        />
+                        <Bone
+                          w='w-16'
+                          h='h-4'
+                          rounded='rounded-full'
+                          delay={425 + ti * 30}
+                        />
+                        <Bone w='w-8' h='h-3' delay={432 + ti * 30} />
+                        <Bone
+                          w='w-6'
+                          h='h-6'
+                          rounded='rounded-md'
+                          delay={440 + ti * 30}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <Bone w='w-full' h='h-7' rounded='rounded-lg' delay={500} />
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CreateRoadmapPage() {
   const { id } = useParams<{ id: string }>();
@@ -94,33 +300,32 @@ export default function CreateRoadmapPage() {
   const [name, setName] = useState(() => existing?.name ?? '');
   const [slug, setSlug] = useState(() => existing?.slug ?? '');
   const [description, setDescription] = useState(
-    () => existing?.description ?? ''
+    () => existing?.description ?? '',
   );
   const [icon, setIcon] = useState(() => existing?.icon ?? 'Binary');
   const [color, setColor] = useState(() => existing?.color ?? 'emerald');
   const [isPublished, setIsPublished] = useState(
-    () => existing?.isPublished ?? false
+    () => existing?.isPublished ?? false,
   );
   const [sections, setSections] = useState<RoadmapSection[]>(
-    () => (existing?.sections as RoadmapSection[] | undefined) ?? []
+    () => (existing?.sections as RoadmapSection[] | undefined) ?? [],
   );
 
   const [expandedSections, setExpandedSections] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleNameChange = (val: string) => {
     setName(val);
-    if (!isEditing) {
+    if (!isEditing)
       setSlug(
         val
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
-          .replace(/(^-|-$)/g, '')
+          .replace(/(^-|-$)/g, ''),
       );
-    }
   };
 
   const expandAllSections = () =>
@@ -130,9 +335,9 @@ export default function CreateRoadmapPage() {
     setExpandedTopics(new Set());
   };
   const expandAllTopics = () => {
-    const allIds = sections.flatMap((s) => s.topics.map((t) => t.id));
+    const ids = sections.flatMap((s) => s.topics.map((t) => t.id));
     setExpandedSections(new Set(sections.map((_, i) => i)));
-    setExpandedTopics(new Set(allIds));
+    setExpandedTopics(new Set(ids));
   };
   const collapseAllTopics = () => setExpandedTopics(new Set());
 
@@ -146,7 +351,7 @@ export default function CreateRoadmapPage() {
         topic.subtopics.some((st) => st.name.toLowerCase().includes(q))
       );
     },
-    [searchQuery]
+    [searchQuery],
   );
 
   const filteredSectionIndices = useMemo(() => {
@@ -157,7 +362,6 @@ export default function CreateRoadmapPage() {
       .map(({ index }) => index);
   }, [sections, searchQuery, matchesSearch]);
 
-  // ─── Section CRUD ─────────────────────────────────────────────────────────
   const addSection = () => {
     setSections((prev) => [
       ...prev,
@@ -165,7 +369,6 @@ export default function CreateRoadmapPage() {
     ]);
     setExpandedSections((prev) => new Set([...prev, sections.length]));
   };
-
   const removeSection = (index: number) => {
     setSections((prev) => prev.filter((_, i) => i !== index));
     setExpandedSections((prev) => {
@@ -177,176 +380,162 @@ export default function CreateRoadmapPage() {
       return next;
     });
   };
-
   const updateSection = (
     index: number,
     field: 'name' | 'description',
-    value: string
+    value: string,
   ) =>
     setSections((prev) =>
-      prev.map((s, i) => (i === index ? { ...s, [field]: value } : s))
+      prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)),
     );
 
-  // ─── Topic CRUD ───────────────────────────────────────────────────────────
-  const addTopic = (sectionIndex: number) => {
-    const newTopic = createEmptyTopic();
+  const addTopic = (si: number) => {
+    const t = createEmptyTopic();
     setSections((prev) =>
-      prev.map((s, i) =>
-        i === sectionIndex ? { ...s, topics: [...s.topics, newTopic] } : s
-      )
+      prev.map((s, i) => (i === si ? { ...s, topics: [...s.topics, t] } : s)),
     );
-    setExpandedTopics((prev) => new Set([...prev, newTopic.id]));
+    setExpandedTopics((prev) => new Set([...prev, t.id]));
   };
-
-  const removeTopic = (sectionIndex: number, topicIndex: number) =>
+  const removeTopic = (si: number, ti: number) =>
     setSections((prev) =>
       prev.map((s, i) =>
-        i === sectionIndex
-          ? { ...s, topics: s.topics.filter((_, ti) => ti !== topicIndex) }
-          : s
-      )
+        i === si ? { ...s, topics: s.topics.filter((_, j) => j !== ti) } : s,
+      ),
     );
-
   const updateTopic = (
-    sectionIndex: number,
-    topicIndex: number,
-    updates: Partial<RoadmapTopic>
+    si: number,
+    ti: number,
+    updates: Partial<RoadmapTopic>,
   ) =>
     setSections((prev) =>
-      prev.map((s, si) =>
-        si === sectionIndex
+      prev.map((s, sI) =>
+        sI === si
           ? {
               ...s,
-              topics: s.topics.map((t, ti) =>
-                ti === topicIndex ? { ...t, ...updates } : t
+              topics: s.topics.map((t, tI) =>
+                tI === ti ? { ...t, ...updates } : t,
               ),
             }
-          : s
-      )
+          : s,
+      ),
     );
 
-  // ─── Resource CRUD ────────────────────────────────────────────────────────
   const addResource = (si: number, ti: number) =>
     setSections((prev) =>
-      prev.map((s, sIdx) =>
-        sIdx === si
+      prev.map((s, sI) =>
+        sI === si
           ? {
               ...s,
-              topics: s.topics.map((t, tIdx) =>
-                tIdx === ti
+              topics: s.topics.map((t, tI) =>
+                tI === ti
                   ? { ...t, resources: [...t.resources, createEmptyResource()] }
-                  : t
+                  : t,
               ),
             }
-          : s
-      )
+          : s,
+      ),
     );
-
   const updateResource = (
     si: number,
     ti: number,
     ri: number,
-    updates: Partial<RoadmapResource>
+    upd: Partial<RoadmapResource>,
   ) =>
     setSections((prev) =>
-      prev.map((s, sIdx) =>
-        sIdx === si
+      prev.map((s, sI) =>
+        sI === si
           ? {
               ...s,
-              topics: s.topics.map((t, tIdx) =>
-                tIdx === ti
+              topics: s.topics.map((t, tI) =>
+                tI === ti
                   ? {
                       ...t,
-                      resources: t.resources.map((r, rIdx) =>
-                        rIdx === ri ? { ...r, ...updates } : r
+                      resources: t.resources.map((r, rI) =>
+                        rI === ri ? { ...r, ...upd } : r,
                       ),
                     }
-                  : t
+                  : t,
               ),
             }
-          : s
-      )
+          : s,
+      ),
     );
-
   const removeResource = (si: number, ti: number, ri: number) =>
     setSections((prev) =>
-      prev.map((s, sIdx) =>
-        sIdx === si
+      prev.map((s, sI) =>
+        sI === si
           ? {
               ...s,
-              topics: s.topics.map((t, tIdx) =>
-                tIdx === ti
+              topics: s.topics.map((t, tI) =>
+                tI === ti
                   ? {
                       ...t,
-                      resources: t.resources.filter((_, rIdx) => rIdx !== ri),
+                      resources: t.resources.filter((_, rI) => rI !== ri),
                     }
-                  : t
+                  : t,
               ),
             }
-          : s
-      )
+          : s,
+      ),
     );
 
-  // ─── Subtopic CRUD ────────────────────────────────────────────────────────
   const addSubtopic = (si: number, ti: number) =>
     setSections((prev) =>
-      prev.map((s, sIdx) =>
-        sIdx === si
+      prev.map((s, sI) =>
+        sI === si
           ? {
               ...s,
-              topics: s.topics.map((t, tIdx) =>
-                tIdx === ti
+              topics: s.topics.map((t, tI) =>
+                tI === ti
                   ? { ...t, subtopics: [...t.subtopics, createEmptySubtopic()] }
-                  : t
+                  : t,
               ),
             }
-          : s
-      )
+          : s,
+      ),
     );
-
   const updateSubtopic = (
     si: number,
     ti: number,
     stIdx: number,
-    stName: string
+    stName: string,
   ) =>
     setSections((prev) =>
-      prev.map((s, sIdx) =>
-        sIdx === si
+      prev.map((s, sI) =>
+        sI === si
           ? {
               ...s,
-              topics: s.topics.map((t, tIdx) =>
-                tIdx === ti
+              topics: s.topics.map((t, tI) =>
+                tI === ti
                   ? {
                       ...t,
                       subtopics: t.subtopics.map((st, i) =>
-                        i === stIdx ? { ...st, name: stName } : st
+                        i === stIdx ? { ...st, name: stName } : st,
                       ),
                     }
-                  : t
+                  : t,
               ),
             }
-          : s
-      )
+          : s,
+      ),
     );
-
   const removeSubtopic = (si: number, ti: number, stIdx: number) =>
     setSections((prev) =>
-      prev.map((s, sIdx) =>
-        sIdx === si
+      prev.map((s, sI) =>
+        sI === si
           ? {
               ...s,
-              topics: s.topics.map((t, tIdx) =>
-                tIdx === ti
+              topics: s.topics.map((t, tI) =>
+                tI === ti
                   ? {
                       ...t,
                       subtopics: t.subtopics.filter((_, i) => i !== stIdx),
                     }
-                  : t
+                  : t,
               ),
             }
-          : s
-      )
+          : s,
+      ),
     );
 
   const toggleSection = (index: number) =>
@@ -356,7 +545,6 @@ export default function CreateRoadmapPage() {
       else next.add(index);
       return next;
     });
-
   const toggleTopic = (topicId: string) =>
     setExpandedTopics((prev) => {
       const next = new Set(prev);
@@ -365,7 +553,6 @@ export default function CreateRoadmapPage() {
       return next;
     });
 
-  // ─── Drag and drop ────────────────────────────────────────────────────────
   const [dragType, setDragType] = useState<'section' | 'topic' | null>(null);
   const [dragSource, setDragSource] = useState<{
     sectionIndex: number;
@@ -375,27 +562,24 @@ export default function CreateRoadmapPage() {
     sectionIndex: number;
     topicIndex?: number;
   } | null>(null);
-
   const resetDrag = () => {
     setDragType(null);
     setDragSource(null);
     setDragOverTarget(null);
   };
 
-  const handleSectionDragStart = (e: React.DragEvent, sectionIndex: number) => {
+  const handleSectionDragStart = (e: React.DragEvent, si: number) => {
     setDragType('section');
-    setDragSource({ sectionIndex });
+    setDragSource({ sectionIndex: si });
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', '');
   };
-
-  const handleSectionDragOver = (e: React.DragEvent, sectionIndex: number) => {
+  const handleSectionDragOver = (e: React.DragEvent, si: number) => {
     if (dragType !== 'section') return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setDragOverTarget({ sectionIndex });
+    setDragOverTarget({ sectionIndex: si });
   };
-
   const handleSectionDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault();
     if (
@@ -434,34 +618,24 @@ export default function CreateRoadmapPage() {
     resetDrag();
   };
 
-  const handleTopicDragStart = (
-    e: React.DragEvent,
-    sectionIndex: number,
-    topicIndex: number
-  ) => {
+  const handleTopicDragStart = (e: React.DragEvent, si: number, ti: number) => {
     e.stopPropagation();
     setDragType('topic');
-    setDragSource({ sectionIndex, topicIndex });
+    setDragSource({ sectionIndex: si, topicIndex: ti });
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', '');
   };
-
-  const handleTopicDragOver = (
-    e: React.DragEvent,
-    sectionIndex: number,
-    topicIndex: number
-  ) => {
+  const handleTopicDragOver = (e: React.DragEvent, si: number, ti: number) => {
     if (dragType !== 'topic') return;
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
-    setDragOverTarget({ sectionIndex, topicIndex });
+    setDragOverTarget({ sectionIndex: si, topicIndex: ti });
   };
-
   const handleTopicDrop = (
     e: React.DragEvent,
     targetSI: number,
-    targetTI: number
+    targetTI: number,
   ) => {
     e.preventDefault();
     e.stopPropagation();
@@ -475,14 +649,13 @@ export default function CreateRoadmapPage() {
     if (fromSI === targetSI && fromTI === targetTI) return;
     setSections((prev) => {
       const next = prev.map((s) => ({ ...s, topics: [...s.topics] }));
-      const [movedTopic] = next[fromSI].topics.splice(fromTI, 1);
-      next[targetSI].topics.splice(targetTI, 0, movedTopic);
+      const [moved] = next[fromSI].topics.splice(fromTI, 1);
+      next[targetSI].topics.splice(targetTI, 0, moved);
       return next;
     });
     resetDrag();
   };
 
-  // ─── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!name.trim()) {
       toast.error('Name required', {
@@ -535,20 +708,15 @@ export default function CreateRoadmapPage() {
   const totalTopics = sections.reduce((acc, s) => acc + s.topics.length, 0);
   const totalSubtopics = sections.reduce(
     (acc, s) => acc + s.topics.reduce((a, t) => a + t.subtopics.length, 0),
-    0
+    0,
   );
   const totalMinutes = sections.reduce(
     (acc, s) => acc + s.topics.reduce((a, t) => a + t.estimatedMinutes, 0),
-    0
+    0,
   );
 
-  if (isEditing && isLoadingExisting) {
-    return (
-      <div className='flex items-center justify-center py-32'>
-        <Loader2 className='h-8 w-8 animate-spin text-primary' />
-      </div>
-    );
-  }
+  // ── Loading (edit mode only) ──────────────────────────────────────────────
+  if (isEditing && isLoadingExisting) return <CreateRoadmapSkeleton />;
 
   return (
     <div className='p-6 lg:p-8 max-w-4xl'>
@@ -564,7 +732,6 @@ export default function CreateRoadmapPage() {
         >
           <ArrowLeft className='h-4 w-4' /> Back to Roadmaps
         </Button>
-
         <div className='flex items-center justify-between mb-8'>
           <div>
             <h1 className='text-2xl font-bold'>
@@ -601,7 +768,6 @@ export default function CreateRoadmapPage() {
           <h2 className='text-sm font-semibold text-foreground'>
             Basic Information
           </h2>
-
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
             <div className='space-y-2'>
               <Label className='text-xs text-muted-foreground'>Name</Label>
@@ -622,7 +788,6 @@ export default function CreateRoadmapPage() {
               />
             </div>
           </div>
-
           <div className='space-y-2'>
             <Label className='text-xs text-muted-foreground'>Description</Label>
             <Textarea
@@ -632,7 +797,6 @@ export default function CreateRoadmapPage() {
               className='bg-surface-2 border-border/50 min-h-[80px]'
             />
           </div>
-
           <div className='grid grid-cols-2 sm:grid-cols-3 gap-4'>
             <div className='space-y-2'>
               <Label className='text-xs text-muted-foreground'>Icon</Label>
@@ -777,19 +941,12 @@ export default function CreateRoadmapPage() {
               : section.topics;
             const sectionMinutes = section.topics.reduce(
               (a, t) => a + t.estimatedMinutes,
-              0
+              0,
             );
-
             return (
               <div
                 key={section.id}
-                className={`rounded-lg border bg-surface-1/30 overflow-hidden transition-colors ${
-                  dragOverTarget?.sectionIndex === si &&
-                  dragType === 'section' &&
-                  dragSource?.sectionIndex !== si
-                    ? 'border-primary/60 ring-1 ring-primary/30'
-                    : 'border-border/40'
-                }`}
+                className={`rounded-lg border bg-surface-1/30 overflow-hidden transition-colors ${dragOverTarget?.sectionIndex === si && dragType === 'section' && dragSource?.sectionIndex !== si ? 'border-primary/60 ring-1 ring-primary/30' : 'border-border/40'}`}
                 onDragOver={(e) => handleSectionDragOver(e, si)}
                 onDrop={(e) => handleSectionDrop(e, si)}
                 onDragEnd={resetDrag}
@@ -837,7 +994,6 @@ export default function CreateRoadmapPage() {
                     <Trash2 className='h-3 w-3' />
                   </Button>
                 </div>
-
                 {isExpanded && (
                   <div className='p-4 space-y-3'>
                     <Input
@@ -848,20 +1004,13 @@ export default function CreateRoadmapPage() {
                       placeholder='Section description (optional)'
                       className='bg-surface-2 border-border/50 h-8 text-xs'
                     />
-
                     {visibleTopics.map((topic) => {
                       const ti = section.topics.indexOf(topic);
                       const topicExpanded = expandedTopics.has(topic.id);
                       return (
                         <div
                           key={topic.id}
-                          className={`rounded-lg border bg-surface-2/30 overflow-hidden transition-colors ${
-                            dragOverTarget?.sectionIndex === si &&
-                            dragOverTarget?.topicIndex === ti &&
-                            dragType === 'topic'
-                              ? 'border-primary/60 ring-1 ring-primary/30'
-                              : 'border-border/30'
-                          }`}
+                          className={`rounded-lg border bg-surface-2/30 overflow-hidden transition-colors ${dragOverTarget?.sectionIndex === si && dragOverTarget?.topicIndex === ti && dragType === 'topic' ? 'border-primary/60 ring-1 ring-primary/30' : 'border-border/30'}`}
                           onDragOver={(e) => handleTopicDragOver(e, si, ti)}
                           onDrop={(e) => handleTopicDrop(e, si, ti)}
                           onDragEnd={resetDrag}
@@ -918,7 +1067,6 @@ export default function CreateRoadmapPage() {
                               <Trash2 className='h-3 w-3' />
                             </Button>
                           </div>
-
                           {topicExpanded && (
                             <div className='px-3 pb-3 space-y-3 border-t border-border/20 pt-3'>
                               <Textarea
@@ -931,7 +1079,6 @@ export default function CreateRoadmapPage() {
                                 placeholder='Topic description'
                                 className='bg-surface-2 border-border/50 text-xs min-h-[60px]'
                               />
-
                               <div className='grid grid-cols-2 gap-3'>
                                 <div className='space-y-1'>
                                   <Label className='text-[10px] text-muted-foreground'>
@@ -981,8 +1128,6 @@ export default function CreateRoadmapPage() {
                                   />
                                 </div>
                               </div>
-
-                              {/* Subtopics */}
                               <div className='space-y-1.5'>
                                 <div className='flex items-center justify-between'>
                                   <Label className='text-[10px] text-muted-foreground'>
@@ -1011,7 +1156,7 @@ export default function CreateRoadmapPage() {
                                             si,
                                             ti,
                                             stIdx,
-                                            e.target.value
+                                            e.target.value,
                                           )
                                         }
                                         placeholder='Subtopic name'
@@ -1029,8 +1174,6 @@ export default function CreateRoadmapPage() {
                                   ))}
                                 </div>
                               </div>
-
-                              {/* Resources */}
                               <div className='space-y-1.5'>
                                 <div className='flex items-center justify-between'>
                                   <Label className='text-[10px] text-muted-foreground'>
