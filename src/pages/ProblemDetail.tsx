@@ -1,3 +1,4 @@
+// src/pages/ProblemDetailPage.tsx
 import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
@@ -71,7 +72,309 @@ const difficultyConfig: Record<string, { class: string; label: string }> = {
   HARD: { class: 'difficulty-hard', label: 'Hard' },
 };
 
-// ─── Local submission shape (UI-only, built from API data) ────────────────────
+// ─── Skeleton primitives ──────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Full split-pane skeleton ─────────────────────────────────────────────────
+
+function ProblemDetailSkeleton() {
+  return (
+    <div className='h-[calc(100vh-4rem)] flex flex-col'>
+      {/* ── Top bar skeleton ──────────────────────────────────────────────── */}
+      <div className='flex items-center justify-between px-4 py-2 border-b border-border/50 bg-surface-1/50 backdrop-blur-sm shrink-0'>
+        {/* Left: back arrow + title */}
+        <div className='flex items-center gap-3'>
+          <Bone w='w-4' h='h-4' rounded='rounded' />
+          <Bone w='w-5' h='h-3.5' rounded='rounded' delay={30} />
+          <Bone w='w-48' h='h-4' rounded='rounded-md' delay={50} />
+          <Bone w='w-12' h='h-5' rounded='rounded-full' delay={80} />
+        </div>
+        {/* Right: nav + run + submit */}
+        <div className='flex items-center gap-2'>
+          <div className='hidden sm:flex items-center gap-1'>
+            <Bone w='w-7' h='h-7' rounded='rounded-md' delay={60} />
+            <Bone w='w-8' h='h-3' rounded='rounded' delay={80} />
+            <Bone w='w-7' h='h-7' rounded='rounded-md' delay={100} />
+          </div>
+          <div className='w-px h-5 bg-border/40 hidden sm:block' />
+          <Bone w='w-16' h='h-7' rounded='rounded-lg' delay={120} />
+          <Bone w='w-20' h='h-7' rounded='rounded-lg' delay={140} />
+        </div>
+      </div>
+
+      {/* ── Split pane ────────────────────────────────────────────────────── */}
+      <div className='flex-1 flex overflow-hidden'>
+        {/* Left panel — description skeleton */}
+        <div className='w-[45%] flex flex-col border-r border-border/30 overflow-hidden'>
+          {/* Tab bar */}
+          <div className='border-b border-border/50 px-4 h-10 flex items-center gap-2 shrink-0'>
+            <Bone w='w-24' h='h-6' rounded='rounded-md' delay={80} />
+            <Bone w='w-24' h='h-6' rounded='rounded-md' delay={110} />
+          </div>
+
+          {/* Content */}
+          <div className='flex-1 overflow-hidden p-6 space-y-5'>
+            {/* Tags row */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className='flex flex-wrap gap-1.5'
+            >
+              {[48, 64, 56, 40, 72].map((w, i) => (
+                <Bone
+                  key={i}
+                  w={`w-[${w}px]`}
+                  h='h-5'
+                  rounded='rounded-md'
+                  delay={160 + i * 30}
+                />
+              ))}
+            </motion.div>
+
+            {/* Description lines */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.22 }}
+              className='space-y-2.5'
+            >
+              {[
+                'w-full',
+                'w-[92%]',
+                'w-[85%]',
+                'w-full',
+                'w-[78%]',
+                'w-[88%]',
+                'w-[60%]',
+              ].map((w, i) => (
+                <Bone key={i} w={w} h='h-3.5' delay={200 + i * 25} />
+              ))}
+            </motion.div>
+
+            {/* Example block */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.32 }}
+              className='rounded-lg border border-border/40 overflow-hidden'
+            >
+              <div className='px-4 py-2 bg-surface-2/50 border-b border-border/30'>
+                <Bone w='w-20' h='h-3' delay={300} />
+              </div>
+              <div className='p-4 space-y-2.5'>
+                <div className='flex gap-3'>
+                  <Bone w='w-12' h='h-3' delay={320} />
+                  <Bone w='w-32' h='h-3' delay={340} />
+                </div>
+                <div className='flex gap-3'>
+                  <Bone w='w-14' h='h-3' delay={360} />
+                  <Bone w='w-16' h='h-3' delay={380} />
+                </div>
+                <div className='pt-1 border-t border-border/20 flex gap-3'>
+                  <Bone w='w-24' h='h-3' delay={400} />
+                  <Bone w='w-48' h='h-3' delay={420} />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Second example block */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className='rounded-lg border border-border/40 overflow-hidden'
+            >
+              <div className='px-4 py-2 bg-surface-2/50 border-b border-border/30'>
+                <Bone w='w-20' h='h-3' delay={420} />
+              </div>
+              <div className='p-4 space-y-2.5'>
+                <div className='flex gap-3'>
+                  <Bone w='w-12' h='h-3' delay={440} />
+                  <Bone w='w-40' h='h-3' delay={460} />
+                </div>
+                <div className='flex gap-3'>
+                  <Bone w='w-14' h='h-3' delay={480} />
+                  <Bone w='w-20' h='h-3' delay={500} />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Constraints */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.48 }}
+              className='space-y-2'
+            >
+              <Bone w='w-24' h='h-4' rounded='rounded' delay={460} />
+              {['w-48', 'w-56', 'w-40'].map((w, i) => (
+                <div key={i} className='flex items-center gap-2'>
+                  <Bone
+                    w='w-1.5'
+                    h='h-1.5'
+                    rounded='rounded-full'
+                    delay={480 + i * 20}
+                  />
+                  <Bone w={w} h='h-5' rounded='rounded' delay={490 + i * 20} />
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Resize handle */}
+        <div className='w-px bg-border/30' />
+
+        {/* Right panel — editor skeleton */}
+        <div className='flex-1 flex flex-col overflow-hidden'>
+          {/* Editor header */}
+          <div className='flex items-center justify-between px-4 py-2 border-b border-border/50 shrink-0'>
+            <div className='flex items-center gap-2'>
+              <Bone w='w-3.5' h='h-3.5' rounded='rounded' delay={100} />
+              <Bone w='w-28' h='h-7' rounded='rounded-md' delay={120} />
+              <div className='w-px h-4 bg-border/40' />
+              <Bone w='w-3.5' h='h-3.5' rounded='rounded' delay={140} />
+              <Bone w='w-32' h='h-7' rounded='rounded-md' delay={160} />
+            </div>
+            <Bone w='w-16' h='h-7' rounded='rounded-md' delay={180} />
+          </div>
+
+          {/* Code editor area */}
+          <div
+            className='flex-1 flex flex-col overflow-hidden'
+            style={{ flex: '0 0 60%' }}
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className='flex-1 p-4 space-y-2 overflow-hidden'
+            >
+              {/* Simulated code lines — indentation pattern mimics real code */}
+              {[
+                { indent: 0, w: 'w-32', delay: 200 },
+                { indent: 1, w: 'w-48', delay: 220 },
+                { indent: 1, w: 'w-64', delay: 240 },
+                { indent: 2, w: 'w-52', delay: 260 },
+                { indent: 2, w: 'w-40', delay: 280 },
+                { indent: 1, w: 'w-36', delay: 300 },
+                { indent: 0, w: 'w-8', delay: 320 },
+                { indent: 0, w: 'w-0', delay: 340 }, // blank line
+                { indent: 0, w: 'w-44', delay: 360 },
+                { indent: 1, w: 'w-56', delay: 380 },
+                { indent: 1, w: 'w-72', delay: 400 },
+                { indent: 2, w: 'w-60', delay: 420 },
+                { indent: 2, w: 'w-48', delay: 440 },
+                { indent: 1, w: 'w-16', delay: 460 },
+                { indent: 0, w: 'w-8', delay: 480 },
+              ].map(({ indent, w, delay }, i) => (
+                <div key={i} className='flex items-center gap-3'>
+                  {/* Line number */}
+                  <Bone
+                    w='w-5'
+                    h='h-3'
+                    rounded='rounded'
+                    delay={delay}
+                    className='shrink-0 opacity-40'
+                  />
+                  {/* Indentation spacer */}
+                  {indent > 0 && (
+                    <div style={{ width: indent * 24 }} className='shrink-0' />
+                  )}
+                  {/* Code line */}
+                  {w !== 'w-0' && (
+                    <Bone w={w} h='h-3' rounded='rounded' delay={delay} />
+                  )}
+                </div>
+              ))}
+            </motion.div>
+          </div>
+
+          {/* Resize handle between editor + output */}
+          <div className='h-px bg-border/30' />
+
+          {/* Output/testcase panel */}
+          <div
+            className='flex flex-col overflow-hidden'
+            style={{ flex: '0 0 40%' }}
+          >
+            {/* Tab bar */}
+            <div className='flex items-center gap-1 px-4 h-10 border-b border-border/50 shrink-0'>
+              <Bone w='w-24' h='h-6' rounded='rounded-md' delay={150} />
+              <Bone w='w-20' h='h-6' rounded='rounded-md' delay={180} />
+            </div>
+
+            {/* Testcase content */}
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className='p-4 space-y-4'
+            >
+              {/* Case tabs */}
+              <div className='flex gap-2'>
+                {[1, 2, 3].map((n) => (
+                  <Bone
+                    key={n}
+                    w='w-16'
+                    h='h-7'
+                    rounded='rounded-md'
+                    delay={350 + n * 30}
+                  />
+                ))}
+              </div>
+              {/* Input label + value */}
+              <div className='space-y-1.5'>
+                <Bone w='w-10' h='h-3' delay={420} />
+                <Bone
+                  w='full'
+                  h='h-9'
+                  rounded='rounded-md'
+                  delay={440}
+                  className='w-full'
+                />
+              </div>
+              {/* Expected output label + value */}
+              <div className='space-y-1.5'>
+                <Bone w='w-28' h='h-3' delay={460} />
+                <Bone
+                  w='full'
+                  h='h-9'
+                  rounded='rounded-md'
+                  delay={480}
+                  className='w-full'
+                />
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Types & helpers ──────────────────────────────────────────────────────────
 
 interface Submission {
   id: string;
@@ -108,11 +411,7 @@ function TestCaseResultCard({
 }) {
   return (
     <div
-      className={`rounded-lg border p-3 ${
-        result.passed
-          ? 'border-primary/30 bg-primary/5'
-          : 'border-destructive/30 bg-destructive/5'
-      }`}
+      className={`rounded-lg border p-3 ${result.passed ? 'border-primary/30 bg-primary/5' : 'border-destructive/30 bg-destructive/5'}`}
     >
       <div className='flex items-center justify-between mb-2'>
         <span className='text-xs font-medium text-muted-foreground'>
@@ -131,7 +430,6 @@ function TestCaseResultCard({
           </span>
         </div>
       </div>
-
       <div className='font-mono text-xs space-y-1.5'>
         <div className='flex gap-2'>
           <span className='text-muted-foreground shrink-0'>Expected:</span>
@@ -156,7 +454,6 @@ function TestCaseResultCard({
           </div>
         )}
       </div>
-
       {(result.time || result.memory) && (
         <div className='flex gap-3 mt-2 pt-2 border-t border-border/20'>
           {result.time && (
@@ -225,7 +522,6 @@ interface EditorPanelState {
   code: string;
   outputTab: string;
   hasRun: boolean;
-  // Store the unwrapped SubmitData (not the full ApiSuccess envelope)
   submitData: SubmitData | null;
   activeSubmission: Submission | null;
   activeCase: number;
@@ -250,14 +546,11 @@ export default function ProblemDetailPage() {
 
   const { problem, isPending, isError } = useProblem(id ?? '');
 
-  // useExecuteProblem now returns runData (unwrapped RunData | null)
   const {
     mutateAsync: runProblemMutation,
     isPending: isExecuting,
     runData,
   } = useExecuteProblem();
-
-  // useSubmitCode now returns submitData (unwrapped SubmitData | null)
   const { submitProblem, isPending: isSubmitting } = useSubmitCode();
 
   const [editorState, setEditorState] =
@@ -282,10 +575,9 @@ export default function ProblemDetailPage() {
   const set = useCallback(
     (patch: Partial<EditorPanelState>) =>
       setEditorState((prev) => ({ ...prev, ...patch })),
-    []
+    [],
   );
 
-  // Reset editor state on problem navigation
   const [prevId, setPrevId] = useState<string | undefined>(undefined);
   if (prevId !== id) {
     setPrevId(id);
@@ -293,42 +585,35 @@ export default function ProblemDetailPage() {
     setActiveTab('description');
   }
 
-  // Fetch persisted submissions for this problem
   const problemId = problem?.id;
   const { submissions: fetchedSubmissions, isPending: isLoadingSubmissions } =
     useUserSubmissionSpecificProblem(problemId ?? '', isLoggedIn);
 
-  // Map API ProblemSubmission → local Submission shape
-  // ProblemSubmission already has pre-formatted runtime/memory strings from backend
   const persistedSubmissions = useMemo<Submission[]>(() => {
     return fetchedSubmissions.map((s: ProblemSubmission) => ({
       id: s.id,
       status: s.status as Submission['status'],
       language: s.language,
-      runtime: s.runtime, // already "12.34ms" from backend
+      runtime: s.runtime,
       runtimePercentile: '—',
-      memory: s.memory, // already "1.23 MB" from backend
+      memory: s.memory,
       memoryPercentile: '—',
       testCasesPassed: 0,
       totalTestCases: 0,
-      timestamp: new Date(s.date), // "Mar 5, 2026" → Date
+      timestamp: new Date(s.date),
     }));
   }, [fetchedSubmissions]);
 
-  // Merge persisted + new submissions, deduped by id
   const submissions = useMemo<Submission[]>(() => {
     const ids = new Set(persistedSubmissions.map((s) => s.id));
     const fresh = newSubmissions.filter((s) => !ids.has(s.id));
     return [...persistedSubmissions, ...fresh];
   }, [persistedSubmissions, newSubmissions]);
 
-  // Use the saved snippet as default, fall back to empty
   const currentCode = useMemo(() => {
     if (code) return code;
     return problem?.codeSnippets?.[language] ?? '';
   }, [problem, language, code]);
-
-  // ── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleLanguageChange = useCallback(
     (lang: string) => {
@@ -339,7 +624,7 @@ export default function ProblemDetailPage() {
         submitData: null,
       });
     },
-    [set]
+    [set],
   );
 
   const handleRun = useCallback(async () => {
@@ -364,14 +649,12 @@ export default function ProblemDetailPage() {
     if (!problemId) return;
     set({ hasRun: true, outputTab: 'output', submitData: null });
 
-    // submitProblem returns the full ApiSuccess<SubmitData> envelope
     const response = await submitProblem({
       source_code: currentCode,
       language_id: languageIdMap[language] ?? 71,
       problemId,
     });
 
-    // Unwrap — response.data is SubmitData
     const sd = response.data;
     if (!sd) return;
 
@@ -412,19 +695,10 @@ export default function ProblemDetailPage() {
     set({ code: '', hasRun: false, submitData: null, activeSubmission: null });
   }, [set]);
 
-  // ── Loading / error states ────────────────────────────────────────────────────
+  // ── Loading state — full skeleton ─────────────────────────────────────────
+  if (isPending) return <ProblemDetailSkeleton />;
 
-  if (isPending) {
-    return (
-      <div className='flex items-center justify-center min-h-[60vh]'>
-        <div className='flex flex-col items-center gap-3'>
-          <Loader2 className='h-8 w-8 animate-spin text-primary' />
-          <p className='text-sm text-muted-foreground'>Loading problem...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // ── Error state ───────────────────────────────────────────────────────────
   if (isError || !problem) {
     return (
       <div className='flex items-center justify-center min-h-[60vh]'>
@@ -449,9 +723,10 @@ export default function ProblemDetailPage() {
   const diffLabel =
     difficultyConfig[problem.difficulty]?.label ?? problem.difficulty;
 
+  // ── Loaded ────────────────────────────────────────────────────────────────
   return (
     <div className='h-[calc(100vh-4rem)] flex flex-col'>
-      {/* ── Top Bar ──────────────────────────────────────────────────────────── */}
+      {/* ── Top Bar ─────────────────────────────────────────────────────────── */}
       <div className='flex items-center justify-between px-4 py-2 border-b border-border/50 bg-surface-1/50 backdrop-blur-sm shrink-0'>
         <div className='flex items-center gap-3'>
           <Link
@@ -498,9 +773,7 @@ export default function ProblemDetailPage() {
               <ChevronRight className='h-4 w-4' />
             </Button>
           </div>
-
           <div className='w-px h-5 bg-border/50 hidden sm:block' />
-
           <Button
             variant='ghost'
             size='sm'
@@ -515,7 +788,6 @@ export default function ProblemDetailPage() {
             )}
             {isExecuting ? 'Running...' : 'Run'}
           </Button>
-
           <Button
             size='sm'
             onClick={handleSubmit}
@@ -532,9 +804,9 @@ export default function ProblemDetailPage() {
         </div>
       </div>
 
-      {/* ── Main Split Pane ───────────────────────────────────────────────────── */}
+      {/* ── Main Split Pane ──────────────────────────────────────────────────── */}
       <ResizablePanelGroup className='flex-1'>
-        {/* Left Panel */}
+        {/* Left panel */}
         <ResizablePanel defaultSize={45} minSize={30}>
           <div className='h-full flex flex-col bg-background overflow-hidden'>
             <Tabs
@@ -694,7 +966,7 @@ export default function ProblemDetailPage() {
                 </div>
               </TabsContent>
 
-              {/* Hints (hidden in nav but kept for future use) */}
+              {/* Hints */}
               <TabsContent
                 value='hints'
                 className='flex-1 overflow-auto m-0 p-0'
@@ -752,11 +1024,46 @@ export default function ProblemDetailPage() {
                   </div>
 
                   {isLoadingSubmissions ? (
-                    <div className='flex flex-col items-center justify-center py-12 gap-2'>
-                      <Loader2 className='h-5 w-5 animate-spin text-primary' />
-                      <p className='text-xs text-muted-foreground'>
-                        Loading submissions...
-                      </p>
+                    // ── Submissions skeleton ───────────────────────────────
+                    <div className='space-y-2'>
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.06 }}
+                          className='rounded-lg border border-border/40 p-3 space-y-2'
+                        >
+                          <div className='flex items-center justify-between'>
+                            <div className='flex items-center gap-2'>
+                              <Bone
+                                w='w-3.5'
+                                h='h-3.5'
+                                rounded='rounded-full'
+                                delay={i * 60}
+                              />
+                              <Bone w='w-20' h='h-3.5' delay={i * 60 + 20} />
+                            </div>
+                            <Bone w='w-12' h='h-3' delay={i * 60 + 40} />
+                          </div>
+                          <div className='grid grid-cols-3 gap-3'>
+                            {[0, 1, 2].map((j) => (
+                              <div key={j} className='space-y-1'>
+                                <Bone
+                                  w='w-12'
+                                  h='h-2.5'
+                                  delay={i * 60 + j * 20 + 60}
+                                />
+                                <Bone
+                                  w='w-16'
+                                  h='h-3'
+                                  delay={i * 60 + j * 20 + 80}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
                   ) : submissions.length === 0 ? (
                     <div className='text-center py-12'>
@@ -795,11 +1102,7 @@ export default function ProblemDetailPage() {
                               onClick={() =>
                                 set({ activeSubmission: isActive ? null : sub })
                               }
-                              className={`rounded-lg border p-3 cursor-pointer transition-all ${
-                                isActive
-                                  ? 'border-primary/40 bg-primary/5'
-                                  : 'border-border/40 bg-surface-1/30 hover:bg-surface-2/40 hover:border-border/60'
-                              }`}
+                              className={`rounded-lg border p-3 cursor-pointer transition-all ${isActive ? 'border-primary/40 bg-primary/5' : 'border-border/40 bg-surface-1/30 hover:bg-surface-2/40 hover:border-border/60'}`}
                             >
                               <div className='flex items-center justify-between mb-1'>
                                 <div className='flex items-center gap-2'>
@@ -816,7 +1119,6 @@ export default function ProblemDetailPage() {
                                   {formatTimeAgo(sub.timestamp)}
                                 </span>
                               </div>
-
                               <div className='grid grid-cols-3 gap-3 text-[11px] mt-2'>
                                 {[
                                   { label: 'Language', value: sub.language },
@@ -833,7 +1135,6 @@ export default function ProblemDetailPage() {
                                   </div>
                                 ))}
                               </div>
-
                               <AnimatePresence>
                                 {isActive && (
                                   <motion.div
@@ -895,10 +1196,9 @@ export default function ProblemDetailPage() {
                                                 </>
                                               )}
                                             </div>
-                                          )
+                                          ),
                                         )}
                                       </div>
-
                                       {sub.totalTestCases > 0 && (
                                         <>
                                           <div className='flex items-center justify-between text-[11px]'>
@@ -961,7 +1261,7 @@ export default function ProblemDetailPage() {
           className='bg-border/30 hover:bg-primary/30 transition-colors'
         />
 
-        {/* Right Panel */}
+        {/* Right panel */}
         <ResizablePanel defaultSize={55} minSize={35}>
           <div className='h-full flex flex-col bg-surface-1/30 overflow-hidden'>
             {/* Editor Header */}
@@ -978,9 +1278,7 @@ export default function ProblemDetailPage() {
                     <SelectItem value='java'>Java</SelectItem>
                   </SelectContent>
                 </Select>
-
                 <div className='w-px h-4 bg-border/40' />
-
                 <Palette className='h-3.5 w-3.5 text-muted-foreground' />
                 <Select
                   value={editorTheme}
@@ -1003,7 +1301,6 @@ export default function ProblemDetailPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               <Button
                 variant='ghost'
                 size='sm'
@@ -1016,7 +1313,7 @@ export default function ProblemDetailPage() {
             </div>
 
             <ResizablePanelGroup className='flex-1 min-h-0'>
-              {/* Code Editor */}
+              {/* Code editor */}
               <ResizablePanel defaultSize={60} minSize={30}>
                 <div className='h-full w-full overflow-hidden'>
                   <CodeEditor
@@ -1033,10 +1330,9 @@ export default function ProblemDetailPage() {
                 className='bg-border/30 hover:bg-primary/30 transition-colors'
               />
 
-              {/* Testcase / Output Panel */}
+              {/* Output panel */}
               <ResizablePanel defaultSize={40} minSize={15}>
                 <div className='h-full flex flex-col bg-background'>
-                  {/* Tab bar */}
                   <div className='flex items-center gap-1 px-4 h-10 border-b border-border/50 shrink-0'>
                     {[
                       { key: 'testcases', icon: TestTube2, label: 'Testcases' },
@@ -1045,11 +1341,7 @@ export default function ProblemDetailPage() {
                       <button
                         key={key}
                         onClick={() => set({ outputTab: key })}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                          outputTab === key
-                            ? 'bg-surface-2 text-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${outputTab === key ? 'bg-surface-2 text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                       >
                         <Icon className='h-3 w-3' />
                         {label}
@@ -1062,9 +1354,7 @@ export default function ProblemDetailPage() {
                     ))}
                   </div>
 
-                  {/* Content */}
                   <div className='flex-1 overflow-auto p-4'>
-                    {/* Testcases tab */}
                     {outputTab === 'testcases' && (
                       <div className='space-y-4'>
                         <div className='flex items-center gap-2'>
@@ -1072,17 +1362,12 @@ export default function ProblemDetailPage() {
                             <button
                               key={i}
                               onClick={() => set({ activeCase: i })}
-                              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                                activeCase === i
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-surface-2 text-muted-foreground hover:text-foreground'
-                              }`}
+                              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${activeCase === i ? 'bg-primary text-primary-foreground' : 'bg-surface-2 text-muted-foreground hover:text-foreground'}`}
                             >
                               Case {i + 1}
                             </button>
                           ))}
                         </div>
-
                         {(problem.testCases ?? [])[activeCase] && (
                           <div className='space-y-3'>
                             {[
@@ -1111,7 +1396,6 @@ export default function ProblemDetailPage() {
                       </div>
                     )}
 
-                    {/* Output tab */}
                     {outputTab === 'output' && (
                       <div>
                         {!hasRun ? (
@@ -1129,18 +1413,13 @@ export default function ProblemDetailPage() {
                             </p>
                           </div>
                         ) : submitData ? (
-                          // ── Submit result ──────────────────────────────────
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className='space-y-3'
                           >
                             <div
-                              className={`rounded-lg border p-4 ${
-                                submitData.allPassed
-                                  ? 'border-primary/30 bg-primary/5'
-                                  : 'border-destructive/30 bg-destructive/5'
-                              }`}
+                              className={`rounded-lg border p-4 ${submitData.allPassed ? 'border-primary/30 bg-primary/5' : 'border-destructive/30 bg-destructive/5'}`}
                             >
                               <div className='flex items-center justify-between mb-3'>
                                 <div className='flex items-center gap-2'>
@@ -1159,7 +1438,6 @@ export default function ProblemDetailPage() {
                                   {submitData.submission.testCasesPassed} passed
                                 </span>
                               </div>
-
                               <div className='grid grid-cols-2 gap-3'>
                                 {[
                                   {
@@ -1194,7 +1472,6 @@ export default function ProblemDetailPage() {
                             </div>
                           </motion.div>
                         ) : runData ? (
-                          // ── Run result ─────────────────────────────────────
                           <ResultsPanel
                             results={runData.results}
                             allPassed={runData.allPassed}
