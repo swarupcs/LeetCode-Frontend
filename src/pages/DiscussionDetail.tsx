@@ -78,6 +78,280 @@ const CODE_LANGUAGES = [
   'other',
 ];
 
+// ─── Skeleton primitive ───────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Skeleton: one comment row ────────────────────────────────────────────────
+
+function SkeletonComment({
+  index,
+  nested = false,
+}: {
+  index: number;
+  nested?: boolean;
+}) {
+  const base = index * 60;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: 0.55 + index * 0.07 }}
+      className={`py-4 ${nested ? 'ml-8 pl-4 border-l border-border/30' : ''} ${index > 0 ? 'border-t border-border/30' : ''}`}
+    >
+      <div className='flex gap-3'>
+        {/* Vote column */}
+        <div className='flex flex-col items-center gap-1.5 shrink-0 pt-1'>
+          <Bone w='w-5' h='h-5' rounded='rounded' delay={base} />
+          <Bone w='w-4' h='h-3' delay={base + 15} />
+          <Bone w='w-5' h='h-5' rounded='rounded' delay={base + 30} />
+        </div>
+
+        {/* Body */}
+        <div className='flex-1 min-w-0 space-y-2.5'>
+          {/* Author row */}
+          <div className='flex items-center gap-2'>
+            <Bone w='w-6' h='h-6' rounded='rounded-full' delay={base + 20} />
+            <Bone w='w-24' h='h-3' delay={base + 35} />
+            <Bone w='w-16' h='h-2.5' delay={base + 50} />
+          </div>
+
+          {/* Content lines */}
+          <div className='space-y-1.5'>
+            <Bone w='w-full' h='h-3' delay={base + 40} />
+            <Bone
+              w={['w-4/5', 'w-5/6', 'w-3/4', 'w-full'][index % 4]!}
+              h='h-3'
+              delay={base + 55}
+            />
+            {index % 3 === 0 && <Bone w='w-2/3' h='h-3' delay={base + 70} />}
+          </div>
+
+          {/* Reply action */}
+          <Bone w='w-12' h='h-3' delay={base + 65} />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Full page skeleton ───────────────────────────────────────────────────────
+
+function DiscussionDetailSkeleton() {
+  return (
+    <div className='min-h-screen'>
+      <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Back button */}
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <Bone w='w-40' h='h-9' rounded='rounded-lg' className='mb-6' />
+        </motion.div>
+
+        {/* ── Main post card ─────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <Card className='glass-card border-border/50 mb-8'>
+            <CardContent className='p-6'>
+              <div className='flex gap-5'>
+                {/* Vote column */}
+                <div className='flex flex-col items-center gap-2 pt-1 shrink-0'>
+                  <Bone w='w-8' h='h-8' rounded='rounded-lg' delay={60} />
+                  <Bone w='w-6' h='h-4' delay={80} />
+                  <Bone w='w-8' h='h-8' rounded='rounded-lg' delay={100} />
+                </div>
+
+                {/* Post body */}
+                <div className='flex-1 min-w-0 space-y-4'>
+                  {/* Category badge + edit/delete buttons row */}
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-2'>
+                      <Bone
+                        w='w-20'
+                        h='h-6'
+                        rounded='rounded-full'
+                        delay={80}
+                      />
+                      <Bone w='w-32' h='h-4' delay={100} />
+                    </div>
+                    <div className='flex items-center gap-1'>
+                      <Bone w='w-14' h='h-8' rounded='rounded-md' delay={120} />
+                      <Bone w='w-16' h='h-8' rounded='rounded-md' delay={140} />
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                  >
+                    <Bone w='w-4/5' h='h-7' rounded='rounded-lg' delay={120} />
+                  </motion.div>
+
+                  {/* Body paragraphs */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className='space-y-2'
+                  >
+                    <Bone w='w-full' h='h-3.5' delay={160} />
+                    <Bone w='w-[92%]' h='h-3.5' delay={175} />
+                    <Bone w='w-full' h='h-3.5' delay={190} />
+                    <Bone w='w-[85%]' h='h-3.5' delay={205} />
+                    <Bone w='w-[70%]' h='h-3.5' delay={220} />
+                  </motion.div>
+
+                  {/* Code block */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.27 }}
+                    className='rounded-lg border border-border/50 bg-surface-2 p-4 space-y-2'
+                  >
+                    <div className='flex items-center gap-1.5 mb-2'>
+                      <Bone w='w-3.5' h='h-3.5' rounded='rounded' delay={260} />
+                      <Bone w='w-16' h='h-3' rounded='rounded' delay={275} />
+                    </div>
+                    {['w-3/4', 'w-full', 'w-2/3', 'w-[85%]', 'w-1/2'].map(
+                      (w, i) => (
+                        <Bone
+                          key={i}
+                          w={w}
+                          h='h-3'
+                          rounded='rounded'
+                          delay={280 + i * 18}
+                        />
+                      ),
+                    )}
+                  </motion.div>
+
+                  {/* Tags */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.32 }}
+                    className='flex flex-wrap gap-1.5'
+                  >
+                    {[40, 56, 48, 64].map((w, i) => (
+                      <Bone
+                        key={i}
+                        w={`w-[${w}px]`}
+                        h='h-5'
+                        rounded='rounded-full'
+                        delay={320 + i * 20}
+                      />
+                    ))}
+                  </motion.div>
+
+                  {/* Footer: author + time + actions */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.36 }}
+                    className='flex items-center justify-between border-t border-border/30 pt-4'
+                  >
+                    <div className='flex items-center gap-4'>
+                      <div className='flex items-center gap-1.5'>
+                        <Bone
+                          w='w-6'
+                          h='h-6'
+                          rounded='rounded-full'
+                          delay={360}
+                        />
+                        <Bone w='w-20' h='h-3' delay={375} />
+                      </div>
+                      <div className='flex items-center gap-1'>
+                        <Bone w='w-3' h='h-3' rounded='rounded' delay={390} />
+                        <Bone w='w-20' h='h-3' delay={405} />
+                      </div>
+                    </div>
+                    <div className='flex items-center gap-1'>
+                      <Bone w='w-8' h='h-8' rounded='rounded-md' delay={380} />
+                      <Bone w='w-8' h='h-8' rounded='rounded-md' delay={395} />
+                      <Bone w='w-8' h='h-8' rounded='rounded-md' delay={410} />
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* ── Comment input card ─────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className='mb-6'
+        >
+          <Card className='glass-card border-border/50'>
+            <CardContent className='p-5 space-y-3'>
+              <Bone w='w-28' h='h-4' delay={440} />
+              <Bone w='w-full' h='h-24' rounded='rounded-xl' delay={460} />
+              <div className='flex justify-end'>
+                <Bone w='w-24' h='h-9' rounded='rounded-lg' delay={480} />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* ── Comments section ───────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.42 }}
+        >
+          {/* Section header */}
+          <div className='flex items-center justify-between mb-4'>
+            <div className='flex items-center gap-2'>
+              <Bone w='w-5' h='h-5' rounded='rounded' delay={500} />
+              <Bone w='w-28' h='h-5' rounded='rounded' delay={515} />
+            </div>
+            <Bone w='w-36' h='h-9' rounded='rounded-xl' delay={530} />
+          </div>
+
+          <Card className='glass-card border-border/50'>
+            <CardContent className='p-5'>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <SkeletonComment key={i} index={i} />
+              ))}
+              {/* One nested reply under first comment */}
+              <SkeletonComment index={4} nested />
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function DiscussionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -94,7 +368,7 @@ export default function DiscussionDetail() {
   const { voteDiscussionMutation, isPending: isVotingDiscussion } =
     useVoteDiscussion();
   const { voteCommentMutation, isPending: isVotingComment } = useVoteComment(
-    id!
+    id!,
   );
   const { toggleBookmarkMutation, isPending: isTogglingBookmark } =
     useToggleBookmark(id!);
@@ -102,7 +376,6 @@ export default function DiscussionDetail() {
   const [commentText, setCommentText] = useState('');
   const [commentSort, setCommentSort] = useState('top');
   const [isEditingPost, setIsEditingPost] = useState(false);
-
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [editCategory, setEditCategory] =
@@ -119,29 +392,25 @@ export default function DiscussionDetail() {
     const sorted = [...(discussion?.comments ?? [])];
     if (commentSort === 'top')
       sorted.sort(
-        (a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes)
+        (a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes),
       );
     else if (commentSort === 'newest')
       sorted.sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
     else if (commentSort === 'oldest')
       sorted.sort(
         (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
     return sorted;
   }, [discussion?.comments, commentSort]);
 
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <Loader2 className='h-10 w-10 animate-spin text-primary' />
-      </div>
-    );
-  }
+  // ── Loading state ─────────────────────────────────────────────────────────
+  if (isLoading) return <DiscussionDetailSkeleton />;
 
+  // ── Error state ───────────────────────────────────────────────────────────
   if (isError || !discussion) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
@@ -157,6 +426,8 @@ export default function DiscussionDetail() {
   }
 
   const isOwnPost = !!currentUserId && discussion.author.id === currentUserId;
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handlePostVote = async (vote: -1 | 0 | 1) => {
     if (!currentUserId) {
@@ -184,7 +455,7 @@ export default function DiscussionDetail() {
 
   const handleReply = async (
     parentId: string,
-    content: string
+    content: string,
   ): Promise<void> => {
     if (!currentUserId) {
       toast.error('Please log in to reply');
@@ -196,7 +467,7 @@ export default function DiscussionDetail() {
 
   const handleCommentEdit = async (
     commentId: string,
-    newContent: string
+    newContent: string,
   ): Promise<void> => {
     await updateCommentMutation({ id: commentId, content: newContent });
     toast.success('Your comment has been edited.');
@@ -306,6 +577,8 @@ export default function DiscussionDetail() {
     }
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className='min-h-screen'>
       <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8'>
@@ -323,6 +596,7 @@ export default function DiscussionDetail() {
           </Button>
         </motion.div>
 
+        {/* Main post */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -584,7 +858,7 @@ export default function DiscussionDetail() {
                                 <button
                                   onClick={() =>
                                     setEditTags(
-                                      editTags.filter((t) => t !== tag)
+                                      editTags.filter((t) => t !== tag),
                                     )
                                   }
                                   className='ml-0.5 rounded-full hover:bg-foreground/10 p-0.5'
@@ -701,7 +975,7 @@ export default function DiscussionDetail() {
                         className='h-8 w-8 text-muted-foreground hover:text-foreground'
                         onClick={() => {
                           void navigator.clipboard.writeText(
-                            window.location.href
+                            window.location.href,
                           );
                           toast.success('Link copied to clipboard');
                         }}
@@ -763,7 +1037,7 @@ export default function DiscussionDetail() {
           </motion.div>
         )}
 
-        {/* Comments section */}
+        {/* Comments */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
