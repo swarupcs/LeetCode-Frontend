@@ -25,7 +25,6 @@ import {
   Search,
   Plus,
   TrendingUp,
-  Loader2,
   Bookmark,
 } from 'lucide-react';
 import { DiscussionCard } from '@/components/discussions/DiscussionCard';
@@ -39,11 +38,208 @@ import { useGetBookmarkedDiscussions } from '@/hooks/discussions/useGetBookmarke
 import { useCreateDiscussion } from '@/hooks/discussions/useCreateDiscussion';
 import { useDeleteDiscussion } from '@/hooks/discussions/useDeleteDiscussion';
 import { useVoteDiscussion } from '@/hooks/discussions/useVoteDiscussion';
-import type {
-  CreateDiscussionPayload,
-} from '@/types/discussion.types';
+import type { CreateDiscussionPayload } from '@/types/discussion.types';
 
 type TabView = 'all' | 'bookmarks';
+
+// ─── Skeleton primitive ───────────────────────────────────────────────────────
+
+function Bone({
+  w,
+  h = 'h-3',
+  rounded = 'rounded-md',
+  delay = 0,
+  className = '',
+}: {
+  w: string;
+  h?: string;
+  rounded?: string;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${w} ${h} ${rounded} bg-surface-3 animate-pulse ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
+    />
+  );
+}
+
+// ─── Skeleton: one discussion card ───────────────────────────────────────────
+// Mirrors DiscussionCard's visible structure: vote column + body
+
+function SkeletonDiscussionCard({ index }: { index: number }) {
+  const base = index * 70;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, delay: 0.3 + index * 0.055 }}
+      className='glass-card p-4 flex gap-4'
+    >
+      {/* Vote column */}
+      <div className='flex flex-col items-center gap-2 pt-0.5 shrink-0'>
+        <Bone w='w-6' h='h-6' rounded='rounded-md' delay={base} />
+        <Bone w='w-5' h='h-3' delay={base + 20} />
+        <Bone w='w-6' h='h-6' rounded='rounded-md' delay={base + 40} />
+      </div>
+
+      {/* Body */}
+      <div className='flex-1 min-w-0 space-y-3'>
+        {/* Category badge + tags row */}
+        <div className='flex items-center gap-2 flex-wrap'>
+          <Bone w='w-16' h='h-5' rounded='rounded-full' delay={base + 20} />
+          <Bone w='w-20' h='h-4' rounded='rounded-md' delay={base + 40} />
+          <Bone w='w-14' h='h-4' rounded='rounded-md' delay={base + 55} />
+        </div>
+
+        {/* Title */}
+        <Bone
+          w={['w-3/4', 'w-5/6', 'w-2/3', 'w-4/5', 'w-3/5'][index % 5]!}
+          h='h-4'
+          delay={base + 30}
+        />
+
+        {/* Excerpt lines */}
+        <div className='space-y-1.5'>
+          <Bone w='w-full' h='h-3' delay={base + 50} />
+          <Bone
+            w={['w-5/6', 'w-4/5', 'w-full', 'w-3/4', 'w-5/6'][index % 5]!}
+            h='h-3'
+            delay={base + 65}
+          />
+        </div>
+
+        {/* Footer: avatar + name + time + comments + bookmark */}
+        <div className='flex items-center justify-between pt-1'>
+          <div className='flex items-center gap-2'>
+            <Bone w='w-6' h='h-6' rounded='rounded-full' delay={base + 70} />
+            <Bone w='w-20' h='h-2.5' delay={base + 85} />
+            <Bone w='w-14' h='h-2.5' delay={base + 100} />
+          </div>
+          <div className='flex items-center gap-3'>
+            <Bone w='w-12' h='h-4' rounded='rounded-md' delay={base + 80} />
+            <Bone w='w-6' h='h-6' rounded='rounded-md' delay={base + 90} />
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Full page skeleton ───────────────────────────────────────────────────────
+
+function DiscussionsSkeleton() {
+  return (
+    <div className='min-h-screen'>
+      <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6'
+        >
+          <div className='space-y-2'>
+            <div className='flex items-center gap-3'>
+              <Bone w='w-8' h='h-8' rounded='rounded-lg' />
+              <Bone w='w-36' h='h-8' rounded='rounded-lg' delay={40} />
+            </div>
+            <Bone w='w-56' h='h-4' delay={80} />
+          </div>
+          {/* New Post button placeholder */}
+          <Bone w='w-28' h='h-9' rounded='rounded-lg' delay={60} />
+        </motion.div>
+
+        {/* Stats bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className='flex items-center gap-6 mb-6'
+        >
+          <div className='flex items-center gap-1.5'>
+            <Bone w='w-4' h='h-4' rounded='rounded' delay={100} />
+            <Bone w='w-16' h='h-3.5' delay={115} />
+          </div>
+          <div className='flex items-center gap-1.5'>
+            <Bone w='w-4' h='h-4' rounded='rounded' delay={130} />
+            <Bone w='w-20' h='h-3.5' delay={145} />
+          </div>
+        </motion.div>
+
+        {/* Tab toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.07 }}
+          className='flex items-center gap-1 mb-5 bg-surface-1 rounded-lg p-1 w-fit border border-border/40'
+        >
+          <Bone w='w-36' h='h-8' rounded='rounded-md' delay={140} />
+          <Bone w='w-32' h='h-8' rounded='rounded-md' delay={170} />
+        </motion.div>
+
+        {/* Category filter chips */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className='flex items-center gap-2 flex-wrap mb-4'
+        >
+          {[48, 64, 56, 72, 52, 60].map((w, i) => (
+            <Bone
+              key={i}
+              w={`w-[${w}px]`}
+              h='h-7'
+              rounded='rounded-full'
+              delay={160 + i * 25}
+            />
+          ))}
+        </motion.div>
+
+        {/* Search + sort */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+          className='flex flex-col sm:flex-row gap-3 mb-6'
+        >
+          <Bone w='flex-1 w-full' h='h-10' rounded='rounded-xl' delay={200} />
+          <Bone w='w-full sm:w-44' h='h-10' rounded='rounded-xl' delay={230} />
+        </motion.div>
+
+        {/* Discussion cards */}
+        <div className='space-y-3'>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonDiscussionCard key={i} index={i} />
+          ))}
+        </div>
+
+        {/* Pagination placeholder */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className='mt-8 flex flex-col items-center gap-3'
+        >
+          <div className='flex items-center gap-1.5'>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Bone
+                key={i}
+                w='w-9'
+                h='h-9'
+                rounded='rounded-lg'
+                delay={600 + i * 30}
+              />
+            ))}
+          </div>
+          <Bone w='w-48' h='h-3' delay={760} />
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DiscussionsPage() {
   const navigate = useNavigate();
@@ -51,7 +247,6 @@ export default function DiscussionsPage() {
 
   const [activeTab, setActiveTab] = useState<TabView>('all');
 
-  // hooks — data.data is pre-unwrapped in each hook
   const { discussions, isPending: isLoading, isError } = useGetAllDiscussions();
   const {
     bookmarkedDiscussions,
@@ -68,6 +263,7 @@ export default function DiscussionsPage() {
   const [sortBy, setSortBy] = useState('top');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [newPostOpen, setNewPostOpen] = useState(false);
+
   const ITEMS_PER_PAGE = 5;
 
   const filtered = useMemo(() => {
@@ -80,7 +276,7 @@ export default function DiscussionsPage() {
         (d) =>
           d.title.toLowerCase().includes(q) ||
           d.content.toLowerCase().includes(q) ||
-          d.tags.some((t) => t.toLowerCase().includes(q))
+          d.tags.some((t) => t.toLowerCase().includes(q)),
       );
     }
     return [...result].sort((a, b) => {
@@ -101,7 +297,7 @@ export default function DiscussionsPage() {
   });
   const paginatedItems = useMemo(
     () => filtered.slice(pagination.startIndex, pagination.endIndex),
-    [filtered, pagination.startIndex, pagination.endIndex]
+    [filtered, pagination.startIndex, pagination.endIndex],
   );
 
   useEffect(() => {
@@ -148,9 +344,13 @@ export default function DiscussionsPage() {
       totalPosts: discussions.length,
       totalComments: discussions.reduce((sum, d) => sum + d.commentCount, 0),
     }),
-    [discussions]
+    [discussions],
   );
 
+  // ── Loading state ─────────────────────────────────────────────────────────
+  if (isLoading) return <DiscussionsSkeleton />;
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className='min-h-screen'>
       <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8'>
@@ -241,18 +441,20 @@ export default function DiscussionsPage() {
           </button>
         </motion.div>
 
-        {/* ── BOOKMARKS TAB ─────────────────────────────────────────── */}
+        {/* ── BOOKMARKS TAB ──────────────────────────────────────────────── */}
         {activeTab === 'bookmarks' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
             {isLoadingBookmarks && (
-              <div className='flex items-center justify-center py-16'>
-                <Loader2 className='h-8 w-8 animate-spin text-primary' />
+              <div className='space-y-3'>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <SkeletonDiscussionCard key={i} index={i} />
+                ))}
               </div>
             )}
-            {isErrorBookmarks && (
+            {isErrorBookmarks && !isLoadingBookmarks && (
               <div className='text-center py-16'>
                 <Bookmark className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
                 <p className='text-muted-foreground mb-1'>
@@ -294,7 +496,7 @@ export default function DiscussionsPage() {
           </motion.div>
         )}
 
-        {/* ── ALL DISCUSSIONS TAB ────────────────────────────────────── */}
+        {/* ── ALL DISCUSSIONS TAB ─────────────────────────────────────────── */}
         {activeTab === 'all' && (
           <>
             <motion.div
@@ -336,11 +538,6 @@ export default function DiscussionsPage() {
               </Select>
             </motion.div>
 
-            {isLoading && (
-              <div className='flex items-center justify-center py-16'>
-                <Loader2 className='h-8 w-8 animate-spin text-primary' />
-              </div>
-            )}
             {isError && (
               <div className='text-center py-16'>
                 <MessageSquare className='h-10 w-10 text-muted-foreground mx-auto mb-3' />
@@ -353,7 +550,7 @@ export default function DiscussionsPage() {
               </div>
             )}
 
-            {!isLoading && !isError && (
+            {!isError && (
               <div className='space-y-3'>
                 {paginatedItems.map((discussion, index) => (
                   <DiscussionCard
@@ -425,7 +622,7 @@ export default function DiscussionsPage() {
                             {page}
                           </PaginationLink>
                         </PaginationItem>
-                      )
+                      ),
                     )}
                     <PaginationItem>
                       <PaginationNext
