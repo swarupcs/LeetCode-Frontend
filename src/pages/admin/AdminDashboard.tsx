@@ -13,7 +13,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
 import {
   ListChecks,
@@ -30,14 +29,6 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -47,25 +38,87 @@ import {
 import { useAdminDashboard } from '@/hooks/admin/useAdminDashboard';
 import type { DateRange } from 'react-day-picker';
 
-// ─── Chart tooltip style ──────────────────────────────────────────────────────
+// ─── Design tokens ─────────────────────────────────────────────────────────────
 
-const chartTooltipStyle = {
-  backgroundColor: 'hsl(var(--card))',
-  border: '1px solid hsl(var(--border))',
-  borderRadius: '8px',
+const C = {
+  // Chart strokes
+  blue: 'hsl(210 100% 65%)',
+  teal: 'hsl(168 78% 52%)',
+  green: 'hsl(142 68% 50%)',
+  amber: 'hsl(45 90% 56%)',
+  red: 'hsl(4 75% 58%)',
+  violet: 'hsl(258 82% 70%)',
+
+  // Surfaces
+  bg: 'hsl(222 32% 7%)',
+  card: 'hsl(222 30% 9% / 0.75)',
+  cardBdr: 'hsl(222 25% 16%)',
+  grid: 'hsl(222 25% 12%)',
+  axisTick: 'hsl(220 15% 38%)',
+
+  // Text
+  t1: 'hsl(220 18% 85%)',
+  t2: 'hsl(220 15% 52%)',
+  t3: 'hsl(220 15% 34%)',
+
+  // Tooltip
+  ttBg: 'hsl(222 35% 9%)',
+  ttBdr: 'hsl(222 30% 20%)',
+  ttTxt: 'hsl(220 18% 75%)',
+} as const;
+
+const TT = {
+  backgroundColor: C.ttBg,
+  border: `1px solid ${C.ttBdr}`,
+  borderRadius: '10px',
   fontSize: '12px',
-  color: 'hsl(var(--foreground))',
+  color: C.ttTxt,
 };
 
 // ─── Presets ──────────────────────────────────────────────────────────────────
 
-const presets = [
-  { label: 'Last 7 days', days: 7 },
-  { label: 'Last 14 days', days: 14 },
-  { label: 'Last 30 days', days: 30 },
-  { label: 'Last 60 days', days: 60 },
-  { label: 'Last 90 days', days: 90 },
+const PRESETS = [
+  { label: '7d', days: 7 },
+  { label: '14d', days: 14 },
+  { label: '30d', days: 30 },
+  { label: '60d', days: 60 },
+  { label: '90d', days: 90 },
 ];
+
+// ─── Accent definitions ───────────────────────────────────────────────────────
+
+type AccentKey = 'blue' | 'teal' | 'violet' | 'amber' | 'green';
+
+const ACCENTS: Record<
+  AccentKey,
+  { color: string; glow: string; ring: string }
+> = {
+  blue: {
+    color: C.blue,
+    glow: 'hsl(210 100% 50% / 0.10)',
+    ring: 'hsl(210 100% 65% / 0.20)',
+  },
+  teal: {
+    color: C.teal,
+    glow: 'hsl(168 78% 40% / 0.10)',
+    ring: 'hsl(168 78% 52% / 0.20)',
+  },
+  violet: {
+    color: C.violet,
+    glow: 'hsl(258 82% 50% / 0.10)',
+    ring: 'hsl(258 82% 70% / 0.20)',
+  },
+  amber: {
+    color: C.amber,
+    glow: 'hsl(45 90% 45% / 0.10)',
+    ring: 'hsl(45 90% 56% / 0.20)',
+  },
+  green: {
+    color: C.green,
+    glow: 'hsl(142 68% 40% / 0.10)',
+    ring: 'hsl(142 68% 50% / 0.20)',
+  },
+};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -82,8 +135,6 @@ export default function AdminDashboard() {
   });
   const [activePreset, setActivePreset] = useState<number>(30);
 
-  // ── API ────────────────────────────────────────────────────────────────────
-  // Only fetch when both ends of the range are set (user may be mid-picking)
   const {
     analytics,
     summary,
@@ -99,193 +150,299 @@ export default function AdminDashboard() {
     Boolean(dateRange.from && dateRange.to),
   );
 
-  // ── Date range handlers ────────────────────────────────────────────────────
   const handlePreset = (days: number) => {
     setActivePreset(days);
     setDateRange({ from: subDays(today, days - 1), to: today });
   };
 
-  const handleDateRangeChange = (range: DateRange | undefined) => {
+  const handleRangeChange = (range: DateRange | undefined) => {
     if (range) {
       setDateRange(range);
       setActivePreset(0);
     }
   };
 
-  // ── Derived values ─────────────────────────────────────────────────────────
-  // x-axis: show ~8 labels max regardless of how many days are in the range
   const xInterval = Math.max(1, Math.floor(analytics.length / 8));
-
+  const summaryDays = summary?.days ?? activePreset;
   const dateLabel =
     dateRange.from && dateRange.to
       ? `${format(dateRange.from, 'MMM d')} – ${format(dateRange.to, 'MMM d, yyyy')}`
-      : dateRange.from
-        ? `From ${format(dateRange.from, 'MMM d, yyyy')}`
-        : 'Select dates';
+      : 'Custom range';
 
-  const summaryDays = summary?.days ?? activePreset;
-
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className='p-6 lg:p-8 max-w-7xl'>
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className='mb-8'
+    <div className='relative'>
+      {/* Ambient background glows */}
+      <div
+        aria-hidden
+        className='pointer-events-none fixed inset-0 overflow-hidden'
+        style={{ zIndex: 0 }}
       >
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-          <div>
-            <div className='flex items-center gap-2'>
-              <h1 className='text-2xl font-bold text-foreground'>Dashboard</h1>
-              {/* Spinner on range-change refetch (data stays visible) */}
-              {isFetching && !isPending && (
-                <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
-              )}
-            </div>
-            <p className='text-sm text-muted-foreground mt-1'>
-              Platform analytics, content overview, and quick actions
-            </p>
-          </div>
+        <div
+          style={{
+            position: 'absolute',
+            top: '-8%',
+            left: '-4%',
+            width: '50%',
+            height: '45%',
+            background:
+              'radial-gradient(ellipse, hsl(210 100% 50% / 0.055) 0%, transparent 65%)',
+            filter: 'blur(60px)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '38%',
+            height: '38%',
+            background:
+              'radial-gradient(ellipse at 80% 20%, hsl(168 78% 45% / 0.045) 0%, transparent 65%)',
+            filter: 'blur(55px)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '10%',
+            left: '30%',
+            width: '40%',
+            height: '30%',
+            background:
+              'radial-gradient(ellipse, hsl(258 82% 55% / 0.035) 0%, transparent 65%)',
+            filter: 'blur(70px)',
+          }}
+        />
+      </div>
 
-          {/* Date Range Picker */}
-          <div className='flex items-center gap-2 flex-wrap'>
-            {presets.map((p) => (
-              <Button
-                key={p.days}
-                variant={activePreset === p.days ? 'default' : 'outline'}
-                size='sm'
-                className={cn(
-                  'text-xs h-8 px-3',
-                  activePreset === p.days
-                    ? 'bg-primary text-primary-foreground'
-                    : 'border-border/50 text-muted-foreground hover:text-foreground',
-                )}
-                onClick={() => handlePreset(p.days)}
-              >
-                {p.label}
-              </Button>
-            ))}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className={cn(
-                    'text-xs h-8 gap-1.5 border-border/50',
-                    activePreset === 0
-                      ? 'bg-primary/10 text-primary border-primary/30'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  <CalendarIcon className='h-3.5 w-3.5' />
-                  {activePreset === 0 ? dateLabel : 'Custom'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className='w-auto p-0' align='end'>
-                <Calendar
-                  mode='range'
-                  selected={dateRange}
-                  onSelect={handleDateRangeChange}
-                  numberOfMonths={2}
-                  disabled={(date) => date > today}
-                  initialFocus
-                  className={cn('p-3 pointer-events-auto')}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* ── Error banner ────────────────────────────────────────────────────── */}
-      {isError && (
-        <div className='mb-6 flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive'>
-          <AlertCircle className='h-4 w-4 shrink-0' />
-          <span>
-            {(error as { message?: string })?.message ??
-              'Failed to load dashboard data. Please try again.'}
-          </span>
-        </div>
-      )}
-
-      {/* ── Top Stats Row ────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className='grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8'
-      >
-        <StatCard
-          label='Total Users'
-          value={summary?.totalUsers}
-          icon={Users}
-          loading={isPending}
-        />
-        <StatCard
-          label={`New (${summaryDays}d)`}
-          value={summary?.newUsersInRange}
-          icon={UserPlus}
-          trend={summary ? `+${summary.userGrowthPct}%` : undefined}
-          loading={isPending}
-        />
-        <StatCard
-          label='Avg Daily Active'
-          value={summary?.avgDailyActive}
-          icon={Activity}
-          loading={isPending}
-        />
-        <StatCard
-          label={`Submissions (${summaryDays}d)`}
-          value={summary?.totalSubmissions}
-          icon={BarChart3}
-          loading={isPending}
-        />
-        <StatCard
-          label='Total Problems'
-          value={problemStats?.total}
-          icon={ListChecks}
-          loading={isPending}
-        />
-        <StatCard
-          label='Total Sheets'
-          value={isPending ? undefined : sheets.length}
-          icon={BookOpen}
-          loading={isPending}
-        />
-      </motion.div>
-
-      {/* ── Analytics Charts ─────────────────────────────────────────────────── */}
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8'>
-        {/* Signups */}
+      <div className='relative p-6 lg:p-8 max-w-7xl' style={{ zIndex: 1 }}>
+        {/* ── Header ──────────────────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          className='mb-8'
         >
-          <Card className='glass-card border-border/50'>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-sm font-semibold flex items-center gap-2'>
-                <UserPlus className='h-4 w-4 text-primary' />
-                New Signups
-              </CardTitle>
-              <CardDescription className='text-xs'>
-                Daily new user registrations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className='h-[200px]'>
+          <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5'>
+            <div>
+              <p
+                style={{
+                  color: C.blue,
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  letterSpacing: '0.17em',
+                  textTransform: 'uppercase',
+                  marginBottom: '4px',
+                }}
+              >
+                Admin Console
+              </p>
+              <div className='flex items-center gap-2.5'>
+                <h1
+                  style={{
+                    fontSize: '28px',
+                    fontWeight: 800,
+                    letterSpacing: '-0.02em',
+                    background: `linear-gradient(125deg, ${C.t1} 0%, hsl(220 15% 58%) 100%)`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  Dashboard
+                </h1>
+                {isFetching && !isPending && (
+                  <Loader2
+                    className='h-4 w-4 animate-spin'
+                    style={{ color: C.blue, marginTop: '3px' }}
+                  />
+                )}
+              </div>
+              <p style={{ color: C.t3, fontSize: '13px', marginTop: '3px' }}>
+                {summaryDays}-day window · Platform overview
+              </p>
+            </div>
+
+            {/* Range picker */}
+            <div className='flex items-center gap-1.5 flex-wrap'>
+              {PRESETS.map((p) => {
+                const active = activePreset === p.days;
+                return (
+                  <button
+                    key={p.days}
+                    onClick={() => handlePreset(p.days)}
+                    style={{
+                      height: '32px',
+                      padding: '0 12px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      background: active
+                        ? 'hsl(210 100% 65% / 0.13)'
+                        : 'transparent',
+                      color: active ? C.blue : C.t3,
+                      border: active
+                        ? `1px solid hsl(210 100% 65% / 0.32)`
+                        : `1px solid ${C.cardBdr}`,
+                      boxShadow: active
+                        ? `0 0 14px hsl(210 100% 50% / 0.14)`
+                        : 'none',
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    style={{
+                      height: '32px',
+                      padding: '0 12px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background:
+                        activePreset === 0
+                          ? 'hsl(210 100% 65% / 0.13)'
+                          : 'transparent',
+                      color: activePreset === 0 ? C.blue : C.t3,
+                      border:
+                        activePreset === 0
+                          ? `1px solid hsl(210 100% 65% / 0.32)`
+                          : `1px solid ${C.cardBdr}`,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <CalendarIcon style={{ width: '12px', height: '12px' }} />
+                    {activePreset === 0 ? dateLabel : 'Custom'}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className='w-auto p-0' align='end'>
+                  <Calendar
+                    mode='range'
+                    selected={dateRange}
+                    onSelect={handleRangeChange}
+                    numberOfMonths={2}
+                    disabled={(d) => d > today}
+                    initialFocus
+                    className={cn('p-3 pointer-events-auto')}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── Error ─────────────────────────────────────────────────────────── */}
+        {isError && (
+          <div
+            style={{
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              fontSize: '13px',
+              border: `1px solid hsl(4 75% 50% / 0.28)`,
+              background: 'hsl(4 75% 50% / 0.07)',
+              color: 'hsl(4 75% 65%)',
+            }}
+          >
+            <AlertCircle
+              style={{ width: '15px', height: '15px', flexShrink: 0 }}
+            />
+            <span>
+              {(error as { message?: string })?.message ??
+                'Failed to load dashboard data.'}
+            </span>
+          </div>
+        )}
+
+        {/* ── Metric cards ──────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className='grid grid-cols-2 lg:grid-cols-6 gap-3 mb-5'
+        >
+          <MetricCard
+            icon={<Users className='h-4 w-4' />}
+            label='Total Users'
+            value={summary?.totalUsers}
+            accent='blue'
+            loading={isPending}
+          />
+          <MetricCard
+            icon={<UserPlus className='h-4 w-4' />}
+            label={`New · ${summaryDays}d`}
+            value={summary?.newUsersInRange}
+            accent='blue'
+            loading={isPending}
+            trend={summary ? `+${summary.userGrowthPct}%` : undefined}
+          />
+          <MetricCard
+            icon={<Activity className='h-4 w-4' />}
+            label='Avg Daily Active'
+            value={summary?.avgDailyActive}
+            accent='teal'
+            loading={isPending}
+          />
+          <MetricCard
+            icon={<BarChart3 className='h-4 w-4' />}
+            label='Submissions'
+            value={summary?.totalSubmissions}
+            accent='violet'
+            loading={isPending}
+          />
+          <MetricCard
+            icon={<ListChecks className='h-4 w-4' />}
+            label='Problems'
+            value={problemStats?.total}
+            accent='amber'
+            loading={isPending}
+          />
+          <MetricCard
+            icon={<BookOpen className='h-4 w-4' />}
+            label='Sheets'
+            value={isPending ? undefined : sheets.length}
+            accent='green'
+            loading={isPending}
+          />
+        </motion.div>
+
+        {/* ── Charts ────────────────────────────────────────────────────────── */}
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5'>
+          {/* Signups */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Panel
+              label='New Signups'
+              sub='Daily registrations'
+              iconColor={C.blue}
+              icon={<UserPlus className='h-3.5 w-3.5' />}
+            >
+              <div style={{ height: '190px' }}>
                 {isPending ? (
                   <ChartSkeleton />
                 ) : (
                   <ResponsiveContainer width='100%' height='100%'>
                     <AreaChart
                       data={analytics}
-                      margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
+                      margin={{ top: 4, right: 2, left: -26, bottom: 0 }}
                     >
                       <defs>
                         <linearGradient
-                          id='signupGradient'
+                          id='gSignup'
                           x1='0'
                           y1='0'
                           x2='0'
@@ -293,84 +450,76 @@ export default function AdminDashboard() {
                         >
                           <stop
                             offset='5%'
-                            stopColor='hsl(var(--primary))'
-                            stopOpacity={0.3}
+                            stopColor={C.blue}
+                            stopOpacity={0.22}
                           />
                           <stop
                             offset='95%'
-                            stopColor='hsl(var(--primary))'
+                            stopColor={C.blue}
                             stopOpacity={0}
                           />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid
-                        strokeDasharray='3 3'
-                        stroke='hsl(var(--border))'
-                        strokeOpacity={0.4}
-                      />
+                      <CartesianGrid strokeDasharray='2 4' stroke={C.grid} />
                       <XAxis
                         dataKey='date'
-                        tick={{
-                          fontSize: 10,
-                          fill: 'hsl(var(--muted-foreground))',
-                        }}
+                        tick={{ fontSize: 10, fill: C.axisTick }}
                         tickLine={false}
                         axisLine={false}
                         interval={xInterval}
                       />
                       <YAxis
-                        tick={{
-                          fontSize: 10,
-                          fill: 'hsl(var(--muted-foreground))',
-                        }}
+                        tick={{ fontSize: 10, fill: C.axisTick }}
                         tickLine={false}
                         axisLine={false}
                       />
-                      <Tooltip contentStyle={chartTooltipStyle} />
+                      <Tooltip
+                        contentStyle={TT}
+                        cursor={{
+                          stroke: C.blue,
+                          strokeWidth: 1,
+                          strokeOpacity: 0.35,
+                        }}
+                      />
                       <Area
                         type='monotone'
                         dataKey='signups'
-                        stroke='hsl(var(--primary))'
+                        stroke={C.blue}
                         strokeWidth={2}
-                        fill='url(#signupGradient)'
+                        fill='url(#gSignup)'
+                        dot={false}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            </Panel>
+          </motion.div>
 
-        {/* Daily Active Users */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-          <Card className='glass-card border-border/50'>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-sm font-semibold flex items-center gap-2'>
-                <Activity className='h-4 w-4 text-[hsl(var(--cyan))]' />
-                Daily Active Users
-              </CardTitle>
-              <CardDescription className='text-xs'>
-                Unique active users per day
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className='h-[200px]'>
+          {/* Daily Active */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.13 }}
+          >
+            <Panel
+              label='Daily Active Users'
+              sub='Unique users per day'
+              iconColor={C.teal}
+              icon={<Activity className='h-3.5 w-3.5' />}
+            >
+              <div style={{ height: '190px' }}>
                 {isPending ? (
                   <ChartSkeleton />
                 ) : (
                   <ResponsiveContainer width='100%' height='100%'>
                     <AreaChart
                       data={analytics}
-                      margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
+                      margin={{ top: 4, right: 2, left: -26, bottom: 0 }}
                     >
                       <defs>
                         <linearGradient
-                          id='activeGradient'
+                          id='gActive'
                           x1='0'
                           y1='0'
                           x2='0'
@@ -378,93 +527,85 @@ export default function AdminDashboard() {
                         >
                           <stop
                             offset='5%'
-                            stopColor='hsl(var(--cyan))'
-                            stopOpacity={0.3}
+                            stopColor={C.teal}
+                            stopOpacity={0.22}
                           />
                           <stop
                             offset='95%'
-                            stopColor='hsl(var(--cyan))'
+                            stopColor={C.teal}
                             stopOpacity={0}
                           />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid
-                        strokeDasharray='3 3'
-                        stroke='hsl(var(--border))'
-                        strokeOpacity={0.4}
-                      />
+                      <CartesianGrid strokeDasharray='2 4' stroke={C.grid} />
                       <XAxis
                         dataKey='date'
-                        tick={{
-                          fontSize: 10,
-                          fill: 'hsl(var(--muted-foreground))',
-                        }}
+                        tick={{ fontSize: 10, fill: C.axisTick }}
                         tickLine={false}
                         axisLine={false}
                         interval={xInterval}
                       />
                       <YAxis
-                        tick={{
-                          fontSize: 10,
-                          fill: 'hsl(var(--muted-foreground))',
-                        }}
+                        tick={{ fontSize: 10, fill: C.axisTick }}
                         tickLine={false}
                         axisLine={false}
                       />
-                      <Tooltip contentStyle={chartTooltipStyle} />
+                      <Tooltip
+                        contentStyle={TT}
+                        cursor={{
+                          stroke: C.teal,
+                          strokeWidth: 1,
+                          strokeOpacity: 0.35,
+                        }}
+                      />
                       <Area
                         type='monotone'
                         dataKey='active'
-                        stroke='hsl(var(--cyan))'
+                        stroke={C.teal}
                         strokeWidth={2}
-                        fill='url(#activeGradient)'
+                        fill='url(#gActive)'
+                        dot={false}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            </Panel>
+          </motion.div>
 
-        {/* Submission Trends — full width */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className='lg:col-span-2'
-        >
-          <Card className='glass-card border-border/50'>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-sm font-semibold flex items-center gap-2'>
-                <BarChart3 className='h-4 w-4 text-[hsl(var(--amber))]' />
-                Submission Trends
-              </CardTitle>
-              <CardDescription className='text-xs'>
-                Accepted vs rejected submissions per day
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className='h-[220px]'>
+          {/* Submissions – full width */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.16 }}
+            className='lg:col-span-2'
+          >
+            <Panel
+              label='Submission Trends'
+              sub='Accepted vs rejected per day'
+              iconColor={C.amber}
+              icon={<BarChart3 className='h-3.5 w-3.5' />}
+              extra={
+                <div className='flex items-center gap-3'>
+                  <Dot color={C.green} label='Accepted' />
+                  <Dot color={C.red} label='Rejected' />
+                </div>
+              }
+            >
+              <div style={{ height: '210px' }}>
                 {isPending ? (
                   <ChartSkeleton />
                 ) : (
                   <ResponsiveContainer width='100%' height='100%'>
                     <BarChart
                       data={analytics}
-                      margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
+                      margin={{ top: 4, right: 2, left: -26, bottom: 0 }}
+                      barCategoryGap='36%'
                     >
-                      <CartesianGrid
-                        strokeDasharray='3 3'
-                        stroke='hsl(var(--border))'
-                        strokeOpacity={0.4}
-                      />
+                      <CartesianGrid strokeDasharray='2 4' stroke={C.grid} />
                       <XAxis
                         dataKey='date'
-                        tick={{
-                          fontSize: 10,
-                          fill: 'hsl(var(--muted-foreground))',
-                        }}
+                        tick={{ fontSize: 10, fill: C.axisTick }}
                         tickLine={false}
                         axisLine={false}
                         interval={Math.max(
@@ -473,203 +614,236 @@ export default function AdminDashboard() {
                         )}
                       />
                       <YAxis
-                        tick={{
-                          fontSize: 10,
-                          fill: 'hsl(var(--muted-foreground))',
-                        }}
+                        tick={{ fontSize: 10, fill: C.axisTick }}
                         tickLine={false}
                         axisLine={false}
                       />
-                      <Tooltip contentStyle={chartTooltipStyle} />
-                      <Legend
-                        wrapperStyle={{
-                          fontSize: '11px',
-                          color: 'hsl(var(--muted-foreground))',
-                        }}
-                        iconSize={8}
+                      <Tooltip
+                        contentStyle={TT}
+                        cursor={{ fill: 'hsl(222 25% 12%)' }}
                       />
                       <Bar
                         dataKey='accepted'
-                        stackId='submissions'
-                        fill='hsl(var(--primary))'
+                        stackId='s'
+                        fill={C.green}
+                        fillOpacity={0.82}
                         radius={[0, 0, 0, 0]}
                         name='Accepted'
                       />
                       <Bar
                         dataKey='rejected'
-                        stackId='submissions'
-                        fill='hsl(var(--rose))'
-                        radius={[2, 2, 0, 0]}
+                        stackId='s'
+                        fill={C.red}
+                        fillOpacity={0.72}
+                        radius={[3, 3, 0, 0]}
                         name='Rejected'
-                        fillOpacity={0.7}
                       />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+            </Panel>
+          </motion.div>
+        </div>
 
-      {/* ── Quick Actions ────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-8'
-      >
-        <Link to='/admin/problems/create' className='group'>
-          <div className='glass-card p-5 flex items-center gap-4 hover:border-primary/30 transition-all duration-300'>
-            <div className='p-2.5 rounded-xl bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors'>
-              <Plus className='h-5 w-5 text-primary' />
-            </div>
-            <div className='flex-1'>
-              <h3 className='text-sm font-semibold text-foreground'>
-                Create Problem
-              </h3>
-              <p className='text-xs text-muted-foreground mt-0.5'>
-                Add a new coding challenge with test cases
-              </p>
-            </div>
-            <ArrowRight className='h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all' />
-          </div>
-        </Link>
-        <Link to='/admin/sheets/create' className='group'>
-          <div className='glass-card p-5 flex items-center gap-4 hover:border-primary/30 transition-all duration-300'>
-            <div className='p-2.5 rounded-xl bg-[hsl(var(--cyan))]/10 border border-[hsl(var(--cyan))]/20 group-hover:bg-[hsl(var(--cyan))]/20 transition-colors'>
-              <Plus className='h-5 w-5 text-[hsl(var(--cyan))]' />
-            </div>
-            <div className='flex-1'>
-              <h3 className='text-sm font-semibold text-foreground'>
-                Create Sheet
-              </h3>
-              <p className='text-xs text-muted-foreground mt-0.5'>
-                Organize problems into a structured practice sheet
-              </p>
-            </div>
-            <ArrowRight className='h-4 w-4 text-muted-foreground/40 group-hover:text-[hsl(var(--cyan))] group-hover:translate-x-1 transition-all' />
-          </div>
-        </Link>
-      </motion.div>
-
-      {/* ── Content Sections ─────────────────────────────────────────────────── */}
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-        {/* Problems difficulty breakdown */}
+        {/* ── Quick Actions ─────────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className='glass-card p-5'
+          transition={{ delay: 0.19 }}
+          className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-5'
         >
-          <div className='flex items-center justify-between mb-4'>
-            <h3 className='text-sm font-semibold text-foreground flex items-center gap-2'>
-              <ListChecks className='h-4 w-4 text-primary' />
-              Problems
-            </h3>
-            <Link
-              to='/admin/problems'
-              className='text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1'
-            >
-              View all <ArrowRight className='h-3 w-3' />
-            </Link>
-          </div>
-
-          {isPending ? (
-            <div className='space-y-3'>
-              {['Easy', 'Medium', 'Hard'].map((label) => (
-                <div key={label} className='flex items-center gap-3'>
-                  <span className='text-xs text-muted-foreground w-14'>
-                    {label}
-                  </span>
-                  <div className='flex-1 h-2 bg-surface-3 rounded-full animate-pulse' />
-                  <span className='text-xs font-mono text-muted-foreground w-8 text-right'>
-                    —
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className='space-y-3'>
-              <DifficultyBar
-                label='Easy'
-                count={problemStats?.easy ?? 0}
-                total={problemStats?.total ?? 0}
-                color='hsl(var(--emerald))'
-              />
-              <DifficultyBar
-                label='Medium'
-                count={problemStats?.medium ?? 0}
-                total={problemStats?.total ?? 0}
-                color='hsl(var(--amber))'
-              />
-              <DifficultyBar
-                label='Hard'
-                count={problemStats?.hard ?? 0}
-                total={problemStats?.total ?? 0}
-                color='hsl(var(--rose))'
-              />
-            </div>
-          )}
+          <ActionCard
+            to='/admin/problems/create'
+            label='Create Problem'
+            desc='Add a new coding challenge with test cases'
+            color={C.blue}
+          />
+          <ActionCard
+            to='/admin/sheets/create'
+            label='Create Sheet'
+            desc='Organize problems into a structured practice sheet'
+            color={C.teal}
+          />
         </motion.div>
 
-        {/* Sheets list */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className='glass-card p-5'
-        >
-          <div className='flex items-center justify-between mb-4'>
-            <h3 className='text-sm font-semibold text-foreground flex items-center gap-2'>
-              <BookOpen className='h-4 w-4 text-[hsl(var(--cyan))]' />
-              Sheets
-            </h3>
-            <Link
-              to='/admin/sheets'
-              className='text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1'
-            >
-              View all <ArrowRight className='h-3 w-3' />
-            </Link>
-          </div>
-
-          {isPending ? (
-            <div className='space-y-2'>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className='h-9 rounded-lg bg-surface-2/40 animate-pulse'
-                />
-              ))}
-            </div>
-          ) : sheets.length === 0 ? (
-            <p className='text-xs text-muted-foreground text-center py-6'>
-              No sheets yet
-            </p>
-          ) : (
-            <div className='space-y-2'>
-              {sheets.slice(0, 5).map((sheet) => (
+        {/* ── Content rows ──────────────────────────────────────────────────── */}
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+          {/* Problems */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22 }}
+          >
+            <Panel
+              label='Problems'
+              sub={problemStats ? `${problemStats.total} total` : undefined}
+              iconColor={C.blue}
+              icon={<ListChecks className='h-3.5 w-3.5' />}
+              extra={
                 <Link
-                  key={sheet.id}
-                  to={`/admin/sheets/edit/${sheet.id}`}
-                  className='flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface-2/50 transition-colors group'
+                  to='/admin/problems'
+                  style={{
+                    color: C.blue,
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                  }}
                 >
-                  <span className='text-sm text-foreground group-hover:text-primary transition-colors flex-1 truncate'>
-                    {sheet.name}
-                  </span>
-                  <span className='text-[10px] text-muted-foreground font-mono'>
-                    {sheet.totalProblems} problems
-                  </span>
+                  View all{' '}
+                  <ArrowRight style={{ width: '11px', height: '11px' }} />
                 </Link>
-              ))}
-              {sheets.length > 5 && (
-                <p className='text-[11px] text-muted-foreground/60 text-center pt-1'>
-                  +{sheets.length - 5} more sheets
-                </p>
+              }
+            >
+              {isPending ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  {['Easy', 'Medium', 'Hard'].map((l) => (
+                    <div
+                      key={l}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                      }}
+                    >
+                      <span
+                        style={{ fontSize: '12px', color: C.t3, width: '52px' }}
+                      >
+                        {l}
+                      </span>
+                      <div
+                        style={{
+                          flex: 1,
+                          height: '6px',
+                          borderRadius: '4px',
+                          background: C.grid,
+                          animation: 'pulse 2s infinite',
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  <DiffBar
+                    label='Easy'
+                    count={problemStats?.easy ?? 0}
+                    total={problemStats?.total ?? 0}
+                    color={C.green}
+                  />
+                  <DiffBar
+                    label='Medium'
+                    count={problemStats?.medium ?? 0}
+                    total={problemStats?.total ?? 0}
+                    color={C.amber}
+                  />
+                  <DiffBar
+                    label='Hard'
+                    count={problemStats?.hard ?? 0}
+                    total={problemStats?.total ?? 0}
+                    color={C.red}
+                  />
+                </div>
               )}
-            </div>
-          )}
-        </motion.div>
+            </Panel>
+          </motion.div>
+
+          {/* Sheets */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+          >
+            <Panel
+              label='Sheets'
+              sub={sheets.length ? `${sheets.length} total` : undefined}
+              iconColor={C.teal}
+              icon={<BookOpen className='h-3.5 w-3.5' />}
+              extra={
+                <Link
+                  to='/admin/sheets'
+                  style={{
+                    color: C.teal,
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                  }}
+                >
+                  View all{' '}
+                  <ArrowRight style={{ width: '11px', height: '11px' }} />
+                </Link>
+              }
+            >
+              {isPending ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}
+                >
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        height: '34px',
+                        borderRadius: '8px',
+                        background: C.grid,
+                        animation: 'pulse 2s infinite',
+                        animationDelay: `${i * 80}ms`,
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : sheets.length === 0 ? (
+                <p
+                  style={{
+                    textAlign: 'center',
+                    color: C.t3,
+                    fontSize: '13px',
+                    padding: '20px 0',
+                  }}
+                >
+                  No sheets yet
+                </p>
+              ) : (
+                <div>
+                  {sheets.slice(0, 5).map((sheet) => (
+                    <SheetRow key={sheet.id} sheet={sheet} />
+                  ))}
+                  {sheets.length > 5 && (
+                    <p
+                      style={{
+                        textAlign: 'center',
+                        color: C.t3,
+                        fontSize: '11px',
+                        paddingTop: '8px',
+                      }}
+                    >
+                      +{sheets.length - 5} more
+                    </p>
+                  )}
+                </div>
+              )}
+            </Panel>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -677,41 +851,286 @@ export default function AdminDashboard() {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function StatCard({
+function Panel({
+  children,
   label,
-  value,
-  icon: Icon,
-  trend,
-  loading,
+  sub,
+  icon,
+  iconColor,
+  extra,
 }: {
+  children: React.ReactNode;
   label: string;
-  value: number | undefined;
-  icon: React.ElementType;
-  trend?: string;
-  loading?: boolean;
+  sub?: string;
+  icon?: React.ReactNode;
+  iconColor?: string;
+  extra?: React.ReactNode;
 }) {
   return (
-    <div className='glass-card p-4'>
-      <div className='flex items-center justify-between mb-2'>
-        <Icon className='h-4 w-4 text-muted-foreground' />
-        {trend && !loading && (
-          <span className='flex items-center gap-0.5 text-[10px] font-medium text-[hsl(var(--emerald))]'>
-            <ArrowUpRight className='h-3 w-3' />
-            {trend}
-          </span>
-        )}
+    <div
+      style={{
+        borderRadius: '18px',
+        padding: '20px',
+        background: C.card,
+        border: `1px solid ${C.cardBdr}`,
+        backdropFilter: 'blur(14px)',
+        boxShadow: '0 1px 0 hsl(222 25% 20% / 0.4) inset',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {icon && iconColor && (
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: `${iconColor.replace('hsl(', 'hsl(').replace(')', ' / 0.12)')}`,
+                border: `1px solid ${iconColor.replace('hsl(', 'hsl(').replace(')', ' / 0.22)')}`,
+                color: iconColor,
+                flexShrink: 0,
+              }}
+            >
+              {icon}
+            </div>
+          )}
+          <div>
+            <p
+              style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: C.t1,
+                margin: 0,
+              }}
+            >
+              {label}
+            </p>
+            {sub && (
+              <p style={{ fontSize: '11px', color: C.t3, margin: '1px 0 0' }}>
+                {sub}
+              </p>
+            )}
+          </div>
+        </div>
+        {extra}
       </div>
-      {loading ? (
-        <div className='h-8 w-16 bg-surface-3 rounded animate-pulse mb-1' />
-      ) : (
-        <div className='text-2xl font-bold text-foreground'>{value ?? '—'}</div>
-      )}
-      <div className='text-[11px] text-muted-foreground mt-0.5'>{label}</div>
+      <div style={{ flex: 1 }}>{children}</div>
     </div>
   );
 }
 
-function DifficultyBar({
+function MetricCard({
+  icon,
+  label,
+  value,
+  accent,
+  trend,
+  loading,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | undefined;
+  accent: AccentKey;
+  trend?: string;
+  loading?: boolean;
+}) {
+  const a = ACCENTS[accent];
+  return (
+    <div
+      style={{
+        borderRadius: '16px',
+        padding: '16px',
+        position: 'relative',
+        overflow: 'hidden',
+        background: C.card,
+        border: `1px solid ${a.ring}`,
+        backdropFilter: 'blur(14px)',
+        boxShadow: `0 0 22px ${a.glow}, 0 1px 0 hsl(222 25% 20% / 0.4) inset`,
+      }}
+    >
+      {/* corner glow */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: '56px',
+          height: '56px',
+          background: `radial-gradient(circle at top right, ${a.glow.replace('0.10)', '0.5)')} 0%, transparent 70%)`,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div
+            style={{
+              height: '10px',
+              width: '60px',
+              borderRadius: '5px',
+              background: C.grid,
+              animation: 'pulse 2s infinite',
+            }}
+          />
+          <div
+            style={{
+              height: '26px',
+              width: '48px',
+              borderRadius: '6px',
+              background: C.grid,
+              animation: 'pulse 2s infinite',
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '6px',
+            }}
+          >
+            <span style={{ color: a.color, opacity: 0.7 }}>{icon}</span>
+            {trend && (
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  color: C.green,
+                }}
+              >
+                <ArrowUpRight style={{ width: '11px', height: '11px' }} />
+                {trend}
+              </span>
+            )}
+          </div>
+          <p
+            style={{
+              fontSize: '22px',
+              fontWeight: 800,
+              color: a.color,
+              margin: 0,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
+            }}
+          >
+            {value?.toLocaleString() ?? '—'}
+          </p>
+          <p style={{ fontSize: '11px', color: C.t3, margin: '3px 0 0' }}>
+            {label}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ActionCard({
+  to,
+  label,
+  desc,
+  color,
+}: {
+  to: string;
+  label: string;
+  desc: string;
+  color: string;
+}) {
+  const ringColor = color.replace(')', ' / 0.28)').replace('hsl(', 'hsl(');
+  const bgColor = color.replace(')', ' / 0.10)').replace('hsl(', 'hsl(');
+
+  return (
+    <Link to={to} className='group block'>
+      <div
+        style={{
+          borderRadius: '16px',
+          padding: '18px 20px',
+          background: C.card,
+          border: `1px solid ${C.cardBdr}`,
+          backdropFilter: 'blur(14px)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          transition: 'border-color 0.18s, box-shadow 0.18s',
+        }}
+        onMouseEnter={(e) => {
+          const el = e.currentTarget as HTMLDivElement;
+          el.style.borderColor = ringColor;
+          el.style.boxShadow = `0 0 28px ${bgColor}`;
+        }}
+        onMouseLeave={(e) => {
+          const el = e.currentTarget as HTMLDivElement;
+          el.style.borderColor = C.cardBdr;
+          el.style.boxShadow = 'none';
+        }}
+      >
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: bgColor,
+            border: `1px solid ${ringColor}`,
+            color,
+            transition: 'background 0.18s',
+          }}
+        >
+          <Plus style={{ width: '18px', height: '18px' }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              color: C.t1,
+              margin: 0,
+            }}
+          >
+            {label}
+          </p>
+          <p style={{ fontSize: '12px', color: C.t3, margin: '2px 0 0' }}>
+            {desc}
+          </p>
+        </div>
+        <ArrowRight
+          style={{
+            width: '15px',
+            height: '15px',
+            flexShrink: 0,
+            color: C.t3,
+            transition: 'transform 0.18s, color 0.18s',
+          }}
+          className='group-hover:translate-x-1'
+        />
+      </div>
+    </Link>
+  );
+}
+
+function DiffBar({
   label,
   count,
   total,
@@ -724,34 +1143,152 @@ function DifficultyBar({
 }) {
   const pct = total > 0 ? (count / total) * 100 : 0;
   return (
-    <div className='flex items-center gap-3'>
-      <span className='text-xs text-muted-foreground w-14'>{label}</span>
-      <div className='flex-1 h-2 bg-surface-3 rounded-full overflow-hidden'>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <span
+        style={{
+          fontSize: '12px',
+          fontWeight: 500,
+          color: C.t2,
+          width: '52px',
+        }}
+      >
+        {label}
+      </span>
+      <div
+        style={{
+          flex: 1,
+          height: '6px',
+          borderRadius: '99px',
+          overflow: 'hidden',
+          background: C.grid,
+        }}
+      >
         <motion.div
-          className='h-full rounded-full'
-          style={{ backgroundColor: color }}
+          style={{
+            height: '100%',
+            borderRadius: '99px',
+            background: `linear-gradient(90deg, ${color} 0%, ${color.replace(')', ' / 0.65)').replace('hsl(', 'hsl(')} 100%)`,
+          }}
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          transition={{ duration: 0.85, ease: 'easeOut' }}
         />
       </div>
-      <span className='text-xs font-mono text-muted-foreground w-8 text-right'>
+      <span
+        style={{
+          fontSize: '12px',
+          fontWeight: 600,
+          fontFamily: 'monospace',
+          color: C.t2,
+          width: '28px',
+          textAlign: 'right',
+        }}
+      >
         {count}
       </span>
     </div>
   );
 }
 
-/** Animated bar-chart skeleton shown while charts are loading */
+function SheetRow({
+  sheet,
+}: {
+  sheet: { id: string; name: string; totalProblems: number };
+}) {
+  return (
+    <Link
+      to={`/admin/sheets/edit/${sheet.id}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '8px 10px',
+        borderRadius: '8px',
+        textDecoration: 'none',
+        transition: 'background 0.12s',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLAnchorElement).style.background =
+          'hsl(222 25% 12%)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
+      }}
+    >
+      <span
+        style={{
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          background: 'hsl(168 78% 52% / 0.55)',
+          flexShrink: 0,
+        }}
+      />
+      <span
+        style={{
+          fontSize: '13px',
+          fontWeight: 500,
+          color: C.t1,
+          flex: 1,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {sheet.name}
+      </span>
+      <span style={{ fontSize: '11px', fontFamily: 'monospace', color: C.t3 }}>
+        {sheet.totalProblems}p
+      </span>
+    </Link>
+  );
+}
+
+function Dot({ color, label }: { color: string; label: string }) {
+  return (
+    <span
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        fontSize: '11px',
+        color: C.t3,
+      }}
+    >
+      <span
+        style={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '3px',
+          background: color,
+          display: 'inline-block',
+        }}
+      />
+      {label}
+    </span>
+  );
+}
+
 function ChartSkeleton() {
   return (
-    <div className='h-full flex items-end gap-1 px-2 pb-2'>
-      {Array.from({ length: 20 }).map((_, i) => (
+    <div
+      style={{
+        height: '100%',
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: '3px',
+        paddingBottom: '4px',
+      }}
+    >
+      {Array.from({ length: 22 }).map((_, i) => (
         <div
           key={i}
-          className='flex-1 bg-surface-3 rounded-t animate-pulse'
           style={{
-            height: `${25 + ((i * 37) % 55)}%`,
+            flex: 1,
+            borderRadius: '3px 3px 0 0',
+            height: `${20 + ((i * 43) % 60)}%`,
+            background: C.grid,
+            animation: 'pulse 2s ease-in-out infinite',
             animationDelay: `${i * 40}ms`,
           }}
         />
