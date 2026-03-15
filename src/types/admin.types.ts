@@ -1,0 +1,55 @@
+// src/types/admin.types.ts
+import type { ApiSuccess, ApiError } from './problem.types';
+export type { ApiError };
+
+// ─── Daily analytics entry (one per day in the selected range) ────────────────
+
+export interface DailyAnalyticsEntry {
+  date: string; // "Mar 5" — used directly as XAxis dataKey
+  signups: number;
+  active: number; // unique users with ≥1 submission that day
+  accepted: number;
+  rejected: number;
+}
+
+// ─── Summary stats for the selected date window ───────────────────────────────
+
+export interface AnalyticsSummary {
+  days: number;
+  totalUsers: number;
+  newUsersInRange: number;
+  userGrowthPct: number;
+  avgDailyActive: number;
+  totalSubmissions: number;
+}
+
+// ─── Problem difficulty breakdown ─────────────────────────────────────────────
+
+export interface AdminProblemStats {
+  total: number;
+  easy: number;
+  medium: number;
+  hard: number;
+}
+
+// ─── Sheet list item ──────────────────────────────────────────────────────────
+
+export interface AdminSheetItem {
+  id: string;
+  name: string;
+  description: string | null;
+  totalProblems: number;
+}
+
+// ─── Full dashboard payload (`data` field inside the API envelope) ────────────
+
+export interface AdminDashboardData {
+  analytics: DailyAnalyticsEntry[];
+  summary: AnalyticsSummary;
+  problemStats: AdminProblemStats;
+  sheets: AdminSheetItem[];
+}
+
+// ─── Typed API response  ──────────────────────────────────────────────────────
+// GET /api/v1/admin/dashboard → ApiSuccess<AdminDashboardData>
+export type AdminDashboardResponse = ApiSuccess<AdminDashboardData>;
