@@ -53,3 +53,31 @@ export interface AdminDashboardData {
 // ─── Typed API response  ──────────────────────────────────────────────────────
 // GET /api/v1/admin/dashboard → ApiSuccess<AdminDashboardData>
 export type AdminDashboardResponse = ApiSuccess<AdminDashboardData>;
+
+// ─── Users types ──────────────────────────────────────────────────────────────
+
+export interface AdminUserEntry {
+  id: string;
+  displayName: string;
+  username: string;
+  email: string;
+  initials: string;
+  role: 'ADMIN' | 'USER';
+  image: string | null;
+  totalSolved: number;
+  currentStreak: number;
+  acceptanceRate: number; // 0–100
+  rank: number;
+  lastActive: string | null; // "Mar 5, 2026" or null
+}
+
+export interface AdminUsersData {
+  users: AdminUserEntry[];
+  stats: {
+    total: number;
+    totalSolved: number;
+  };
+}
+
+// GET /api/v1/admin/users → ApiSuccess<AdminUsersData>
+export type AdminUsersResponse = ApiSuccess<AdminUsersData>;

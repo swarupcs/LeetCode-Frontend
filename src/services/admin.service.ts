@@ -1,6 +1,10 @@
 // src/services/admin.service.ts
 import type { AxiosError } from 'axios';
-import type { AdminDashboardResponse, ApiError } from '@/types/admin.types';
+import type {
+  AdminDashboardResponse,
+  AdminUsersResponse,
+  ApiError,
+} from '@/types/admin.types';
 import { axiosInstance } from '@/config/axiosConfig';
 
 /**
@@ -23,6 +27,17 @@ export const getAdminDashboard = async (
       '/admin/dashboard',
       { params },
     );
+    return data;
+  } catch (error) {
+    const err = error as AxiosError<ApiError>;
+    throw err.response?.data ?? { message: 'Something went wrong' };
+  }
+};
+
+export const getAdminUsers = async (): Promise<AdminUsersResponse> => {
+  try {
+    const { data } =
+      await axiosInstance.get<AdminUsersResponse>('/admin/users');
     return data;
   } catch (error) {
     const err = error as AxiosError<ApiError>;
