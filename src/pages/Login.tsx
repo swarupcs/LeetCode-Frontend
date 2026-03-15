@@ -34,17 +34,20 @@ export default function LoginPage() {
     e.preventDefault();
 
     try {
-      const data = await signinMutation({ email, password });
+      const response = await signinMutation({ email, password });
+
+      console.log("response", response)
+      const data = response?.data;
 
       // data should be the response from your API: { success, message, user }
-      if (data?.user) {
+      if (data) {
         dispatch(
           loginSuccess({
-            user: data.user.name,
-            role: data.user.role,
-            id: data.user.id,
-            username: data.user.username,
-            email: data.user.email,
+            user: data.name ?? '',
+            role: data.role,
+            id: data.id,
+            username: data.username ?? '',
+            email: data.email,
           }),
         );
       }

@@ -55,16 +55,19 @@ export default function GoogleCallback() {
 
         if (!res.ok) throw new Error('Not authenticated');
 
-        const data = await res.json();
+        const response = await res.json();
+        const data = response.data;
 
-        if (data?.user) {
+        console.log("data", data)
+
+        if (data) {
           dispatch(
             loginSuccess({
-              user: data.user.name,
-              role: data.user.role,
-              id: data.user.id,
-              username: data.user.username,
-              email: data.user.email,
+              user: data.name,
+              role: data.role,
+              id: data.id,
+              username: data.username,
+              email: data.email,
             }),
           );
         }
